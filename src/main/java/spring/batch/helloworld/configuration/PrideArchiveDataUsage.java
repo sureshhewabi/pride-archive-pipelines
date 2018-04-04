@@ -24,17 +24,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Calculates and collates PRIDE Archive data usage for year and month according the TSC specification
+ * https://docs.google.com/document/d/1sr90-rsPYk-3uWtMAPNMFBXqMzRtLG0PNpb6--FFXLA/
+ */
 @Configuration
-public class CalcuateDataUsage {
-
-  // todo javadoc
+public class PrideArchiveDataUsage {
   // todo unit tests
   // todo crontab schedule
   // todo production deployment
   // todo CI
   // todo automate deployment
 
-  private final Logger log = LoggerFactory.getLogger(CalcuateDataUsage.class);
+  private final Logger log = LoggerFactory.getLogger(PrideArchiveDataUsage.class);
 
   @Autowired
   private JobBuilderFactory jobBuilderFactory;
@@ -56,30 +58,42 @@ public class CalcuateDataUsage {
 
   private Map<String, Long> dataUsage = new HashMap<>();
 
+  /**
+   * Calcualtes the data usage of public, private, validated, or pre-validated 'resubmission' projects.
+   * @return the calculateDirectories step.
+   */
   @Bean
   public Step calculateAllDataUsage() {
 	return stepBuilderFactory.get("calculateDirectories")
 		.tasklet((contribution, chunkContext) -> {
 		  log.info("Starting to calculate data usage in PRIDE directory: " + prideDataPath);
 		  File parentDataDir = new File(prideDataPath);
-		  parsePublicProjects(parentDataDir);
-		  parsePrivateProjects(parentDataDir);
-		  parseResubProjects(parentDataDir);
+		  calculateDataUsagePublicProjects(parentDataDir);
+		  calculateDataUsagePrivateProjects(parentDataDir);
+		  calculateDataUsageResubProjects(parentDataDir);
 		  return RepeatStatus.FINISHED;
 		}).build();
   }
 
-  private void parsePublicProjects(File parentDataDir) {
+  /**
+   * Calculates the data usage of public projects
+   * @param parentDataDir the PRIDE Archive parent data directory
+   */
+  private void calculateDataUsagePublicProjects(File parentDataDir) {
 	log.info("Calculating public project data usage.");
 	File[] publicDirectoriesYears = parentDataDir.listFiles((dir, name) -> name.matches("^[0-9]{4}$"));
 	if (publicDirectoriesYears != null) {
 	  for (File year : publicDirectoriesYears) {
-		calculatePublicDataDirectory(year);
+		calculateDataUsagePublicYearDirectory(year);
 	  }
 	}
   }
 
-  private void calculatePublicDataDirectory(File year) {
+  /**
+   * Calculates the data usage of public data directories from a certain year.
+   * @param year the public year directory
+   */
+  private void calculateDataUsagePublicYearDirectory(File year) {
 	File[] months = year.listFiles();
 	if (months != null) {
 	  for (File month : months) {
@@ -102,24 +116,32 @@ public class CalcuateDataUsage {
 	}
   }
 
-  private void parsePrivateProjects(File parentDataDir) {
+  /**
+   * Calculates the data usage of private (submitted private, or simply validated) projects
+   * @param parentDataDir the PRIDE Archive parent data directory
+   */
+  private void calculateDataUsagePrivateProjects(File parentDataDir) {
 	log.info("Calculating private project data usage.");
 	File[] privateAndValidatedDirectories = parentDataDir.listFiles((dir, name) -> !name.matches("^[0-9]{4}$") && !name.matches("resub"));
 	if (privateAndValidatedDirectories != null) {
 	  for (File privateOrValidatedDirectory : privateAndValidatedDirectories) {
-		calculatePrivateDataDirectory(privateOrValidatedDirectory);
+		calculateDataUsagePrivateValidatedDirectory(privateOrValidatedDirectory);
 	  }
 	}
   }
 
-  private void parseResubProjects(File parentDataDir) {
+  /**
+   * Calculates the data usage for 'resubmission' pre-validated project submissions.
+   * @param parentDataDir the PRIDE Archive parent data directory
+   */
+  private void calculateDataUsageResubProjects(File parentDataDir) {
 	log.info("Calculating pending resubmissions project data usage.");
 	File[] resubDirectory = parentDataDir.listFiles((dir, name) -> name.matches("resub"));
 	if (resubDirectory != null && resubDirectory.length==1) {
 	  File[] resubmissions = resubDirectory[0].listFiles();
 	  if (resubmissions != null && 0<resubmissions.length) {
 		for (File resubmission : resubmissions) {
-		  calculatePrivateDataDirectory(resubmission);
+		  calculateDataUsagePrivateValidatedDirectory(resubmission);
 		}
 	  } else {
 		log.error("Unable to find resubmissions directory in: " + parentDataDir);
@@ -127,7 +149,11 @@ public class CalcuateDataUsage {
 	}
   }
 
-  private void calculatePrivateDataDirectory(File privateOrValidatedDirectory) {
+  /**
+   * Calculates the data usaage of a private or validated directory
+   * @param privateOrValidatedDirectory the input directory to calculate the file size for.
+   */
+  private void calculateDataUsagePrivateValidatedDirectory(File privateOrValidatedDirectory) {
 	ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
 	File[] submissionFile = privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
 	if (submissionFile == null || submissionFile.length<1) { // validated directory
@@ -150,6 +176,13 @@ public class CalcuateDataUsage {
 	log.info("Updated data usage: " + yearMonthKey + " " + dataUsage);
   }
 
+  /**
+   *  Gets the earliest ZonedDateTime of files within a sub-directory.
+   * @param privateOrValidatedDirectory a private or validated directory
+   * @param subDirectory the sub-directory name
+   * @param earliestToTest the earliest ZonedDateTime to test against initially
+   * @return the earliest ZonedDateTime of a file, default being the input earliestToTest
+   */
   private ZonedDateTime getEarliestZonedTimeInSubDirectory(File privateOrValidatedDirectory, String subDirectory, ZonedDateTime earliestToTest) {
 	ZonedDateTime earliest = earliestToTest;
 	File[] subDirectoryFiles = privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals(subDirectory));
@@ -164,6 +197,11 @@ public class CalcuateDataUsage {
 	return earliest;
   }
 
+  /**
+   * Gets the earliest ZonedDateTime of files within a directory.
+   * @param directory the parent directory to asses files within
+   * @return the earliest ZonedDateTime of a file, default being the input earliestToTest
+   */
   private ZonedDateTime getEarliestZonedDateFromDirectory(File directory) {
 	ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
 	File[] directoryFiles = directory.listFiles();
@@ -189,6 +227,10 @@ public class CalcuateDataUsage {
 	return earliest;
   }
 
+  /**
+   * Collates the data usage according to year and month, and then outputs it to a file according to the TSC spec.
+   * @return the collageAndOutputDataUsage job.
+   */
   @Bean
   public Step collateAndOutputDataUsage() {
 	return stepBuilderFactory.get("collageAndOutputDataUsage")
@@ -220,6 +262,10 @@ public class CalcuateDataUsage {
 		}).build();
   }
 
+  /**
+   * Defines the job to calculate and collate PRIDE Archive data usage.
+   * @return the calculatePrideArchiveDataUsage job
+   */
   @Bean
   public Job calculatePrideArchiveDataUsage() {
 	return jobBuilderFactory.get("calculatePrideArchiveDataUsage")
@@ -227,5 +273,4 @@ public class CalcuateDataUsage {
 		.next(collateAndOutputDataUsage())
 		.build();
   }
-
 }
