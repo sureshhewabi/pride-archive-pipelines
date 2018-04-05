@@ -1,4 +1,4 @@
-package spring.batch.helloworld.configuration;
+package uk.ac.ebi.pride.archive.pipeline.configuration;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -9,6 +9,7 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -125,7 +126,7 @@ public class PrideArchiveDataUsage {
 	File[] privateAndValidatedDirectories = parentDataDir.listFiles((dir, name) -> !name.matches("^[0-9]{4}$") && !name.matches("resub"));
 	if (privateAndValidatedDirectories != null) {
 	  for (File privateOrValidatedDirectory : privateAndValidatedDirectories) {
-		calculateDataUsagePrivateValidatedDirectory(privateOrValidatedDirectory);
+		calculateDataUsagePrivateValidatedPrevalidatedDirectory(privateOrValidatedDirectory);
 	  }
 	}
   }
@@ -141,7 +142,7 @@ public class PrideArchiveDataUsage {
 	  File[] resubmissions = resubDirectory[0].listFiles();
 	  if (resubmissions != null && 0<resubmissions.length) {
 		for (File resubmission : resubmissions) {
-		  calculateDataUsagePrivateValidatedDirectory(resubmission);
+		  calculateDataUsagePrivateValidatedPrevalidatedDirectory(resubmission);
 		}
 	  } else {
 		log.error("Unable to find resubmissions directory in: " + parentDataDir);
@@ -150,24 +151,29 @@ public class PrideArchiveDataUsage {
   }
 
   /**
-   * Calculates the data usaage of a private or validated directory
-   * @param privateOrValidatedDirectory the input directory to calculate the file size for.
+   * Calculates the data usaage of a private, validadted, or pre-validated  directory
+   * @param directory the input directory to calculate the file size for.
    */
-  private void calculateDataUsagePrivateValidatedDirectory(File privateOrValidatedDirectory) {
+  private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory) {
 	ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
-	File[] submissionFile = privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
+	File[] submissionFile = directory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
 	if (submissionFile == null || submissionFile.length<1) { // validated directory
-	  earliest = getEarliestZonedTimeInSubDirectory(privateOrValidatedDirectory, "internal", earliest);
-	  earliest = getEarliestZonedTimeInSubDirectory(privateOrValidatedDirectory, "submitted", earliest);
+	  earliest = getEarliestZonedTimeInSubDirectory(directory, "internal", earliest);
+	  earliest = getEarliestZonedTimeInSubDirectory(directory, "submitted", earliest);
 	} else {
-	  earliest = getEarliestZonedDateFromDirectory(privateOrValidatedDirectory);
+	  earliest = getEarliestZonedDateFromDirectory(directory);
 	}
 	int month = earliest.getMonthValue();
-	long dataUsage = FileUtils.sizeOfDirectory(privateOrValidatedDirectory);
-	log.info("Project: " + privateOrValidatedDirectory.getName() + " " + dataUsage);
+	long dataUsage = FileUtils.sizeOfDirectory(directory);
+	log.info("Project: " + directory.getName() + " " + dataUsage);
 	incrementDataUsage( earliest.getYear() + (month<10 ? "0" : "") + month, dataUsage);
   }
 
+  /**
+   * Increments the data usage for the YYYYMM key.
+   * @param yearMonthKey the YYYYMM key
+   * @param dataUsage the amount to increment by.
+   */
   private void incrementDataUsage(String yearMonthKey, long dataUsage) {
 	if (this.dataUsage.containsKey(yearMonthKey)) {
 	  dataUsage +=  this.dataUsage.get(yearMonthKey);
@@ -267,6 +273,7 @@ public class PrideArchiveDataUsage {
    * @return the calculatePrideArchiveDataUsage job
    */
   @Bean
+  @Qualifier("calculatePrideArchiveDataUsage")
   public Job calculatePrideArchiveDataUsage() {
 	return jobBuilderFactory.get("calculatePrideArchiveDataUsage")
 		.start(calculateAllDataUsage())
