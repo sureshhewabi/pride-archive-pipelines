@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @EnableBatchProcessing
 public class ArchiveSubmissionPipeline {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ArchiveSubmissionPipeline.class, args);
-	}
+  public static void main(String[] args) {
+	SpringApplication.run(ArchiveSubmissionPipeline.class, args);
+  }
 }
