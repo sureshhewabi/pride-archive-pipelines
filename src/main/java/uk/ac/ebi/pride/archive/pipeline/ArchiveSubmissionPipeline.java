@@ -1,4 +1,4 @@
-package spring.batch.helloworld;
+package uk.ac.ebi.pride.archive.pipeline;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.SpringApplication;
