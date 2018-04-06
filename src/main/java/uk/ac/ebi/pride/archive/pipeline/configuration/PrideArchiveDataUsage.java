@@ -1,15 +1,13 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,14 +28,13 @@ import java.util.Map;
  * https://docs.google.com/document/d/1sr90-rsPYk-3uWtMAPNMFBXqMzRtLG0PNpb6--FFXLA/
  */
 @Configuration
+@Slf4j
 public class PrideArchiveDataUsage {
   // todo unit tests
   // todo crontab schedule
   // todo production deployment
   // todo CI
   // todo automate deployment
-
-  private final Logger log = LoggerFactory.getLogger(PrideArchiveDataUsage.class);
 
   @Autowired
   private JobBuilderFactory jobBuilderFactory;
@@ -65,7 +62,7 @@ public class PrideArchiveDataUsage {
    */
   @Bean
   public Step calculateAllDataUsage() {
-	return stepBuilderFactory.get("calculateDirectories")
+	return stepBuilderFactory.get("calculateAllDataUsage")
 		.tasklet((contribution, chunkContext) -> {
 		  log.info("Starting to calculate data usage in PRIDE directory: " + prideDataPath);
 		  File parentDataDir = new File(prideDataPath);
@@ -96,7 +93,7 @@ public class PrideArchiveDataUsage {
    */
   private void calculateDataUsagePublicYearDirectory(File year) {
 	File[] months = year.listFiles();
-	if (months != null) {
+	if (months != null && 0 < months.length) {
 	  for (File month : months) {
 		long yearMonthDataUsage = 0;
 		String key = year.getName() + month.getName();
@@ -121,7 +118,7 @@ public class PrideArchiveDataUsage {
    * Calculates the data usage of private (submitted private, or simply validated) projects
    * @param parentDataDir the PRIDE Archive parent data directory
    */
-  private void calculateDataUsagePrivateProjects(File parentDataDir) {
+  private void calculateDataUsagePrivateProjects(File parentDataDir) throws IOException {
 	log.info("Calculating private project data usage.");
 	File[] privateAndValidatedDirectories = parentDataDir.listFiles((dir, name) -> !name.matches("^[0-9]{4}$") && !name.matches("resub"));
 	if (privateAndValidatedDirectories != null) {
@@ -135,7 +132,7 @@ public class PrideArchiveDataUsage {
    * Calculates the data usage for 'resubmission' pre-validated project submissions.
    * @param parentDataDir the PRIDE Archive parent data directory
    */
-  private void calculateDataUsageResubProjects(File parentDataDir) {
+  private void calculateDataUsageResubProjects(File parentDataDir) throws IOException{
 	log.info("Calculating pending resubmissions project data usage.");
 	File[] resubDirectory = parentDataDir.listFiles((dir, name) -> name.matches("resub"));
 	if (resubDirectory != null && resubDirectory.length==1) {
@@ -154,7 +151,7 @@ public class PrideArchiveDataUsage {
    * Calculates the data usaage of a private, validadted, or pre-validated  directory
    * @param directory the input directory to calculate the file size for.
    */
-  private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory) {
+  private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory) throws IOException {
 	ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
 	File[] submissionFile = directory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
 	if (submissionFile == null || submissionFile.length<1) { // validated directory
@@ -189,7 +186,7 @@ public class PrideArchiveDataUsage {
    * @param earliestToTest the earliest ZonedDateTime to test against initially
    * @return the earliest ZonedDateTime of a file, default being the input earliestToTest
    */
-  private ZonedDateTime getEarliestZonedTimeInSubDirectory(File privateOrValidatedDirectory, String subDirectory, ZonedDateTime earliestToTest) {
+  private ZonedDateTime getEarliestZonedTimeInSubDirectory(File privateOrValidatedDirectory, String subDirectory, ZonedDateTime earliestToTest) throws IOException {
 	ZonedDateTime earliest = earliestToTest;
 	File[] subDirectoryFiles = privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals(subDirectory));
 	if (subDirectoryFiles != null && subDirectoryFiles.length==1) {
@@ -208,12 +205,11 @@ public class PrideArchiveDataUsage {
    * @param directory the parent directory to asses files within
    * @return the earliest ZonedDateTime of a file, default being the input earliestToTest
    */
-  private ZonedDateTime getEarliestZonedDateFromDirectory(File directory) {
+  private ZonedDateTime getEarliestZonedDateFromDirectory(File directory) throws IOException {
 	ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
 	File[] directoryFiles = directory.listFiles();
 	if (directoryFiles != null && 0<directoryFiles.length) {
 	  for (File directoryFile : directoryFiles) {
-		try {
 		  BasicFileAttributes basicFileAttributes = Files.readAttributes(directoryFile.toPath(), BasicFileAttributes.class);
 		  ZonedDateTime creation = basicFileAttributes.creationTime().toInstant().atZone(ZoneId.systemDefault());
 		  ZonedDateTime modified = basicFileAttributes.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault());
@@ -223,9 +219,6 @@ public class PrideArchiveDataUsage {
 		  if (earliest.isAfter(modified)) {
 			earliest = modified;
 		  }
-		} catch (IOException e) {
-		  log.error("Unable to read file attributes for: " + directoryFile.getPath(), e);
-		}
 	  }
 	} else {
 	  log.error("No files contained in directory: " + directory.getPath());
@@ -235,11 +228,11 @@ public class PrideArchiveDataUsage {
 
   /**
    * Collates the data usage according to year and month, and then outputs it to a file according to the TSC spec.
-   * @return the collageAndOutputDataUsage job.
+   * @return the collageAndOutputDataUsage step
    */
   @Bean
   public Step collateAndOutputDataUsage() {
-	return stepBuilderFactory.get("collageAndOutputDataUsage")
+	return stepBuilderFactory.get("collateAndOutputDataUsage")
 		.tasklet((contribution, chunkContext) -> {
 		  log.info("Collating data usage");
 		  YearMonth thisMonth = YearMonth.now();
@@ -273,11 +266,37 @@ public class PrideArchiveDataUsage {
    * @return the calculatePrideArchiveDataUsage job
    */
   @Bean
-  @Qualifier("calculatePrideArchiveDataUsage")
   public Job calculatePrideArchiveDataUsage() {
 	return jobBuilderFactory.get("calculatePrideArchiveDataUsage")
 		.start(calculateAllDataUsage())
 		.next(collateAndOutputDataUsage())
 		.build();
+  }
+
+  /**
+   * Sets new prideDataPath.
+   *
+   * @param prideDataPath New value of prideDataPath.
+   */
+  public void setPrideDataPath(String prideDataPath) {
+	this.prideDataPath = prideDataPath;
+  }
+
+  /**
+   * Sets new prideDataUsageReportPath.
+   *
+   * @param prideDataUsageReportPath New value of prideDataUsageReportPath.
+   */
+  public void setPrideDataUsageReportPath(String prideDataUsageReportPath) {
+	this.prideDataUsageReportPath = prideDataUsageReportPath;
+  }
+
+  /**
+   * Gets prideDataUsageReportPath.
+   *
+   * @return Value of prideDataUsageReportPath.
+   */
+  public String getPrideDataUsageReportPath() {
+	return prideDataUsageReportPath;
   }
 }
