@@ -54,7 +54,7 @@ public class PrideArchiveDataUsage {
   private Map<String, Long> dataUsage = new HashMap<>();
 
   /**
-   * Calcualtes the data usage of public, private, validated, or pre-validated 'resubmission'
+   * Calculates the data usage of public, private, validated, or pre-validated 'resubmission'
    * projects.
    *
    * @return the calculateDirectories step.
