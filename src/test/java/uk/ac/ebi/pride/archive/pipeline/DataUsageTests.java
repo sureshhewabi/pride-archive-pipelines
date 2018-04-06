@@ -28,13 +28,15 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Tests the PRIDE Archive Data Usage job.
+ */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {PrideArchiveDataUsage.class, JobRunnerConfiguration.class})
 @TestPropertySource(locations="classpath:application.properties")
 @Slf4j
 public class DataUsageTests {
 
-  // todo JavaDoc
   @Autowired
   private JobLauncherTestUtils jobLauncherTestUtils;
 
@@ -47,6 +49,10 @@ public class DataUsageTests {
   @Rule
   public TemporaryFolder tempReportFolder = new TemporaryFolder();
 
+  /**
+   * Tests calculating and collating data usage.
+   * @throws Exception Failures calculating and collating data usage.
+   */
   @Test
   public void calculateAndCollateDataUsage() throws Exception {
 	setupTempDataDirectoriesAndFiles();
@@ -56,6 +62,10 @@ public class DataUsageTests {
 	calcAgainUsingEmptyDirectories();
   }
 
+  /**
+   * Tests the calculation step only, using a combination of different empty data directories.
+   * @throws IOException
+   */
   private void calcAgainUsingEmptyDirectories() throws IOException {
 	JobExecution jobExecution;TemporaryFolder secondaryDataFolder = new TemporaryFolder();
 	secondaryDataFolder.create();
@@ -76,6 +86,10 @@ public class DataUsageTests {
 	Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
   }
 
+  /**
+   * Validates the report output file.
+   * @throws IOException Failures related to reading the report output file.
+   */
   private void validateReportOutputFile() throws IOException {
     // todo validate all lines of file semantically and symtactically not just the last line
 	File reportDirectory = new File(prideArchiveDataUsage.getPrideDataUsageReportPath());
@@ -94,6 +108,10 @@ public class DataUsageTests {
 		finalMonth.format(yearMonthFormatter).equals(lineParts[0]) && 0 < Long.parseLong(lineParts[1]));
   }
 
+  /**
+   * Sets up example data directories.
+   * @throws Exception Problems with creating temporoary files and directories
+   */
   private void setupTempDataDirectoriesAndFiles() throws Exception {
 	// public data setup
 	tempDatafolder.create();
@@ -153,17 +171,34 @@ public class DataUsageTests {
 	prideArchiveDataUsage.setPrideDataUsageReportPath(tempReportFolder.getRoot().getPath());
   }
 
+  /**
+   * Creates the temporary file, and setes its creation time attribute.
+   * @param tempFile the temporary file to create
+   * @param localDateYearMonthDay the creation time to set the file to
+   * @throws IOException problems creating the file, or setting the file attribute
+   */
   private void createTempFileAndSetCreationTime(File tempFile, String localDateYearMonthDay) throws IOException {
 	generateTempFile(tempFile);
 	FileTime tempFiletime = FileTime.from(LocalDate.parse(localDateYearMonthDay).atStartOfDay().toInstant(ZoneOffset.UTC));
 	Files.setAttribute(tempFile.toPath(), "creationTime", tempFiletime);
   }
 
+  /**
+   * Sets the modiifcation time for a (temporary) file.
+   * @param tempFile the temporary file to be modified
+   * @param localDateYearMonthDay the modification time to set the file to
+   * @throws IOException problems setting the file attribute
+   */
   private void setModificationTime(File tempFile, String localDateYearMonthDay) throws IOException {
 	FileTime tempFiletime = FileTime.from(LocalDate.parse(localDateYearMonthDay).atStartOfDay().toInstant(ZoneOffset.UTC));
 	Files.setAttribute(tempFile.toPath(), "lastModifiedTime", tempFiletime);
   }
 
+  /**
+   * Generated a new temporary file, with a dummy file size.
+   * @param tempFile the temporary file to create with a default 1024 bytes size.
+   * @throws IOException problems creating the temporary file
+   */
   private void generateTempFile(File tempFile) throws IOException {
 	log.info("Created new file file for: " + tempFile.getPath() + " ? " + tempFile.createNewFile());
 	tempFile.deleteOnExit();
