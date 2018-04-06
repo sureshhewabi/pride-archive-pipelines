@@ -1,4 +1,4 @@
-package spring.batch.helloworld.configuration;
+package uk.ac.ebi.pride.archive.pipeline.configuration;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
