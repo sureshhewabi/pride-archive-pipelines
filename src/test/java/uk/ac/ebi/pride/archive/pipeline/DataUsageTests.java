@@ -60,7 +60,7 @@ public class DataUsageTests {
   /**
    * Tests the calculation step only, using a combination of different empty data directories.
    *
-   * @throws IOException
+   * @throws IOException Failures reading data files.
    */
   private void calcAgainUsingEmptyDirectories() throws IOException {
     JobExecution jobExecution;
@@ -69,10 +69,15 @@ public class DataUsageTests {
     prideArchiveDataUsage.setPrideDataPath(secondaryDataFolder.getRoot().getPath());
     // empty year, separately an empty month
     File emptyYear = secondaryDataFolder.newFolder("2015");
+	emptyYear.deleteOnExit();
     File nextYear = secondaryDataFolder.newFolder("2016");
+	nextYear.deleteOnExit();
     File emptyMonth = secondaryDataFolder.newFolder(nextYear.getName(), "11");
+	emptyMonth.deleteOnExit();
     File emptyResub = secondaryDataFolder.newFolder("resub");
+	emptyResub.deleteOnExit();
     File emptyPrivate = secondaryDataFolder.newFolder("1-2018-456");
+	emptyPrivate.deleteOnExit();
     jobExecution = jobLauncherTestUtils.launchStep("calculateAllDataUsage");
     Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
@@ -176,8 +181,10 @@ public class DataUsageTests {
     File validatedAccessionEmptySubDir = tempDatafolder.newFolder("1-20180504-456");
     File validatedInternalEmptyInternalSubDir =
         tempDatafolder.newFolder(validatedAccessionEmptySubDir.getName(), "internal");
+	validatedInternalEmptyInternalSubDir.deleteOnExit();
     File validatedInternalEmptySubmittedSubDir =
         tempDatafolder.newFolder(validatedAccessionEmptySubDir.getName(), "submitted");
+	validatedInternalEmptySubmittedSubDir.deleteOnExit();
 
     // resub data setup
     File resub = tempDatafolder.newFolder("resub");
@@ -210,7 +217,7 @@ public class DataUsageTests {
   }
 
   /**
-   * Sets the modiifcation time for a (temporary) file.
+   * Sets the modifcation time for a (temporary) file.
    *
    * @param tempFile the temporary file to be modified
    * @param localDateYearMonthDay the modification time to set the file to
