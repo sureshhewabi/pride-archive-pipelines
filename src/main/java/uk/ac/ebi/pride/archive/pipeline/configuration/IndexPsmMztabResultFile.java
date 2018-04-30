@@ -1,10 +1,9 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
@@ -14,34 +13,51 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.solr.core.SolrTemplate;
 import org.springframework.util.StringUtils;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPoolConfig;
+import uk.ac.ebi.pride.archive.repo.file.ProjectFileRepository;
+import uk.ac.ebi.pride.archive.repo.project.ProjectRepository;
+import uk.ac.ebi.pride.jmztab.model.MZTabFile;
 import uk.ac.ebi.pride.jmztab.utils.MZTabFileParser;
-import uk.ac.ebi.pride.psmindex.search.indexer.ProjectPsmsIndexer;
-import uk.ac.ebi.pride.psmindex.search.service.PsmIndexService;
-import uk.ac.ebi.pride.psmindex.search.service.PsmSearchService;
-import uk.ac.ebi.pride.psmindex.search.service.repository.SolrPsmRepositoryFactory;
+import uk.ac.ebi.pride.psmindex.mongo.search.indexer.MongoProjectPsmIndexer;
+import uk.ac.ebi.pride.psmindex.mongo.search.service.MongoPsmIndexService;
+import uk.ac.ebi.pride.psmindex.mongo.search.service.MongoPsmSearchService;
+import uk.ac.ebi.pride.psmindex.mongo.search.service.repository.MongoPsmRepository;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
 // todo Javadoc
-// todo update with new PSM search library
-// todo run only specified config
 // todo don't support restartable
 // todo log success/fail to Mongo
 @Configuration
+@EnableBatchProcessing
+@ComponentScan(
+  basePackageClasses = {
+    DefaultBatchConfigurer.class,
+    MongoDataSource.class,
+    ArchiveDataSource.class
+  }
+)
 public class IndexPsmMztabResultFile {
   private final Logger log = LoggerFactory.getLogger(IndexPsmMztabResultFile.class);
 
   @Autowired private JobBuilderFactory jobBuilderFactory;
 
   @Autowired private StepBuilderFactory stepBuilderFactory;
+
+  @Autowired private ProjectRepository projectRepository;
+
+  @Autowired private ProjectFileRepository projectFileRepository;
+
+  @Autowired private MongoPsmRepository mongoPsmRepository;
+
+  private MongoProjectPsmIndexer mongoProjectPsmIndexer;
 
   @Value("${redis.host}")
   private String redisServer;
@@ -52,7 +68,7 @@ public class IndexPsmMztabResultFile {
   @Value("${pride.solr.server.psm.core.url}")
   private String solrUrl;
 
-  JedisCluster jedisCluster;
+  private JedisCluster jedisCluster;
 
   private String mztab;
 
@@ -62,7 +78,7 @@ public class IndexPsmMztabResultFile {
         .get("getResultMztabFile")
         .tasklet(
             (contribution, chunkContext) -> {
-              System.out.println(">> Figure out what file to index.");
+              log.info(">> Figure out what file to index."); // todo
               mztab = getStringFromRedis("todo param");
               if (!StringUtils.isEmpty(mztab)) {
                 chunkContext
@@ -76,13 +92,30 @@ public class IndexPsmMztabResultFile {
         .build();
   }
 
-  @Bean
+  /*  @Bean
   public Step removeResultMztabFileRedis() {
     return stepBuilderFactory
         .get("removeResultMztabFileRedis")
         .tasklet(
             (contribution, chunkContext) -> {
               removeKeyAndValueInRedis(mztab);
+              return RepeatStatus.FINISHED;
+            })
+        .build();
+  } // not required, key should auto-expire todo refactor*/
+
+  @Bean
+  public Step setupMongoProjectPsmIndexer() {
+    return stepBuilderFactory
+        .get("setupMongoProjectPsmIndexer")
+        .tasklet(
+            (contribution, chunkContext) -> {
+              MongoPsmIndexService mongoPsmIndexService = new MongoPsmIndexService();
+              mongoPsmIndexService.setMongoPsmRepository(mongoPsmRepository);
+              MongoPsmSearchService mongoPsmSearchService = new MongoPsmSearchService();
+              mongoPsmSearchService.setMongoPsmRepository(mongoPsmRepository);
+              mongoProjectPsmIndexer =
+                  new MongoProjectPsmIndexer(mongoPsmIndexService, mongoPsmSearchService);
               return RepeatStatus.FINISHED;
             })
         .build();
@@ -95,8 +128,25 @@ public class IndexPsmMztabResultFile {
         .tasklet(
             (StepContribution contribution, ChunkContext chunkContext) -> {
               System.out.println(">> Indexing result mzTab file");
-              // todo index file (PSM)
-              SolrClient psmSolrClient = new HttpSolrClient.Builder(solrUrl).build();
+              String projectAccession = ""; // todo get from params
+              String resultAccession = ""; // todo get from params
+              MZTabFile mzTabFile = new MZTabFileParser(new File(mztab), System.out).getMZTabFile();
+              mongoProjectPsmIndexer.deleteAllPsmsForAssay(resultAccession);
+              try {
+                mongoProjectPsmIndexer.indexAllPsmsForProjectAndAssay(
+                    projectAccession, resultAccession, mzTabFile);
+              } catch (Exception e) {
+                log.error(
+                    "Problem indexing mzTab file for: "
+                        + projectAccession
+                        + " "
+                        + resultAccession
+                        + " "
+                        + mztab);
+                mongoProjectPsmIndexer.deleteAllPsmsForAssay(resultAccession);
+              }
+              // todo index file (PSM) for Solr?
+              /* SolrClient psmSolrClient = new HttpSolrClient.Builder(solrUrl).build();
               SolrTemplate solrTemplate = new SolrTemplate(psmSolrClient);
               SolrPsmRepositoryFactory solrPsmRepositoryFactory =
                   new SolrPsmRepositoryFactory(solrTemplate);
@@ -106,16 +156,14 @@ public class IndexPsmMztabResultFile {
                   new PsmIndexService(psmSolrClient, solrPsmRepositoryFactory.create());
               ProjectPsmsIndexer projectPsmsIndexer =
                   new ProjectPsmsIndexer(psmSearchService, psmIndexService);
-              String projectAccession = ""; // todo get from params
-              String resultAccession = ""; // todo get from params
               if (psmSearchService.countByAssayAccession(resultAccession) < 1) {
                 // projectPsmsIndexer.deleteAllPsmsForResultAccession(projectAccession,
                 // resultAccession); todo new delete Psms for result acc w/ paging
-              }
+              }*/
               /*projectPsmsIndexer.indexAllPsmsForProjectAndAssay(
               projectAccession,
               projectAccession,
-              new MZTabFileParser(new File(mztab), System.out).getMZTabFile()); todo index */
+              ;*/
               return RepeatStatus.FINISHED;
             })
         .build();
@@ -163,13 +211,13 @@ public class IndexPsmMztabResultFile {
   @Bean
   public Job transitionJobSimpleNext() {
     return jobBuilderFactory
-        .get("transitionJobNext")
-        .start(createJedisCluster())
+        .get("resultPsmIndexing")
+        .start(setupMongoProjectPsmIndexer())
+        .next(createJedisCluster())
         .next(checkProjectResultAccessions())
         .from(checkProjectResultAccessions())
         .on("OK")
         .to(getResultMztabFile())
-        .next(removeResultMztabFileRedis())
         .next(checkMztabPath())
         .on("OK")
         .to(indexResultMztabFile())
@@ -211,12 +259,8 @@ public class IndexPsmMztabResultFile {
                   log.info("Added Jedis node: " + servers[i] + " " + serverPort);
                 }
               } else {
-                jedisClusterNodes.add(
-                    new HostAndPort(
-                        redisServer,
-                        Integer.parseInt(
-                            redisPort))); // Jedis Cluster will attempt to discover cluster nodes
-                                          // automatically
+                jedisClusterNodes.add(new HostAndPort(redisServer, Integer.parseInt(redisPort)));
+                // Jedis Cluster will attempt to discover cluster nodes automatically
                 log.info("Added Jedis node: " + redisServer + " " + redisPort);
               }
               final JedisPoolConfig DEFAULT_CONFIG = new JedisPoolConfig();
@@ -224,7 +268,7 @@ public class IndexPsmMztabResultFile {
               return RepeatStatus.FINISHED;
             })
         .build();
-  }
+  } // todo refactor to separate config class
 
   /**
    * Gets a String value for the specified Redis key.
@@ -247,7 +291,7 @@ public class IndexPsmMztabResultFile {
       log.error("Exception while getting value to Redis for key: " + key, e);
     }
     return result;
-  }
+  } // todo refactor to separate config class
 
   /**
    * Removes a key (or more) and the corresponding value(s) from Redis.
@@ -267,7 +311,7 @@ public class IndexPsmMztabResultFile {
     } catch (Exception e) {
       log.error("Exception while removing in Redis for key: " + keyToRemove, e);
     }
-  }
+  } // todo refactor to separate config class
 
   @Bean
   public ValidStringDecider checkMztabPath() {
