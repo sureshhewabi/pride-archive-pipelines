@@ -47,14 +47,19 @@ import java.util.Set;
 public class IndexPsmMztabResultFile {
   private final Logger log = LoggerFactory.getLogger(IndexPsmMztabResultFile.class);
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private JobBuilderFactory jobBuilderFactory;
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private StepBuilderFactory stepBuilderFactory;
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private ProjectRepository projectRepository;
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private ProjectFileRepository projectFileRepository;
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private MongoPsmRepository mongoPsmRepository;
 
   private MongoProjectPsmIndexer mongoProjectPsmIndexer;
