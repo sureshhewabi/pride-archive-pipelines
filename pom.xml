@@ -22,7 +22,7 @@
         <jmztab.version>3.0.5</jmztab.version>
         <px.submission.core.version>2.0.18</px.submission.core.version>
         <mongo.psm.index.search.version>1.0.3-springboot-SNAPSHOT</mongo.psm.index.search.version>
-        <archive.repo.version>1.0.2-SNAPSHOT-springboot</archive.repo.version>
+        <archive.repo.version>1.0.2-springboot-SNAPSHOT</archive.repo.version>
     </properties>
 
     <dependencies>
