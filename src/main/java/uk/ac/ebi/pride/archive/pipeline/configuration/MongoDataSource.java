@@ -20,6 +20,9 @@ public class MongoDataSource extends AbstractMongoConfiguration { // todo unit t
   @Value("${spring.datasource.mongodb.uri}")
   String mongoUri;
 
+  @Value("${spring.datasource.mongodb.database}")
+  String mongoDatabase;
+
   /**
    * Instantiates the Mongo Client
    *
@@ -37,6 +40,6 @@ public class MongoDataSource extends AbstractMongoConfiguration { // todo unit t
    */
   @Override
   protected String getDatabaseName() {
-    return "pride_archive_ms";
+    return mongoDatabase;
   }
 }
