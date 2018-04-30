@@ -32,7 +32,6 @@ import java.util.Map;
 @Slf4j
 @EnableBatchProcessing
 public class PrideArchiveDataUsage {
-  // todo crontab schedule
   // todo production deployment
   // todo CI
   // todo automate deployment
