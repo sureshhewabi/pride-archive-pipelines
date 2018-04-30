@@ -35,6 +35,11 @@ import java.util.Set;
 // todo Javadoc
 // todo don't support restartable
 // todo log success/fail to Mongo
+// todo parent job to launch indexing PSMs of result file
+// todo repeat this for PSMs
+// todo repeat this for Spectra
+// todo migrate this functionality from old submission pipeline to this submission pipeline (e.g.
+// update submission pipeline, update archive-integration)
 @Configuration
 @EnableBatchProcessing
 @ComponentScan(
@@ -48,19 +53,24 @@ public class IndexPsmMztabResultFile {
   private final Logger log = LoggerFactory.getLogger(IndexPsmMztabResultFile.class);
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private JobBuilderFactory jobBuilderFactory;
+  @Autowired
+  private JobBuilderFactory jobBuilderFactory;
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private StepBuilderFactory stepBuilderFactory;
+  @Autowired
+  private StepBuilderFactory stepBuilderFactory;
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private ProjectRepository projectRepository;
+  @Autowired
+  private ProjectRepository projectRepository;
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private ProjectFileRepository projectFileRepository;
+  @Autowired
+  private ProjectFileRepository projectFileRepository;
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private MongoPsmRepository mongoPsmRepository;
+  @Autowired
+  private MongoPsmRepository mongoPsmRepository;
 
   private MongoProjectPsmIndexer mongoProjectPsmIndexer;
 
