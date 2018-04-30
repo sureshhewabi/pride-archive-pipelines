@@ -28,6 +28,7 @@ public class MongoDataSource extends AbstractMongoConfiguration { // todo unit t
    *
    * @return the Mongo Client
    */
+  @SuppressWarnings("NullableProblems")
   @Override
   public MongoClient mongoClient() {
     return new MongoClient(new MongoClientURI(mongoUri));
@@ -38,6 +39,7 @@ public class MongoDataSource extends AbstractMongoConfiguration { // todo unit t
    *
    * @return the database name
    */
+  @SuppressWarnings("NullableProblems")
   @Override
   protected String getDatabaseName() {
     return mongoDatabase;
