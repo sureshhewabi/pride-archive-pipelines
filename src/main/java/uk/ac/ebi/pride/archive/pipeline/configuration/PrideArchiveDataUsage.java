@@ -36,8 +36,10 @@ public class PrideArchiveDataUsage {
   // todo CI
   // todo automate deployment
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private JobBuilderFactory jobBuilderFactory;
 
+  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
   @Autowired private StepBuilderFactory stepBuilderFactory;
 
   @Value("${pride.archive.data.path}")
