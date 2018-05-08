@@ -14,7 +14,7 @@ import java.sql.Driver;
 @Slf4j
 public class DefaultBatchConfigurer { // todo unit tests, Javadoc
 
-  @Value("${spring.datasource.driver-class-name}")
+  @Value("${spring.datasource.driver.class.name}")
   private String springDataSourceDriverClassName;
 
   @Value("${spring.datasource.url}")
@@ -29,15 +29,19 @@ public class DefaultBatchConfigurer { // todo unit tests, Javadoc
   @Bean
   @Primary
   public DataSource hsqldbDataSource() {
+    return createDatasource(springDataSourceDriverClassName, springDataSourceUrl, springDataSourceUsername, springDataSourcePassword);
+  }
+
+  public static DataSource createDatasource(String driverClassName, String url, String username, String password) {
     final SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
     try {
-      dataSource.setDriver((Driver) Class.forName(springDataSourceDriverClassName).newInstance());
+      dataSource.setDriver((Driver) Class.forName(driverClassName).newInstance());
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       log.error("Unable to find class / Illegal Access / Unable to instantiate", e);
     }
-    dataSource.setUrl(springDataSourceUrl);
-    dataSource.setUsername(springDataSourceUsername);
-    dataSource.setPassword(springDataSourcePassword);
+    dataSource.setUrl(url);
+    dataSource.setUsername(username);
+    dataSource.setPassword(password);
     return dataSource;
   }
 }

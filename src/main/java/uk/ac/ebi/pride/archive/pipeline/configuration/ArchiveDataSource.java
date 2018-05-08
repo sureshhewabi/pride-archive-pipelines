@@ -1,11 +1,8 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,15 +12,34 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
+
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = {"uk.ac.ebi.pride.archive.repo"})
+@Slf4j
 public class ArchiveDataSource { // todo unit tests, Javadoc
 
+  @Value("${spring.datasource.oracle.jdbcUrl}")
+  private String springArchiveJdbcUrl;
+
+  @Value("${spring.datasource.oracle.username}")
+  private String springArchiveUsername;
+
+  @Value("${spring.datasource.oracle.password}")
+  private String springArchivePassword;
+
+  @Value("${spring.datasource.oracle.driver.class.name}")
+  private String springArchiveDriverClassname;
+
   @Bean(name = "dataSourceOracle")
-  @ConfigurationProperties(prefix = "spring.datasource.oracle")
   public DataSource dataSource() {
-    return DataSourceBuilder.create().build();
+    return DefaultBatchConfigurer.createDatasource(
+        springArchiveDriverClassname,
+        springArchiveJdbcUrl,
+        springArchiveUsername,
+        springArchivePassword);
   }
 
   @Bean(name = "entityManagerFactory")
