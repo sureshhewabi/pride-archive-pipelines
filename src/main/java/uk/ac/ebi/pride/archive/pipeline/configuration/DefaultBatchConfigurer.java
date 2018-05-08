@@ -26,13 +26,8 @@ public class DefaultBatchConfigurer { // todo unit tests, Javadoc
   @Value("${spring.datasource.password}")
   private String springDataSourcePassword;
 
-  @Bean
-  @Primary
-  public DataSource hsqldbDataSource() {
-    return createDatasource(springDataSourceDriverClassName, springDataSourceUrl, springDataSourceUsername, springDataSourcePassword);
-  }
-
-  public static DataSource createDatasource(String driverClassName, String url, String username, String password) {
+  public static DataSource createDatasource(
+      String driverClassName, String url, String username, String password) {
     final SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
     try {
       dataSource.setDriver((Driver) Class.forName(driverClassName).newInstance());
@@ -43,5 +38,15 @@ public class DefaultBatchConfigurer { // todo unit tests, Javadoc
     dataSource.setUsername(username);
     dataSource.setPassword(password);
     return dataSource;
+  }
+
+  @Bean
+  @Primary
+  public DataSource hsqldbDataSource() {
+    return createDatasource(
+        springDataSourceDriverClassName,
+        springDataSourceUrl,
+        springDataSourceUsername,
+        springDataSourcePassword);
   }
 }

@@ -74,20 +74,20 @@ public class RedisClusterConfigurer {
   }
 
   /**
-   * Sets new jedisCluster.
-   *
-   * @param jedisCluster New value of jedisCluster.
-   */
-  public void setJedisCluster(JedisCluster jedisCluster) {
-    this.jedisCluster = jedisCluster;
-  }
-
-  /**
    * Gets jedisCluster.
    *
    * @return Value of jedisCluster.
    */
   public JedisCluster getJedisCluster() {
     return jedisCluster;
+  }
+
+  /**
+   * Sets new jedisCluster.
+   *
+   * @param jedisCluster New value of jedisCluster.
+   */
+  public void setJedisCluster(JedisCluster jedisCluster) {
+    this.jedisCluster = jedisCluster;
   }
 }

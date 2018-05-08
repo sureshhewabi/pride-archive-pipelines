@@ -35,13 +35,10 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 public class DataUsageTests {
 
-  @Autowired private JobLauncherTestUtils jobLauncherTestUtils;
-
-  @Autowired PrideArchiveDataUsage prideArchiveDataUsage;
-
   @Rule public TemporaryFolder tempDatafolder = new TemporaryFolder();
-
   @Rule public TemporaryFolder tempReportFolder = new TemporaryFolder();
+  @Autowired PrideArchiveDataUsage prideArchiveDataUsage;
+  @Autowired private JobLauncherTestUtils jobLauncherTestUtils;
 
   /**
    * Tests calculating and collating data usage.
@@ -69,15 +66,15 @@ public class DataUsageTests {
     prideArchiveDataUsage.setPrideDataPath(secondaryDataFolder.getRoot().getPath());
     // empty year, separately an empty month
     File emptyYear = secondaryDataFolder.newFolder("2015");
-	emptyYear.deleteOnExit();
+    emptyYear.deleteOnExit();
     File nextYear = secondaryDataFolder.newFolder("2016");
-	nextYear.deleteOnExit();
+    nextYear.deleteOnExit();
     File emptyMonth = secondaryDataFolder.newFolder(nextYear.getName(), "11");
-	emptyMonth.deleteOnExit();
+    emptyMonth.deleteOnExit();
     File emptyResub = secondaryDataFolder.newFolder("resub");
-	emptyResub.deleteOnExit();
+    emptyResub.deleteOnExit();
     File emptyPrivate = secondaryDataFolder.newFolder("1-2018-456");
-	emptyPrivate.deleteOnExit();
+    emptyPrivate.deleteOnExit();
     jobExecution = jobLauncherTestUtils.launchStep("calculateAllDataUsage");
     Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
@@ -181,10 +178,10 @@ public class DataUsageTests {
     File validatedAccessionEmptySubDir = tempDatafolder.newFolder("1-20180504-456");
     File validatedInternalEmptyInternalSubDir =
         tempDatafolder.newFolder(validatedAccessionEmptySubDir.getName(), "internal");
-	validatedInternalEmptyInternalSubDir.deleteOnExit();
+    validatedInternalEmptyInternalSubDir.deleteOnExit();
     File validatedInternalEmptySubmittedSubDir =
         tempDatafolder.newFolder(validatedAccessionEmptySubDir.getName(), "submitted");
-	validatedInternalEmptySubmittedSubDir.deleteOnExit();
+    validatedInternalEmptySubmittedSubDir.deleteOnExit();
 
     // resub data setup
     File resub = tempDatafolder.newFolder("resub");

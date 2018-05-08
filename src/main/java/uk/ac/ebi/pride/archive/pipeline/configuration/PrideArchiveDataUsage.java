@@ -37,10 +37,12 @@ public class PrideArchiveDataUsage {
   // todo automate deployment
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private JobBuilderFactory jobBuilderFactory;
+  @Autowired
+  private JobBuilderFactory jobBuilderFactory;
 
   @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired private StepBuilderFactory stepBuilderFactory;
+  @Autowired
+  private StepBuilderFactory stepBuilderFactory;
 
   @Value("${pride.archive.data.path}")
   private String prideDataPath;
@@ -329,20 +331,20 @@ public class PrideArchiveDataUsage {
   }
 
   /**
-   * Sets new prideDataUsageReportPath.
-   *
-   * @param prideDataUsageReportPath New value of prideDataUsageReportPath.
-   */
-  public void setPrideDataUsageReportPath(String prideDataUsageReportPath) {
-    this.prideDataUsageReportPath = prideDataUsageReportPath;
-  }
-
-  /**
    * Gets prideDataUsageReportPath.
    *
    * @return Value of prideDataUsageReportPath.
    */
   public String getPrideDataUsageReportPath() {
     return prideDataUsageReportPath;
+  }
+
+  /**
+   * Sets new prideDataUsageReportPath.
+   *
+   * @param prideDataUsageReportPath New value of prideDataUsageReportPath.
+   */
+  public void setPrideDataUsageReportPath(String prideDataUsageReportPath) {
+    this.prideDataUsageReportPath = prideDataUsageReportPath;
   }
 }
