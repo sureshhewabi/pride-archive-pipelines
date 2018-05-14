@@ -47,7 +47,7 @@ public class ArchiveDataSource { // todo unit tests, Javadoc
       EntityManagerFactoryBuilder builder, @Qualifier("dataSourceOracle") DataSource dataSource) {
     return builder
         .dataSource(dataSource)
-        .packages("uk.ac.ebi.pride.archive.repo")
+        .packages("uk.ac.ebi.pride.archive.repo.repos")
         .persistenceUnit("Project")
         .persistenceUnit("ProjectFile")
         .build();
