@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.configuration;
+package uk.ac.ebi.pride.archive.pipeline.jobs.services.redis;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Step;
@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPoolConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.DefaultBatchConfigurer;
+import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -21,11 +23,7 @@ import java.util.Set;
 @Slf4j
 @EnableBatchProcessing
 @ComponentScan(basePackageClasses = {DefaultBatchConfigurer.class})
-public class RedisClusterConfigurer {
-
-  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired
-  private StepBuilderFactory stepBuilderFactory;
+public class RedisClusterConfigurer extends AbstractArchiveJob {
 
   @Value("${redis.host}")
   private String redisServer;

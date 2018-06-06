@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.configuration;
+package uk.ac.ebi.pride.archive.pipeline.jobs.molecules;
 
 public class IndexProjectForPsm {
 

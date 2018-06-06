@@ -3,9 +3,13 @@ package uk.ac.ebi.pride.archive.pipeline.configuration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.hibernate5.HibernateExceptionTranslator;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -17,45 +21,28 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableTransactionManagement
-@EnableJpaRepositories(basePackages = {"uk.ac.ebi.pride.archive.repo"})
+@EnableJpaRepositories(basePackages = {"uk.ac.ebi.pride.archive.repo.repos"})
+@ComponentScan(basePackages = "uk.ac.ebi.pride.archive.repo.services")
 @Slf4j
-public class ArchiveDataSource { // todo unit tests, Javadoc
-
-  @Value("${spring.datasource.oracle.jdbcUrl}")
-  private String springArchiveJdbcUrl;
-
-  @Value("${spring.datasource.oracle.username}")
-  private String springArchiveUsername;
-
-  @Value("${spring.datasource.oracle.password}")
-  private String springArchivePassword;
-
-  @Value("${spring.datasource.oracle.driver.class.name}")
-  private String springArchiveDriverClassname;
+public class ArchiveOracleConfig {
 
   @Bean(name = "dataSourceOracle")
+  @ConfigurationProperties(prefix = "spring.datasource.oracle")
   public DataSource dataSource() {
-    return DefaultBatchConfigurer.createDatasource(
-        springArchiveDriverClassname,
-        springArchiveJdbcUrl,
-        springArchiveUsername,
-        springArchivePassword);
+    return DataSourceBuilder.create().build();
   }
 
   @Bean(name = "entityManagerFactory")
-  public LocalContainerEntityManagerFactoryBean entityManagerFactory(
-      EntityManagerFactoryBuilder builder, @Qualifier("dataSourceOracle") DataSource dataSource) {
+  public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder, @Qualifier("dataSourceOracle") DataSource dataSource) {
     return builder
-        .dataSource(dataSource)
-        .packages("uk.ac.ebi.pride.archive.repo.repos")
-        .persistenceUnit("Project")
-        .persistenceUnit("ProjectFile")
-        .build();
+            .dataSource(dataSource)
+            .packages("uk.ac.ebi.pride.archive.repo.repos", "uk.ac.ebi.pride.archive.repo.services")
+            .build();
   }
 
-  @Bean(name = "jpaTransactionManager")
+  @Bean(name = "transactionManager")
   public JpaTransactionManager jpaTransactionManager(
-      @Qualifier("entityManagerFactory") EntityManagerFactory entityManagerFactory) {
+          @Qualifier("entityManagerFactory") EntityManagerFactory entityManagerFactory) {
     return new JpaTransactionManager(entityManagerFactory);
   }
 

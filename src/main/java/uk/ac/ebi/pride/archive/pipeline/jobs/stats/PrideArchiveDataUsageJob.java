@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.configuration;
+package uk.ac.ebi.pride.archive.pipeline.jobs.stats;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,24 +26,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Calculates and collates PRIDE Archive data usage for year and month according the TSC
+ * Calculates and collates PRIDE Archive data usage for year and month according the TSC and store that into a File in the filesystem
+ *
  * specification https://docs.google.com/document/d/1sr90-rsPYk-3uWtMAPNMFBXqMzRtLG0PNpb6--FFXLA/
  */
+
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-public class PrideArchiveDataUsage {
-  // todo production deployment
-  // todo CI
-  // todo automate deployment
-
-  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired
-  private JobBuilderFactory jobBuilderFactory;
-
-  @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-  @Autowired
-  private StepBuilderFactory stepBuilderFactory;
+public class PrideArchiveDataUsageJob extends AbstractArchiveJob {
 
   @Value("${pride.archive.data.path}")
   private String prideDataPath;
@@ -56,6 +48,7 @@ public class PrideArchiveDataUsage {
   @Value("${pride.archive.usage.trackname}")
   private String trackName;
 
+  // The data usage Map keeps the information for all types of data private , public , re-submission, etc.
   private Map<String, Long> dataUsage = new HashMap<>();
 
   /**
@@ -81,7 +74,10 @@ public class PrideArchiveDataUsage {
   }
 
   /**
-   * Calculates the data usage of public projects
+   * Calculates the data usage of public projects. Taking the root folder for projects in production in PRIDE
+   * /nfs/pride/prod/ . List all the folders by filter by year 2011 , 2012 , ...
+   *
+   * Note: All the other folders are not use for private data.
    *
    * @param parentDataDir the PRIDE Archive parent data directory
    */
@@ -142,7 +138,8 @@ public class PrideArchiveDataUsage {
   }
 
   /**
-   * Calculates the data usage for 'resubmission' pre-validated project submissions.
+   * Calculates the data usage for 'resubmission' pre-validated project submissions. These folders start with the prefix
+   * resub in the main archive prod folder.
    *
    * @param parentDataDir the PRIDE Archive parent data directory
    */
@@ -162,16 +159,13 @@ public class PrideArchiveDataUsage {
   }
 
   /**
-   * Calculates the data usaage of a private, validadted, or pre-validated directory
+   * Calculates the data usage of a private, validated, or pre-validated directory
    *
    * @param directory the input directory to calculate the file size for.
    */
-  private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory)
-      throws IOException {
+  private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory) throws IOException {
     ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
-    File[] submissionFile =
-        directory.listFiles(
-            (dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
+    File[] submissionFile = directory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
     if (submissionFile == null || submissionFile.length < 1) { // validated directory
       earliest = getEarliestZonedTimeInSubDirectory(directory, "internal", earliest);
       earliest = getEarliestZonedTimeInSubDirectory(directory, "submitted", earliest);
@@ -206,12 +200,9 @@ public class PrideArchiveDataUsage {
    * @param earliestToTest the earliest ZonedDateTime to test against initially
    * @return the earliest ZonedDateTime of a file, default being the input earliestToTest
    */
-  private ZonedDateTime getEarliestZonedTimeInSubDirectory(
-      File privateOrValidatedDirectory, String subDirectory, ZonedDateTime earliestToTest)
-      throws IOException {
+  private ZonedDateTime getEarliestZonedTimeInSubDirectory(File privateOrValidatedDirectory, String subDirectory, ZonedDateTime earliestToTest) throws IOException {
     ZonedDateTime earliest = earliestToTest;
-    File[] subDirectoryFiles =
-        privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals(subDirectory));
+    File[] subDirectoryFiles = privateOrValidatedDirectory.listFiles((dir, name) -> name.contentEquals(subDirectory));
     if (subDirectoryFiles != null && subDirectoryFiles.length == 1) {
       ZonedDateTime earliestSubDirectoryFile =
           getEarliestZonedDateFromDirectory(subDirectoryFiles[0]);
@@ -219,11 +210,7 @@ public class PrideArchiveDataUsage {
         earliest = earliestSubDirectoryFile;
       }
     } else {
-      log.error(
-          "Unable to find directory files for: "
-              + privateOrValidatedDirectory.getPath()
-              + File.separator
-              + subDirectory);
+      log.error("Unable to find directory files for: " + privateOrValidatedDirectory.getPath() + File.separator + subDirectory);
     }
     return earliest;
   }
