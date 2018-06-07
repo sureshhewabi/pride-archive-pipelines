@@ -3,19 +3,26 @@ package uk.ac.ebi.pride.archive.pipeline.configuration;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScans;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import uk.ac.ebi.pride.mongodb.configs.AbstractPrideMongoConfiguration;
 
 /**
  * Configures the Mongo-based repositories. For details, see:
  * https://docs.spring.io/spring-data/mongodb/docs/2.1.0.BUILD-SNAPSHOT/reference/html/
  */
-@Configuration
-@EnableMongoRepositories(basePackages = {"uk.ac.ebi.pride.mongodb.archive.repo.projects"})
 
-public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration { // todo unit tests, Javadoc
+@Configuration
+@EnableTransactionManagement
+@ComponentScan(basePackages = {"uk.ac.ebi.pride.mongodb.archive.service"})
+@EnableMongoRepositories(basePackages = "uk.ac.ebi.pride.mongodb.archive.repo")
+@EnableAutoConfiguration
+public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration {
 
   @Value("${mongodb.project.database}")
   private String mongoProjectDatabase;
@@ -43,6 +50,10 @@ public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration { // tod
 
   @Value("${mongodb.projects.single.machine.host}")
   private String mongoHost;
+
+  @Value("${mongodb.projects.machine.uri}")
+  private String mongoURI;
+
 
   @Override
   protected String getDatabaseName() {
@@ -88,4 +99,9 @@ public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration { // tod
   public String getMongoHost() {
     return mongoHost;
   }
+
+    @Override
+    public String getMongoURI() {
+        return mongoURI;
+    }
 }

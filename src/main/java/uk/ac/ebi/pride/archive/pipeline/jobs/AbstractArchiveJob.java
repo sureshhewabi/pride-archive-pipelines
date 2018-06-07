@@ -30,8 +30,7 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.DefaultBatchConfigurer;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({DefaultBatchConfigurer.class})
-public class AbstractArchiveJob {
+public class AbstractArchiveJob extends DefaultBatchConfigurer{
 
     @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
     @Autowired

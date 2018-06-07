@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.services.solrcloud;
+package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -7,15 +7,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveDataUsageJob;
+import uk.ac.ebi.pride.archive.pipeline.jobs.services.solrcloud.PrideArchiveSolrCloud;
+import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 import static org.junit.Assert.*;
 
@@ -30,18 +33,17 @@ import static org.junit.Assert.*;
  * <p>
  * This class
  * <p>
- * Created by ypriverol (ypriverol@gmail.com) on 05/06/2018.
+ * Created by ypriverol (ypriverol@gmail.com) on 06/06/2018.
  */
-
 @RunWith(SpringJUnit4ClassRunner.class)
-@EnableConfigurationProperties
-@ContextConfiguration(classes = {PrideArchiveSolrCloud.class, JobRunnerConfiguration.class})
+@EnableAutoConfiguration
+@ContextConfiguration(classes = {SyncProjectsOracleToMongoJob.class, JobRunnerConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
-public class PrideArchiveSolrCloudTest {
+public class SyncProjectsOracleToMongoJobTest {
 
     @Autowired
-    PrideArchiveSolrCloud prideArchiveSolrCloud;
+    SyncProjectsOracleToMongoJob prideOracleToMongo;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -51,12 +53,11 @@ public class PrideArchiveSolrCloudTest {
      * @throws Exception
      */
     @Test
-    @Ignore
-    public void createArchiveSolrCloudCollection() throws Exception {
-
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+    public void syncOracleToMongoDB() throws Exception {
+        JobParameters param = new JobParametersBuilder().addString("override", "TRUE").addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
+                .toJobParameters();
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
-
-
 }
+
