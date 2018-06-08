@@ -5,7 +5,6 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.DefaultBatchConfigurer;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.services.redis.RedisClusterConfigurer;
 //import uk.ac.ebi.pride.psmindex.mongo.search.indexer.MongoProjectPsmIndexer;
@@ -28,7 +27,6 @@ import uk.ac.ebi.pride.archive.pipeline.jobs.services.redis.RedisClusterConfigur
 @Slf4j
 @ComponentScan(
   basePackageClasses = {
-    DefaultBatchConfigurer.class,
     ArchiveMongoConfig.class,
     ArchiveOracleConfig.class,
     RedisClusterConfigurer.class

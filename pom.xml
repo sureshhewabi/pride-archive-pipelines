@@ -23,9 +23,17 @@
         <uk.ac.ebi.pride.archive.repo.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
         <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
         <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
+        <uk.ac.ebi.pride.archive.data-provider.version>1.0.0-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
     </properties>
 
     <dependencies>
+
+        <!-- Data provider -->
+        <dependency>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>data-provider-api</artifactId>
+            <version>${uk.ac.ebi.pride.archive.data-provider.version}</version>
+        </dependency>
 
         <!-- Mongo Configuration -->
         <dependency>

@@ -49,7 +49,9 @@ public class SyncProjectsOracleToMongoJobTest {
      */
     @Test
     public void syncOracleToMongoDB() throws Exception {
-        JobParameters param = new JobParametersBuilder().addString("override", "TRUE").addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
+        JobParameters param = new JobParametersBuilder()
+                .addString("override", "TRUE")
+                .addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
                 .toJobParameters();
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());

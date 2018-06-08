@@ -1,13 +1,9 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScans;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import uk.ac.ebi.pride.mongodb.configs.AbstractPrideMongoConfiguration;
