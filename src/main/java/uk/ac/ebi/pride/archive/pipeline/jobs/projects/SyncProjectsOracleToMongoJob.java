@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.DefaultBatchConfigurer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
@@ -32,8 +34,8 @@ import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class})
-public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
+@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
+public class SyncProjectsOracleToMongoJob{
 
     @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
     @Autowired
@@ -94,7 +96,8 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    setOverride(chunkContext.getStepContext().getStepExecution().getJobExecution().getExecutionContext().get("override").toString());
+                    setOverride(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("override"));
+                    setSubmissionType(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("submissionType"));
                     log.info(oracleProjectRepository.findAllAccessions().toString());
                     return RepeatStatus.FINISHED;
                 })

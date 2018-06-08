@@ -8,20 +8,25 @@ import org.springframework.batch.core.repository.support.MapJobRepositoryFactory
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
+import org.springframework.context.annotation.*;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.sql.Driver;
 
 @Configuration
 @EnableJpaRepositories(entityManagerFactoryRef = "h2EntityManagerFactory", transactionManagerRef = "h2TransactionManager")
 @Slf4j
-public class DefaultBatchConfigurer extends org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer {
+@EnableAutoConfiguration
+@Deprecated
+public class DefaultBatchConfigurer {
 
     @Value("${spring.datasource.driver.class.name}")
     private String springDataSourceDriverClassName;
@@ -58,4 +63,18 @@ public class DefaultBatchConfigurer extends org.springframework.batch.core.confi
         return dataSource;
     }
 
+    @Bean(name = "h2EntityManagerFactory")
+    @Primary
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder, @Qualifier("dataSourceH2") DataSource dataSource) {
+        return builder
+                .dataSource(dataSource)
+                .build();
+    }
+
+    @Bean(name = "h2TransactionManager")
+    @Primary
+    public JpaTransactionManager jpaTransactionManager(
+            @Qualifier("h2EntityManagerFactory") EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
+    }
 }

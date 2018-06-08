@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
@@ -22,10 +25,10 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableTransactionManagement
+@EnableAutoConfiguration
 @EnableJpaRepositories(basePackages = {"uk.ac.ebi.pride.archive.repo.repos"},
         entityManagerFactoryRef = "oracleEntityManagerFactory", transactionManagerRef = "oracleTransactionManager")
 @ComponentScan(basePackages = "uk.ac.ebi.pride.archive.repo.services")
-@EnableAutoConfiguration
 @Slf4j
 public class ArchiveOracleConfig {
 

@@ -2,7 +2,6 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
@@ -12,15 +11,12 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.services.solrcloud.PrideArchiveSolrCloud;
+import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-
-import static org.junit.Assert.*;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -36,8 +32,7 @@ import static org.junit.Assert.*;
  * Created by ypriverol (ypriverol@gmail.com) on 06/06/2018.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@EnableAutoConfiguration
-@ContextConfiguration(classes = {SyncProjectsOracleToMongoJob.class, JobRunnerConfiguration.class})
+@ContextConfiguration(classes = {SyncProjectsOracleToMongoJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
 public class SyncProjectsOracleToMongoJobTest {

@@ -54,7 +54,6 @@ public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration {
   @Value("${mongodb.projects.machine.uri}")
   private String mongoURI;
 
-
   @Override
   protected String getDatabaseName() {
     return mongoProjectDatabase;
@@ -100,8 +99,9 @@ public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration {
     return mongoHost;
   }
 
-    @Override
-    public String getMongoURI() {
+
+  @Override
+  public String getMongoURI() {
         return mongoURI;
     }
 }

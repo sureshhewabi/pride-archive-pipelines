@@ -10,14 +10,10 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveDataUsageJob;
-
-import static org.junit.Assert.*;
+import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -35,7 +31,7 @@ import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @EnableConfigurationProperties
-@ContextConfiguration(classes = {PrideArchiveSolrCloud.class, JobRunnerConfiguration.class})
+@ContextConfiguration(classes = {PrideArchiveSolrCloud.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
 public class PrideArchiveSolrCloudTest {

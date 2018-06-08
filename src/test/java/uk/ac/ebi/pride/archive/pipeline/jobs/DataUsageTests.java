@@ -16,7 +16,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
-import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveDataUsageJob;
 
 import java.io.File;
@@ -36,7 +36,7 @@ import java.time.format.DateTimeFormatter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @EnableConfigurationProperties
-@ContextConfiguration(classes = {PrideArchiveDataUsageJob.class, JobRunnerConfiguration.class})
+@ContextConfiguration(classes = {PrideArchiveDataUsageJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 @Slf4j
 public class DataUsageTests {
