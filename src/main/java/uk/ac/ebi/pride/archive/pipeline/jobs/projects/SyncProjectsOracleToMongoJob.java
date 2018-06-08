@@ -35,15 +35,7 @@ import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService
 @Slf4j
 @EnableBatchProcessing
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
-public class SyncProjectsOracleToMongoJob{
-
-    @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-    @Autowired
-    private JobBuilderFactory jobBuilderFactory;
-
-    @SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
-    @Autowired
-    private StepBuilderFactory stepBuilderFactory;
+public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
 
     // This parameter is use to override all the data in the MongoDB
     private Boolean override;

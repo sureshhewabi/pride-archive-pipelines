@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPoolConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DefaultBatchConfigurer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 
@@ -22,7 +24,7 @@ import java.util.Set;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@ComponentScan(basePackageClasses = {DefaultBatchConfigurer.class})
+@Import( {DataSourceConfiguration.class})
 public class RedisClusterConfigurer extends AbstractArchiveJob {
 
   @Value("${redis.host}")
