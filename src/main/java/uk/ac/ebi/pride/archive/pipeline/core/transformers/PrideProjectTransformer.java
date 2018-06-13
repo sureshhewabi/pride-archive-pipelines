@@ -164,6 +164,7 @@ public class PrideProjectTransformer {
                 .fileSourceFolder(folderName)
                 .publicFileLocations(publicURLs)
                 .submissionDate(oracleProject.getSubmissionDate())
+                .updatedDate(oracleProject.getUpdateDate())
                 .build();
     }
 
@@ -204,6 +205,19 @@ public class PrideProjectTransformer {
         String month = simpleDateformat.format(publicationDate);
         simpleDateformat = new SimpleDateFormat("yyyy");
         String year = simpleDateformat.format(publicationDate);
-        return protocolURL + year + "/" + month + "/" + projectAccession + "/" + folderName + "/" + fileName;
+        StringBuilder url = new StringBuilder();
+        return url.append(protocolURL)
+                .append(StringUtils.URL_SEPARATOR)
+                .append(year)
+                .append(StringUtils.URL_SEPARATOR)
+                .append(month)
+                .append(StringUtils.URL_SEPARATOR)
+                .append(projectAccession)
+                .append(StringUtils.URL_SEPARATOR)
+                .append(folderName)
+                .append(StringUtils.URL_SEPARATOR)
+                .append(fileName)
+                .toString();
+
     }
 }

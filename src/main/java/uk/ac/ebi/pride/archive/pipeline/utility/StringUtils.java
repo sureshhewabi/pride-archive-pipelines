@@ -16,6 +16,7 @@ package uk.ac.ebi.pride.archive.pipeline.utility;
 public class StringUtils {
 
     public static String EMPTY_STRING = "";
+    public static String URL_SEPARATOR = "/";
     /**
      * Get convert sentence to Capitalize Style
      * @param sentence original sentence
