@@ -26,6 +26,11 @@ mvn clean install -f pride-mongodb-repo/pom.xml -P mongodb-pridedb-pro-machines,
 git clone https://github.com/PRIDE-Archive/pride-solr-indexes
 mvn clean install -f pride-solr-indexes/pom.xml -P mongodb-pridedb-localhost-machines,oracle-pridedb-test-machine,oracle-pridedb-ro-user
 
+##### Build PRIDE Utilities ####
+
+git clone https://github.com/PRIDE-Utilities/pride-utilities
+mvn clean install
+
 
 ###### Delete the tmp folder ########
 cd ../

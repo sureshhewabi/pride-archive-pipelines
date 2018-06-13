@@ -1,17 +1,24 @@
 package uk.ac.ebi.pride.archive.pipeline.core.transformers;
 
 import com.mongodb.Mongo;
+import org.springframework.beans.factory.annotation.Qualifier;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.dataprovider.reference.DefaultReference;
 import uk.ac.ebi.pride.archive.dataprovider.reference.ReferenceProvider;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.user.DefaultContact;
+import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
+import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
+import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
+import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -116,5 +123,87 @@ public class PrideProjectTransformer {
                 .quantificationMethods(quantMethods)
                 .build();
         return mongoProject;
+    }
+
+    /**
+     * Transform a set of Files from Oracle Database into MongoDB
+     * @param oracleFiles
+     * @param oracleProject
+     * @return
+     */
+    public static List<MongoPrideFile> transformOracleFilesToMongoFiles(List<ProjectFile> oracleFiles,
+                                                                        Project oracleProject, String ftpURL,
+                                                                        String asperaURL) {
+        return oracleFiles.stream().map( oracleFileProject -> transformOracleFileToMongo(oracleFileProject, oracleProject, ftpURL, asperaURL))
+                .collect(Collectors.toList());
+
+    }
+
+    /**
+     * Transform a file from project in Oracle to a File in MongoDB.
+     * @param oracleFileProject The file to be converted
+     * @param oracleProject oracle Project
+     * @return
+     */
+    private static MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject, Project oracleProject, String ftpURL, String asperaURL) {
+        MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
+        for(MSFileTypeConstants currentFileType: MSFileTypeConstants.values())
+            if(currentFileType.getFileType().getName().equalsIgnoreCase(oracleFileProject.getFileType().getName()))
+                fileType = currentFileType;
+        String folderName = Objects.requireNonNull(ProjectFolderSourceConstants.fromTypeString(oracleFileProject.getFileSource().name())).getFolderName();
+
+        List<CvParamProvider> publicURLs = oracleProject.isPublicProject()?createPublicFileLocations(oracleFileProject.getFileName(), folderName, oracleProject.getPublicationDate(),oracleProject.getAccession(), ftpURL, asperaURL):Collections.EMPTY_LIST;
+        return MongoPrideFile.builder()
+                .fileName(oracleFileProject.getFileName())
+                .fileCategory(fileType.getFileType().getCv())
+                .fileSourceFolder(oracleFileProject.getFileSource().name())
+                .projectAccessions(Collections.singleton(oracleProject.getAccession()))
+                .fileSizeBytes(oracleFileProject.getFileSize())
+                .publicationDate(oracleProject.getPublicationDate())
+                .fileSourceType(oracleFileProject.getFileSource().name())
+                .fileSourceFolder(folderName)
+                .publicFileLocations(publicURLs)
+                .submissionDate(oracleProject.getSubmissionDate())
+                .build();
+    }
+
+    /**
+     * In oracle the public URLs are build on the fly by the web service or other services. In mongo, the Public URLs contains the
+     * information of the public files.
+     * @param fileName file Name
+     * @param fileFolder file Folder (generated, submitted)
+     * @param date Publication Date
+     * @param projectAccession Project Accession
+     * @param ftpURL ftp prefix
+     * @param asperaFTP aspera prefix
+     * @return
+     */
+    private static List<CvParamProvider> createPublicFileLocations(String fileName, String fileFolder, Date date, String projectAccession, String ftpURL, String asperaFTP) {
+        List<CvParamProvider> cvsPublicURLs = new ArrayList<>();
+        if(ftpURL != null && !ftpURL.isEmpty()){
+            cvsPublicURLs.add(new DefaultCvParam(CvTermReference.PRIDE_FTP_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getName(), buildURL(ftpURL, date, projectAccession, fileName, fileFolder)));
+        }
+        if(asperaFTP != null && !asperaFTP.isEmpty()){
+            cvsPublicURLs.add(new DefaultCvParam(CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getName(), buildURL(asperaFTP, date, projectAccession, fileName, fileFolder)));
+        }
+        return cvsPublicURLs;
+    }
+
+    /**
+     * Build the path for a Project based on the protocol (ftp, aspera or nfs), a publication date, a project accession, a file Name and the folderName.
+     * Todo: This function can be probably move to another utilities package
+     *
+     * @param protocolURL
+     * @param publicationDate
+     * @param fileName
+     * @param folderName
+     * @return
+     */
+    public static String buildURL(String protocolURL, Date publicationDate, String projectAccession, String fileName, String folderName) {
+        SimpleDateFormat simpleDateformat = new SimpleDateFormat("MM");
+        String month = simpleDateformat.format(publicationDate);
+        simpleDateformat = new SimpleDateFormat("yyyy");
+        String year = simpleDateformat.format(publicationDate);
+        return protocolURL + year + "/" + month + "/" + projectAccession + "/" + folderName + "/" + fileName;
     }
 }

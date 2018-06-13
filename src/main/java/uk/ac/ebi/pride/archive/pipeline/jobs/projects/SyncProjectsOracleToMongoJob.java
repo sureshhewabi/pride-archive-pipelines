@@ -6,6 +6,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -15,12 +16,16 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
+import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.utilities.util.Tuple;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -56,6 +61,13 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
     @Autowired
     ProjectRepository oracleProjectRepository;
 
+    @Value("${ftp.protocol.url}")
+    private String ftpProtocol;
+
+    @Value("${aspera.protocol.url}")
+    private String asperaProtocol;
+
+
     /**
      * This method take the parameter from the override. If this value is True then the MongoDB
      * data will be overrid with the data from the Oracle Database.
@@ -63,9 +75,9 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @param override
      */
     public void setOverride(final String override){
-        if(override != null && override.equalsIgnoreCase("TRUE"))
+        if(override != null && override.equalsIgnoreCase("TRUE")) {
             this.override = true;
-        else
+        } else
             this.override = false;
     }
 
@@ -85,7 +97,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @return
      */
     @Bean
-    Step syncOracleToMongoDB() {
+    Step syncProjectOracleToMongoDB() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -101,8 +113,30 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
                     return RepeatStatus.FINISHED;
                 })
                 .build();
+    }
+
+    /**
+     * The Files will be mapped only for the Projects that has been already sync into MongoDB.
+     *
+     * @return Step
+     */
+    @Bean
+    public Step syncFileInformationToMongoDB() {
+        return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    prideProjectMongoService.findAllStream().forEach(mongoPrideProject -> {
+                        Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
+                        List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
+                        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAll(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles, oracleProject,ftpProtocol, asperaProtocol));
+                        log.info("The following files has been inserted -- " + status.toString());
+                        });
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+
 
     }
+
 
     /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
@@ -113,9 +147,9 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
     public Job calculatePrideArchiveDataUsage() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC.getName())
-                .start(syncOracleToMongoDB())
+                .start(syncProjectOracleToMongoDB())
+                .next(syncFileInformationToMongoDB())
                 .build();
     }
-
 
 }
