@@ -8,6 +8,11 @@ cd tmp/
 
 ##### Build Repo Archive ####
 
+git clone -b new-pride https://github.com/PRIDE-Archive/data-provider-api
+mvn clean install -f data-provider-api/pom.xml -P oracle-pridedb-prod-machine,oracle-pridedb-ro-user
+
+##### Build Repo Archive ####
+
 git clone -b spring-boot https://github.com/PRIDE-Archive/repo
 mvn clean install -f repo/pom.xml -P oracle-pridedb-prod-machine,oracle-pridedb-ro-user
 
