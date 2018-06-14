@@ -47,7 +47,6 @@ public class PrideArchiveSolrCloudTest {
      * @throws Exception
      */
     @Test
-    @Ignore
     public void createArchiveSolrCloudCollection() throws Exception {
 
         JobExecution jobExecution = jobLauncherTestUtils.launchJob();

@@ -1,5 +1,7 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -7,6 +9,11 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.solr.core.SolrTemplate;
 import org.springframework.data.solr.repository.config.EnableSolrRepositories;
+import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -26,12 +33,17 @@ import org.springframework.data.solr.repository.config.EnableSolrRepositories;
 @ComponentScan(basePackages = "uk.ac.ebi.pride.solr.indexes.pride.services")
 public class SolrCloudConfig {
 
-    @Value("${solr.master.url}")
-    private String solrMasterURL;
+    @Value("${solr.url}")
+    private String solrURls;
 
     @Bean
-    public SolrTemplate solrTemplate() {
-        return new SolrTemplate(new HttpSolrClient.Builder().withBaseSolrUrl(solrMasterURL).build());
+    public SolrClient solrClient() {
+        List<String> urls = Arrays.stream(solrURls.split(",")).map(String::trim).collect(Collectors.toList());
+        return new CloudSolrClient.Builder().withSolrUrl(urls).build();
+    }
+    @Bean
+    public SolrTemplate solrTemplate(SolrClient solrClient) throws Exception {
+        return new SolrTemplate(solrClient);
     }
 
 }

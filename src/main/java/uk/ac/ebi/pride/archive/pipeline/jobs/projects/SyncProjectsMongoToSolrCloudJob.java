@@ -71,7 +71,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                     prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
                             PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
                             PrideSolrProject status = solrProjectService.save(solrProject);
-                            log.info("The project -- " + solrProject.getAccession() + " has been inserted in SolrCloud");
+                            log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
 
                     });
                     return RepeatStatus.FINISHED;

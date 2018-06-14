@@ -46,12 +46,8 @@ public class SyncProjectsMongoToSolrCLoudJobTest {
          * @throws Exception
          */
         @Test
-        public void syncOracleToMongoDB() throws Exception {
-            JobParameters param = new JobParametersBuilder()
-                    .addString("override", "TRUE")
-                    .addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
-                    .toJobParameters();
-            JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
+        public void syncMongoToSolrCloud() throws Exception {
+            JobExecution jobExecution = jobLauncherTestUtils.launchJob();
             Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
         }
 }
