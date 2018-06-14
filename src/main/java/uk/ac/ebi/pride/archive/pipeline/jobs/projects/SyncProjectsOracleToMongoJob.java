@@ -144,7 +144,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job calculatePrideArchiveDataUsage() {
+    public Job syncOracleToMongoProjectsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC.getName())
                 .start(syncProjectOracleToMongoDB())

@@ -14,12 +14,18 @@ import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.data.model.Contact;
+import uk.ac.ebi.pride.data.model.CvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
+import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
+import uk.ac.ebi.pride.utilities.util.Tuple;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -218,6 +224,57 @@ public class PrideProjectTransformer {
                 .append(StringUtils.URL_SEPARATOR)
                 .append(fileName)
                 .toString();
+
+    }
+
+    /**
+     * This method transform a project form mongoDB to SolrCloud Project
+     * @param mongoPrideProject MongoProject
+     * @return SolrCLoud Project
+     */
+    public static PrideSolrProject transformProjectMongoToSolr(MongoPrideProject mongoPrideProject) {
+        PrideSolrProject project = new PrideSolrProject();
+
+        //Get accession, title, keywords, Data and Sample protocols
+        project.setAccession(mongoPrideProject.getAccession());
+        project.setTitle(mongoPrideProject.getTitle());
+        project.setKeywords(new ArrayList<>(mongoPrideProject.getKeywords()));
+        project.setDataProcessingProtocol(mongoPrideProject.getDataProcessingProtocol());
+        project.setSampleProcessingProtocol(mongoPrideProject.getSampleProcessingProtocol());
+        project.setProjectDescription(mongoPrideProject.getDescription());
+
+        //Get project Tags
+        project.setProjectTags(new ArrayList<>(mongoPrideProject.getProjectTags()));
+
+        //Get the researchers
+        project.setLabPIs(new ArrayList<>(mongoPrideProject.getHeadLab()));
+
+        //Get the submitters information
+        project.setSubmittersFromNames(new ArrayList<>(mongoPrideProject.getSubmitters()));
+
+        //Get the affiliations
+        List<String> affiliations = new ArrayList<>();
+        affiliations.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
+        affiliations.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
+        project.setAffiliations(affiliations);
+
+        project.setIdentifiedPTMStrings(mongoPrideProject.getPtmList().stream().map(CvParamProvider::getName).collect(Collectors.toSet()));
+
+        /** Set Country **/
+        List<String> countries = new ArrayList<>();
+        countries.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
+        countries.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
+
+        project.setAllCountries(new HashSet<>(countries));
+
+        //Add Dump date
+        project.setPublicationDate(mongoPrideProject.getPublicationDate());
+        project.setSubmissionDate(mongoPrideProject.getSubmissionDate());
+        project.setUpdatedDate(mongoPrideProject.getUpdatedDate());
+
+       //Instruments properties
+        project.setInstrumentsFromCvParam(new ArrayList<>(mongoPrideProject.getInstrumentsCvParams()));
+        return project;
 
     }
 }

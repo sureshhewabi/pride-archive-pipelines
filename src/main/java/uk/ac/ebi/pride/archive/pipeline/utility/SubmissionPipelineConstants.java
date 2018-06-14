@@ -13,7 +13,8 @@ public class SubmissionPipelineConstants {
 
    public enum PrideArchiveJobNames{
        PRIDE_ARCHIVE_SOLR_CLOUD_INIT("PrideArchiveSolrCloudInit", "This command will create a new Collection of PRIDE Archive in SolrCloud Production."),
-       PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC("PrideArchiveOracleSyncToMongoDB", "This command will sync the Oracle Database data into MongoDB data");
+       PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC("PrideArchiveOracleSyncToMongoDB", "This command will sync the Oracle Database data into MongoDB data"),
+       PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC("PrideArchiveMongoSyncSolrCloud", "This command sync all the projects from MongoDB to Solr Cloud");
 
        String name;
        String message;
