@@ -15,8 +15,16 @@ package uk.ac.ebi.pride.archive.pipeline.utility;
  */
 public class StringUtils {
 
-    public static String EMPTY_STRING = "";
-    public static String URL_SEPARATOR = "/";
+
+    public static final String EMPTY_STRING = "";
+    public static final String URL_SEPARATOR = "/";
+
+    // General Sample processing Capture
+    public static final String CV_LABEL_ORGANISM = "NEW";
+    public static final String CV_LABEL_CELL_COMPONENT = "CL";
+    public static final String CV_LABEL_CELL_TISSUE = "BTO";
+    public static final String CV_LABEL_DISEASE = "DOID";
+
     /**
      * Get convert sentence to Capitalize Style
      * @param sentence original sentence

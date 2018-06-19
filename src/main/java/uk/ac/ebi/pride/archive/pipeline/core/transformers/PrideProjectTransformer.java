@@ -119,6 +119,7 @@ public class PrideProjectTransformer {
                 .softwareList(softwareList)
                 .projectTags(projectTags)
                 .quantificationMethods(quantMethods)
+                .samplesDescription(projectSampleDescription(oracleProject))
                 .build();
         return mongoProject;
     }
@@ -271,5 +272,45 @@ public class PrideProjectTransformer {
         project.setInstrumentsFromCvParam(new ArrayList<>(mongoPrideProject.getInstrumentsCvParams()));
         return project;
 
+    }
+
+    /**
+     * Mapping from old PRIDE Sample processing to a new Data model.
+     * @param oracleProject Oracle Project
+     * @return Mapping of new Sample Data
+     */
+    public static Map<MongoCvParam, List<MongoCvParam>> projectSampleDescription(Project oracleProject){
+        Map<MongoCvParam, List<MongoCvParam>> projectSampleProcessing = new HashMap<>();
+        oracleProject.getSamples().forEach(projectSampleCvParam -> {
+            if(projectSampleCvParam != null){
+                MongoCvParam key = null;
+                MongoCvParam value = new MongoCvParam(projectSampleCvParam.getCvLabel(),
+                        projectSampleCvParam.getAccession(), projectSampleCvParam.getName(),
+                        projectSampleCvParam.getValue());
+                if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_ORGANISM)){
+                    key = new MongoCvParam(CvTermReference.EFO_ORGANISM.getCvLabel(),
+                           CvTermReference.EFO_ORGANISM.getAccession(),
+                           CvTermReference.EFO_ORGANISM.getName(), null);
+                }else if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_CELL_COMPONENT) ||
+                        projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_CELL_TISSUE)){
+                    key = new MongoCvParam(CvTermReference.EFO_ORGANISM_PART.getCvLabel(),
+                            CvTermReference.EFO_ORGANISM_PART.getAccession(),
+                            CvTermReference.EFO_ORGANISM_PART.getName(), null);
+                }else if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_DISEASE)){
+                    key = new MongoCvParam(CvTermReference.EFO_DISEASE.getCvLabel(),
+                            CvTermReference.EFO_DISEASE.getAccession(),
+                            CvTermReference.EFO_DISEASE.getName(), null);
+                }
+
+                if(key != null){
+                    List<MongoCvParam> sampleValues = projectSampleProcessing.get(key);
+                    if(projectSampleProcessing.get(key) == null)
+                        sampleValues = new ArrayList<>();
+                    sampleValues.add(value);
+                    projectSampleProcessing.put(key, sampleValues);
+                }
+            }
+        });
+        return projectSampleProcessing;
     }
 }
