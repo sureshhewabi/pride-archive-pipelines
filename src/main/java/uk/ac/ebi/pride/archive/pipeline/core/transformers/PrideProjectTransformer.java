@@ -2,6 +2,7 @@ package uk.ac.ebi.pride.archive.pipeline.core.transformers;
 
 
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
+import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
@@ -270,8 +271,20 @@ public class PrideProjectTransformer {
 
        //Instruments properties
         project.setInstrumentsFromCvParam(new ArrayList<>(mongoPrideProject.getInstrumentsCvParams()));
+        List<Tuple<CvParamProvider, List<CvParamProvider>>> sampleAttributes = new ArrayList<>();
+        mongoPrideProject.getSamplesDescription()
+                .stream()
+                .map(x -> new Tuple( new DefaultCvParam(x.getKey().getCvLabel(),
+                        x.getKey().getAccession(),
+                        x.getKey().getName(),
+                        x.getKey().getValue()),
+                        x.getValue()
+                                .stream()
+                                .map(value -> new DefaultCvParam(value.getCvLabel(), value.getAccession(), value.getName(), value.getValue()))
+                                .collect(Collectors.toList())))
+                .collect(Collectors.toList());
+        project.setSampleAttributes(sampleAttributes);
         return project;
-
     }
 
     /**
