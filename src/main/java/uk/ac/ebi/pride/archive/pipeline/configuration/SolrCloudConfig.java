@@ -2,14 +2,12 @@ package uk.ac.ebi.pride.archive.pipeline.configuration;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.solr.core.SolrTemplate;
 import org.springframework.data.solr.repository.config.EnableSolrRepositories;
-import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;

@@ -6,6 +6,7 @@ import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
+import uk.ac.ebi.pride.archive.dataprovider.utils.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
@@ -101,7 +102,7 @@ public class PrideProjectTransformer {
                         quant.getCvParam().getName(), quant.getCvParam().getValue()))
                 .collect(Collectors.toList());
 
-        MongoPrideProject mongoProject = MongoPrideProject.builder()
+        return MongoPrideProject.builder()
                 .title(oracleProject.getTitle())
                 .accession(oracleProject.getAccession())
                 .description(oracleProject.getProjectDescription())
@@ -121,7 +122,6 @@ public class PrideProjectTransformer {
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
                 .build();
-        return mongoProject;
     }
 
     /**
@@ -279,7 +279,7 @@ public class PrideProjectTransformer {
      * @param oracleProject Oracle Project
      * @return Mapping of new Sample Data
      */
-    public static Map<MongoCvParam, List<MongoCvParam>> projectSampleDescription(Project oracleProject){
+    public static List<Tuple<MongoCvParam, List<MongoCvParam>>> projectSampleDescription(Project oracleProject){
         Map<MongoCvParam, List<MongoCvParam>> projectSampleProcessing = new HashMap<>();
         oracleProject.getSamples().forEach(projectSampleCvParam -> {
             if(projectSampleCvParam != null){
@@ -304,13 +304,18 @@ public class PrideProjectTransformer {
 
                 if(key != null){
                     List<MongoCvParam> sampleValues = projectSampleProcessing.get(key);
-                    if(projectSampleProcessing.get(key) == null)
+                    if(sampleValues == null)
                         sampleValues = new ArrayList<>();
                     sampleValues.add(value);
                     projectSampleProcessing.put(key, sampleValues);
                 }
             }
         });
-        return projectSampleProcessing;
+
+        return projectSampleProcessing
+                .entrySet()
+                .stream()
+                .map(x -> new Tuple<>(x.getKey(), x.getValue()))
+                .collect(Collectors.toList());
     }
 }

@@ -20,7 +20,7 @@ public class StringUtils {
     public static final String URL_SEPARATOR = "/";
 
     // General Sample processing Capture
-    public static final String CV_LABEL_ORGANISM = "NEW";
+    public static final String CV_LABEL_ORGANISM = "NEWT";
     public static final String CV_LABEL_CELL_COMPONENT = "CL";
     public static final String CV_LABEL_CELL_TISSUE = "BTO";
     public static final String CV_LABEL_DISEASE = "DOID";

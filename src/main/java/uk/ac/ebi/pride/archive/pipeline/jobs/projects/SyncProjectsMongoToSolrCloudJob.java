@@ -3,31 +3,21 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
-import uk.ac.ebi.pride.utilities.util.Tuple;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the

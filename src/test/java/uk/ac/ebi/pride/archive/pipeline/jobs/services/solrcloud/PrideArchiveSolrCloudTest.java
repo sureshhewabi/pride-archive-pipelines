@@ -2,7 +2,6 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.services.solrcloud;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
