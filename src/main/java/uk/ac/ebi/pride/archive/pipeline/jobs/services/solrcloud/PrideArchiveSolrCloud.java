@@ -84,8 +84,11 @@ public class PrideArchiveSolrCloud extends AbstractArchiveJob{
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_CREATE_COLLECTION.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 2, 2)){
-                        log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
+                    String value = (chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("deleteOnly"));
+                    if(value != null && !value.equalsIgnoreCase("TRUE")){
+                        if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 2, 2)){
+                            log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
+                        }
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -100,8 +103,11 @@ public class PrideArchiveSolrCloud extends AbstractArchiveJob{
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_REFINE_COLLECTION.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    if(solrAPIHelper.refinePrideSolrProjectsSchema(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME)){
-                        log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
+                    String value = (chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("deleteOnly"));
+                    if(value != null && !value.equalsIgnoreCase("TRUE")){
+                        if(solrAPIHelper.refinePrideSolrProjectsSchema(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME)){
+                            log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
+                        }
                     }
                     return RepeatStatus.FINISHED;
                 })
