@@ -232,6 +232,8 @@ public class PrideProjectTransformer {
     public static PrideSolrProject transformProjectMongoToSolr(MongoPrideProject mongoPrideProject) {
         PrideSolrProject project = new PrideSolrProject();
 
+        project.setId(mongoPrideProject.getId().toString());
+
         //Get accession, title, keywords, Data and Sample protocols
         project.setAccession(mongoPrideProject.getAccession());
         project.setTitle(mongoPrideProject.getTitle());

@@ -1,0 +1,42 @@
+[
+  {
+    "add-updateprocessor":{
+      "name":"cdcr-processor-chain",
+      "class":"solr.CdcrUpdateProcessorFactory",
+      "class":"solr.RunUpdateProcessorFactory"
+    }
+  },
+  {
+    "add-requesthandler":{
+      "name":"/update",
+      "class":"solr.UpdateRequestHandler",
+      "defaults":{
+        "update.chain":"cdcr-processor-chain"
+      }
+    }
+  },
+  {
+    "add-requesthandler":{
+      "name":"/cdcr",
+      "class":"solr.CdcrRequestHandler",
+      "replica":{
+        "zkHost":"wp-p1m-30.ebi.ac.uk:2181",
+        "source":"pride_projects",
+        "target":"pride_projects"
+      },
+      "replicator":{
+        "threadPoolSize":"8",
+        "schedule":"1000",
+        "batchSize":"128"
+      },
+      "updateLogSynchronizer":{
+        "schedule":"1000"
+      }
+    }
+  },
+  {
+    "update-requesthandler":{
+
+    }
+  }
+]

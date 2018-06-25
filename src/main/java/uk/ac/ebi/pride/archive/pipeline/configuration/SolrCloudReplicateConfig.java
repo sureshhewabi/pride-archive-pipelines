@@ -24,14 +24,14 @@ import java.util.stream.Collectors;
  * <p>
  * This class
  * <p>
- * Created by ypriverol (ypriverol@gmail.com) on 13/06/2018.
+ * Created by ypriverol (ypriverol@gmail.com) on 22/06/2018.
  */
 @Configuration
 @EnableSolrRepositories(basePackages = "uk.ac.ebi.pride.solr.indexes.pride.repository")
 @ComponentScan(basePackages = "uk.ac.ebi.pride.solr.indexes.pride.services")
-public class SolrCloudConfig {
+public class SolrCloudReplicateConfig {
 
-    @Value("${solr.url}")
+    @Value("${spring.pridedb.solr.hh.url}")
     private String solrURls;
 
     @Bean

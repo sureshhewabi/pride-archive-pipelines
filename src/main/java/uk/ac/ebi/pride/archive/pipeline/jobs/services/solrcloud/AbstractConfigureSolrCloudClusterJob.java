@@ -23,21 +23,15 @@ import uk.ac.ebi.pride.solr.indexes.pride.utils.SolrAPIHelper;
  * <p>
  * ==Overview==
  * <p>
- *
- * This class Configure the PRIDE Archive SolrCloud instance, creating the collection, deleting existing collection,
- * creating the Archive Collection and Refining it.
- *
+ * This class
  * <p>
- * @author ypriverol
+ * Created by ypriverol (ypriverol@gmail.com) on 22/06/2018.
  */
 @Configuration
 @Slf4j
 @EnableBatchProcessing
 @EnableConfigurationProperties
-public class PrideArchiveSolrCloud extends AbstractArchiveJob{
-
-    @Value("${solr.master.url}")
-    private String solrMasterURL;
+public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchiveJob {
 
     private SolrAPIHelper solrAPIHelper;
 
@@ -48,9 +42,9 @@ public class PrideArchiveSolrCloud extends AbstractArchiveJob{
      */
     @Bean
     public Job createPrideArchiveSolrCloudCollection() {
-        this.solrAPIHelper = SolrAPIHelper.getInstance(solrMasterURL);
+        this.solrAPIHelper = SolrAPIHelper.getInstance(getSolrMasterURL());
         return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_CLOUD_INIT.getName())
+                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_MASTER_INIT.getName())
                 .start(deletePRIDEArchiveCollectionSolrCloud())
                 .next(createArchiveCollectionSolrCloud())
                 .next(refineArchiveCollectionSolrCloud())
@@ -86,7 +80,7 @@ public class PrideArchiveSolrCloud extends AbstractArchiveJob{
                 .tasklet((stepContribution, chunkContext) -> {
                     String value = (chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("deleteOnly"));
                     if(value != null && !value.equalsIgnoreCase("TRUE")){
-                        if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 2, 2)){
+                        if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 2, 2,PrideProjectField.PRIDE_PROJECTS_CONFIG_NAME)){
                             log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
                         }
                     }
@@ -113,4 +107,6 @@ public class PrideArchiveSolrCloud extends AbstractArchiveJob{
                 })
                 .build();
     }
+
+    abstract String getSolrMasterURL();
 }

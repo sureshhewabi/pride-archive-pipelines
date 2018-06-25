@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
@@ -36,7 +36,7 @@ import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
  */
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, SolrCloudConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveMongoConfig.class, SolrCloudMasterConfig.class, DataSourceConfiguration.class})
 public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
 
 

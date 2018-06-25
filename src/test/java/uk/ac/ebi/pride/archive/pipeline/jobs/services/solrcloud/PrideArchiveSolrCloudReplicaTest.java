@@ -15,7 +15,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -28,18 +27,17 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
  * <p>
  * This class
  * <p>
- * Created by ypriverol (ypriverol@gmail.com) on 05/06/2018.
+ * Created by ypriverol (ypriverol@gmail.com) on 22/06/2018.
  */
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @EnableConfigurationProperties
-@ContextConfiguration(classes = {PrideArchiveSolrCloud.class, JobRunnerTestConfiguration.class})
+@ContextConfiguration(classes = {PrideArchiveSolrCloudReplicaConfigJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
-public class PrideArchiveSolrCloudTest {
+public class PrideArchiveSolrCloudReplicaTest {
 
     @Autowired
-    PrideArchiveSolrCloud prideArchiveSolrCloud;
+    PrideArchiveSolrCloudReplicaConfigJob prideArchiveSolrCloudReplicaConfigJob;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -51,11 +49,10 @@ public class PrideArchiveSolrCloudTest {
     @Test
     public void createArchiveSolrCloudCollection() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                .addString("deleteOnly", "TRUE")
+                .addString("deleteOnly", "FALSE")
                 .toJobParameters();
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
-
 
 }

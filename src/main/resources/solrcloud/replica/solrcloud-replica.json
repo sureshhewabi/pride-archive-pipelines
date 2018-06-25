@@ -1,0 +1,27 @@
+[
+  {
+    "add-updateprocessor":{
+      "name":"cdcr-processor-chain",
+      "class":"solr.CdcrUpdateProcessorFactory",
+      "class":"solr.RunUpdateProcessorFactory"
+    }
+  },
+  {
+    "add-requesthandler":{
+      "name":"/update",
+      "class":"solr.UpdateRequestHandler",
+      "defaults":{
+        "update.chain":"cdcr-processor-chain"
+      }
+    }
+  },
+  {
+    "add-requesthandler":{
+      "name":"/cdcr",
+      "class":"solr.CdcrRequestHandler",
+      "buffer":{
+        "defaultState":"disabled"
+      }
+    }
+  }
+]
