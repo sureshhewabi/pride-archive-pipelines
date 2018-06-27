@@ -44,6 +44,7 @@ public class SubmissionPipelineConstants {
 
        /** PRIDE Data Sync from Oracle to MongoDB **/
        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("PrideArchiveOracleToMongoDBSyncStep", "This Step will sync the Oracle Database data into MongoDB data"),
+       PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("PrideArchiveSolrCloudStep","Clean all the documents in SolrCloud Master"),
        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("PrideArchiveOracleToMongoDBFilesStep", "This Step will sync all the Files in the Oracle data into MongoDB data");
 
 

@@ -276,7 +276,8 @@ public class PrideProjectTransformer {
         List<Tuple<CvParamProvider, List<CvParamProvider>>> sampleAttributes = new ArrayList<>();
         mongoPrideProject.getSamplesDescription()
                 .stream()
-                .map(x -> new Tuple( new DefaultCvParam(x.getKey().getCvLabel(),
+                .forEach(x ->
+                        sampleAttributes.add(new Tuple( new DefaultCvParam(x.getKey().getCvLabel(),
                         x.getKey().getAccession(),
                         x.getKey().getName(),
                         x.getKey().getValue()),
@@ -284,7 +285,7 @@ public class PrideProjectTransformer {
                                 .stream()
                                 .map(value -> new DefaultCvParam(value.getCvLabel(), value.getAccession(), value.getName(), value.getValue()))
                                 .collect(Collectors.toList())))
-                .collect(Collectors.toList());
+        );
         project.setSampleAttributes(sampleAttributes);
         return project;
     }

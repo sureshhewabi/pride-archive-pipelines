@@ -70,6 +70,20 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     }
 
     /**
+     * Clean all the documents in the SolrCloud Master for Sync
+     * @return return Step
+     */
+    Step cleanSolrCloud() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    solrProjectService.deleteAll();
+                    log.info("All Documents has been deleted from the SolrCloud Master");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
      *
      * @return the calculatePrideArchiveDataUsage job
@@ -78,9 +92,11 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     public Job syncMongoProjectToSolrCloudJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC.getName())
-                .start(syncProjectMongoDBToSolrCloudStep())
+                .start(cleanSolrCloud())
+                .next(syncProjectMongoDBToSolrCloudStep())
                 .build();
     }
+
 
 
 

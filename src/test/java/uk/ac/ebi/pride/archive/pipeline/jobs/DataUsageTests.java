@@ -17,7 +17,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveDataUsageJob;
+import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveDataUsageReportJob;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +36,7 @@ import java.time.format.DateTimeFormatter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @EnableConfigurationProperties
-@ContextConfiguration(classes = {PrideArchiveDataUsageJob.class, JobRunnerTestConfiguration.class})
+@ContextConfiguration(classes = {PrideArchiveDataUsageReportJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 @Slf4j
 public class DataUsageTests {
@@ -45,7 +45,7 @@ public class DataUsageTests {
   @Rule public TemporaryFolder tempReportFolder = new TemporaryFolder();
 
   @Autowired
-  PrideArchiveDataUsageJob prideArchiveDataUsage;
+  PrideArchiveDataUsageReportJob prideArchiveDataUsage;
 
   @Autowired
   private JobLauncherTestUtils jobLauncherTestUtils;

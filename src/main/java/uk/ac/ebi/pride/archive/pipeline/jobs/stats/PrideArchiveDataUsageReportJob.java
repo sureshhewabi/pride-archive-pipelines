@@ -31,7 +31,7 @@ import java.util.Map;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-public class PrideArchiveDataUsageJob extends AbstractArchiveJob {
+public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
 
   @Value("${pride.archive.data.path}")
   private String prideDataPath;
