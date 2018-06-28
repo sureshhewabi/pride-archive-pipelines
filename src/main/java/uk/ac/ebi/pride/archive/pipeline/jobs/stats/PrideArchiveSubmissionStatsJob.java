@@ -4,6 +4,7 @@ import com.mongodb.Mongo;
 import com.mongodb.internal.validator.CollectibleDocumentFieldNameValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -143,7 +144,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .entrySet()
                             .stream()
                             .map(x -> new Tuple<String, Integer>(x.getKey(), x.getValue().size()))
-                            .sorted((x, y) -> Integer.compare((Integer) x.getValue(), (Integer) x.getValue()))
+                            .sorted((x, y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_INSTRUMENTS, submissionsByDate);
                     return RepeatStatus.FINISHED;
@@ -216,7 +217,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .entrySet()
                             .stream()
                             .map( x -> new Tuple<String, Integer>(x.getKey() , x.getValue().size()))
-                            .sorted((x,y) -> Integer.compare((Integer) x.getValue(), (Integer) x.getValue()))
+                            .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_MODIFICATIONS, submissionsByDate);
                     return RepeatStatus.FINISHED;
@@ -265,7 +266,9 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .entrySet()
                 .stream()
                 .map(f -> new Tuple<String, Integer>(f.getKey(), f.getValue().size()))
-                .sorted(Comparator.comparingInt(g -> (Integer) g.getValue()))
+                .sorted((x,y) -> {
+                    return y.getValue().compareTo(x.getValue());
+                })
                 .collect(Collectors.toList());
     }
 
