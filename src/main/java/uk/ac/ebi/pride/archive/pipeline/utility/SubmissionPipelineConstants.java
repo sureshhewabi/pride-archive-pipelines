@@ -48,6 +48,11 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SUBMISSION_STATS_YEAR("PrideArchiveSubmissionStatsNumberByMonthStep", "This Step will estimate the number of submissions per year"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_MONTH("PrideArchiveSubmissionStatsNumberByMonthStep", "This Step will estimate the number of submissions per year"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_INSTRUMENT("PrideArchiveSubmissionStatsNumberByInstrumentsStep", "This step computes the number of submissions per instrument"),
+        PRIDE_ARCHIVE_SUBMISSION_STATS_ORGANISM("PrideArchiveSubmissionStatsNumberByOrganismStep", "This step computes the number of submissions per organism"),
+        PRIDE_ARCHIVE_SUBMISSION_STATS_ORGANISM_PART("PrideArchiveSubmissionStatsNumberByOrganismPartStep", "This step computes the number of submissions per organism part"),
+        PRIDE_ARCHIVE_SUBMISSION_STATS_DISEASES("PrideArchiveSubmissionStatsNumberByDiseasesStep", "This step computes the number of submissions per organism"),
+        PRIDE_ARCHIVE_SUBMISSION_STATS_MODIFICATIONS("PrideArchiveSubmissionStatsNumberByModificationsStep", "This step computes the number of submissions per modifications"),
+
 
         /** PRIDE Data Sync from Oracle to MongoDB **/
        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("PrideArchiveOracleToMongoDBSyncStep", "This Step will sync the Oracle Database data into MongoDB data"),
