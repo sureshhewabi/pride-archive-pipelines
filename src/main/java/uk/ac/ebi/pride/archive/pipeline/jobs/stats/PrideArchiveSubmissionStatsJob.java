@@ -83,20 +83,6 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .build();
     }
 
-    /**
-     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
-     *
-     * @return the calculatePrideArchiveDataUsage job
-     */
-    @Bean
-    public Job computeSubmissionStats() {
-        return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
-                .start(estimateSubmissionByYear())
-                .next(estimateSubmissionByMonth())
-                .build();
-    }
-
     @Bean
     public Step estimateSubmissionByMonth() {
         return stepBuilderFactory
@@ -118,6 +104,46 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 })
                 .build();
     }
+
+
+    @Bean
+    public Step estimateInstrumentsCount() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_INSTRUMENT.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    List<Tuple<String, Integer>> submissionsByDate = prideProjectMongoService
+                            .findAllStream()
+                            .flatMap( x-> x.getInstrumentsCvParams().stream())
+                            .collect(Collectors.groupingBy( x -> x.getName()))
+                            .entrySet()
+                            .stream()
+                            .map( x -> new Tuple(x.getKey() , x.getValue().size()))
+                            .sorted((x,y) -> Integer.compare((Integer) x.getValue(), (Integer) x.getValue()))
+                            .collect(Collectors.toList());
+                    prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_INSTRUMENTS, submissionsByDate);
+                    return RepeatStatus.FINISHED;
+
+                })
+                .build();
+    }
+
+
+    /**
+     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
+     *
+     * @return the calculatePrideArchiveDataUsage job
+     */
+    @Bean
+    public Job computeSubmissionStats() {
+        return jobBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
+                .start(estimateSubmissionByYear())
+                .next(estimateSubmissionByMonth())
+                .next(estimateInstrumentsCount())
+                .build();
+    }
+
+
 
 
 }
