@@ -46,7 +46,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_MASTER_INIT.getName())
                 .start(deletePRIDEArchiveCollectionSolrCloud())
                 .next(createArchiveCollectionSolrCloud())
-                .next(refineArchiveCollectionSolrCloud())
+//                .next(refineArchiveCollectionSolrCloud())
                 .build();
     }
 
@@ -79,7 +79,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
                 .tasklet((stepContribution, chunkContext) -> {
                     String value = (chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("deleteOnly"));
                     if(value != null && !value.equalsIgnoreCase("TRUE")){
-                        if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 2, 2,PrideProjectField.PRIDE_PROJECTS_CONFIG_NAME)){
+                        if(solrAPIHelper.createCollection(PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME, 2, 1, 2,PrideProjectField.PRIDE_PROJECTS_CONFIG_NAME)){
                             log.info("Collection -- " + PrideProjectField.PRIDE_PROJECTS_COLLECTION_NAME + " has been create -- ");
                         }
                     }

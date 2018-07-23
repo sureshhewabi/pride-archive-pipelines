@@ -12,9 +12,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.projects.SyncProjectsMongoToSolrCloudJob;
-
-import static org.junit.Assert.*;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the

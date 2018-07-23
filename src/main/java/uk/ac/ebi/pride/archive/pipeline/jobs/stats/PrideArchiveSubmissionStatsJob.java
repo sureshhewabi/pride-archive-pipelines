@@ -1,10 +1,7 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.stats;
 
-import com.mongodb.Mongo;
-import com.mongodb.internal.validator.CollectibleDocumentFieldNameValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -27,8 +24,6 @@ import uk.ac.ebi.pride.mongodb.archive.service.stats.PrideStatsMongoService;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;

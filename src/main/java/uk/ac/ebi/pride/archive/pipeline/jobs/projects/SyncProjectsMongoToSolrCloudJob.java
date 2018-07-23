@@ -14,10 +14,15 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -84,6 +89,26 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     }
 
     /**
+     * Sync the Files to Solr Project
+     * @return Step
+     */
+    private Step syncFilesToSolrProject() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    solrProjectService.findAll().forEach( x-> {
+                        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(x.getAccession());
+                        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+                        x.setProjectFileNames(fileNames);
+                        solrProjectService.update(x);
+                    });
+                    log.info("All Documents has been deleted from the SolrCloud Master");
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+
+    /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
      *
      * @return the calculatePrideArchiveDataUsage job
@@ -94,9 +119,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC.getName())
                 .start(cleanSolrCloud())
                 .next(syncProjectMongoDBToSolrCloudStep())
+                .next(syncFilesToSolrProject())
                 .build();
     }
-
 
 
 

@@ -209,19 +209,20 @@ public class PrideProjectTransformer {
         simpleDateformat = new SimpleDateFormat("yyyy");
         String year = simpleDateformat.format(publicationDate);
         StringBuilder url = new StringBuilder();
-        return url.append(protocolURL)
+        url.append(protocolURL)
                 .append(StringUtils.URL_SEPARATOR)
                 .append(year)
                 .append(StringUtils.URL_SEPARATOR)
                 .append(month)
                 .append(StringUtils.URL_SEPARATOR)
                 .append(projectAccession)
-                .append(StringUtils.URL_SEPARATOR)
-                .append(folderName)
-                .append(StringUtils.URL_SEPARATOR)
-                .append(fileName)
-                .toString();
-
+                .append(StringUtils.URL_SEPARATOR);
+        if(!folderName.equalsIgnoreCase(ProjectFolderSourceConstants.SUBMITTED.getFolderName())){
+                    url.append(folderName)
+                    .append(StringUtils.URL_SEPARATOR);
+        }
+        url.append(fileName);
+        return url.toString();
     }
 
     /**
@@ -246,13 +247,13 @@ public class PrideProjectTransformer {
         project.setProjectTags(new ArrayList<>(mongoPrideProject.getProjectTags()));
 
         //Get the researchers
-        project.setLabPIs(new ArrayList<>(mongoPrideProject.getHeadLab()));
+        project.setLabPIs(new HashSet<>(mongoPrideProject.getHeadLab()));
 
         //Get the submitters information
         project.setSubmittersFromNames(new ArrayList<>(mongoPrideProject.getSubmitters()));
 
         //Get the affiliations
-        List<String> affiliations = new ArrayList<>();
+        Set<String> affiliations = new HashSet<>();
         affiliations.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
         affiliations.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
         project.setAffiliations(affiliations);
@@ -287,6 +288,7 @@ public class PrideProjectTransformer {
                                 .collect(Collectors.toList())))
         );
         project.setSampleAttributes(sampleAttributes);
+
         return project;
     }
 

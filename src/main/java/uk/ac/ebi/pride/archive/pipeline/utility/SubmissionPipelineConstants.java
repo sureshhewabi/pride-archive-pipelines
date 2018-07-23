@@ -1,7 +1,5 @@
 package uk.ac.ebi.pride.archive.pipeline.utility;
 
-import java.nio.file.FileStore;
-
 /**
  * This class contains a set of constants that are needed to process the data in the submission pipeline.
  *
@@ -52,6 +50,7 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SUBMISSION_STATS_ORGANISM_PART("PrideArchiveSubmissionStatsNumberByOrganismPartStep", "This step computes the number of submissions per organism part"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_DISEASES("PrideArchiveSubmissionStatsNumberByDiseasesStep", "This step computes the number of submissions per organism"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_MODIFICATIONS("PrideArchiveSubmissionStatsNumberByModificationsStep", "This step computes the number of submissions per modifications"),
+        PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR("PrideArchiveSyncProjectFromMongoToSolrProject", "This step sync all the files that belown to a project to solr project, for searching"),
 
 
         /** PRIDE Data Sync from Oracle to MongoDB **/
