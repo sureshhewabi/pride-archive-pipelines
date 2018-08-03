@@ -13,6 +13,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 
+import static org.junit.Assert.*;
+
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -24,27 +26,27 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration
  * <p>
  * This class
  * <p>
- * Created by ypriverol (ypriverol@gmail.com) on 14/06/2018.
+ * Created by ypriverol (ypriverol@gmail.com) on 03/08/2018.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {SyncProjectsMongoToSolrCloudJob.class, JobRunnerTestConfiguration.class})
+@ContextConfiguration(classes = {PrideProjectsAnnotateCountryFromGitHubJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
-public class SyncProjectsMongoToSolrCLoudJobTest {
+public class PrideProjectsAnnotateCountryFromGitHubJobTest {
 
-        @Autowired
-        SyncProjectsMongoToSolrCloudJob mongoToSolrCloudJob;
+    @Autowired
+    PrideProjectsAnnotateCountryFromGitHubJob mongoToSolrCloudJob;
 
-        @Autowired
-        private JobLauncherTestUtils jobLauncherTestUtils;
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
 
-        /**
-         * This test should be run during the development process
-         * @throws Exception
-         */
-        @Test
-        public void syncMongoToSolrCloud() throws Exception {
-            JobExecution jobExecution = jobLauncherTestUtils.launchJob();
-            Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
-        }
+    /**
+     * This test should be run during the development process
+     * @throws Exception
+     */
+    @Test
+    public void prideProjectCountryAnnotation() throws Exception {
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+        Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
+    }
 }

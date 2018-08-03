@@ -15,6 +15,7 @@ public class SubmissionPipelineConstants {
        PRIDE_ARCHIVE_SOLR_MASTER_INIT("PrideArchiveSolrCloudInit", "This command will create a new Collection of PRIDE Archive in SolrCloud Production."),
        PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC("PrideArchiveOracleSyncToMongoDB", "This command will sync the Oracle Database data into MongoDB data"),
        PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC("PrideArchiveMongoSyncSolrCloud", "This command sync all the projects from MongoDB to Solr Cloud"),
+       PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
        PRIDE_ARCHIVE_SUBMISSION_STATS("PrideArchiveSubmissionStats", "This command compute/estimate the statistics for PRIDE Submissions");
 
        String name;
@@ -51,6 +52,8 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SUBMISSION_STATS_DISEASES("PrideArchiveSubmissionStatsNumberByDiseasesStep", "This step computes the number of submissions per organism"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_MODIFICATIONS("PrideArchiveSubmissionStatsNumberByModificationsStep", "This step computes the number of submissions per modifications"),
         PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR("PrideArchiveSyncProjectFromMongoToSolrProject", "This step sync all the files that belown to a project to solr project, for searching"),
+
+        PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
 
 
         /** PRIDE Data Sync from Oracle to MongoDB **/
