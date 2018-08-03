@@ -20,6 +20,7 @@ import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.model.stats.PrideStatsKeysConstants;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.archive.service.stats.CategoryStats;
 import uk.ac.ebi.pride.mongodb.archive.service.stats.PrideStatsMongoService;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
@@ -241,6 +242,41 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .build();
     }
 
+    @Bean
+    public Step estimateSubmissionByCategory() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_CATEGORY.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    Set<CategoryStats> categoryStats = new HashSet<>();
+                    Stream<MongoPrideProject> submissions = prideProjectMongoService.findAllStream();
+                    List<Tuple<String, Integer>> species = estimateDatasetsByTermInSampleDescription(submissions, CvTermReference.EFO_ORGANISM);
+                    species.stream().forEach(organism -> {
+                        categoryStats.add(CategoryStats
+                                .builder()
+                                .category(new Tuple<>(organism.getKey(), organism.getValue()))
+                                .build());
+                    });
+
+                    categoryStats.forEach( organism -> {
+                        List<MongoPrideProject> organismSubmissions = submissions.filter(x -> x.getSamplesDescription()
+                                .stream().filter(y -> y.getKey().getName().equalsIgnoreCase(organism.getCategory().getKey())).count() > 0)
+                                .collect(Collectors.toList());
+                        Set<CategoryStats> organismParts = estimateDatasetsByTermInSampleDescription(organismSubmissions.stream(), CvTermReference.EFO_ORGANISM_PART)
+                                .stream().map( x-> CategoryStats
+                                        .builder()
+                                        .category( new Tuple<>(x.getKey(), x.getValue()))
+                                        .build()).collect(Collectors.toSet());
+                         organism.setSubCategories(organismParts);
+
+                    });
+
+                   // prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+
+
 
     /**
      * This job estimates different statistics around each submission.
@@ -252,6 +288,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
                 .start(estimateSubmissionByYear())
+                .next(estimateSubmissionByCategory())
                 .next(estimateSubmissionByMonth())
                 .next(estimateInstrumentsCount())
                 .next(estimateOrganismCount())
@@ -285,9 +322,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .entrySet()
                 .stream()
                 .map(f -> new Tuple<String, Integer>(f.getKey(), f.getValue().size()))
-                .sorted((x,y) -> {
-                    return y.getValue().compareTo(x.getValue());
-                })
+                .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                 .collect(Collectors.toList());
     }
 

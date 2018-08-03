@@ -53,6 +53,7 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SUBMISSION_STATS_MODIFICATIONS("PrideArchiveSubmissionStatsNumberByModificationsStep", "This step computes the number of submissions per modifications"),
         PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR("PrideArchiveSyncProjectFromMongoToSolrProject", "This step sync all the files that belown to a project to solr project, for searching"),
         PRIDE_ARCHIVE_SUBMISSION_STATS_COUNTRY("PrideArchiveSubmissionStatsByCountry", "Number of submissions per Country of origin"),
+        PRIDE_ARCHIVE_SUBMISSION_STATS_CATEGORY("PrideArchiveSubmissionStatsByCategory", "Number of submissions per Category - Organism, Organism Part"),
 
         PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
 
