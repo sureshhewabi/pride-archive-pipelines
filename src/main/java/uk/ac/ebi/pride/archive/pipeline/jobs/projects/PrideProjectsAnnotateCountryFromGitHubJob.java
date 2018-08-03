@@ -11,22 +11,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
@@ -50,18 +43,13 @@ public class PrideProjectsAnnotateCountryFromGitHubJob extends AbstractArchiveJo
     @Autowired
     PrideProjectMongoService prideProjectMongoService;
 
-    /**
-     * This methods connects to the database read all the Oracle information for public
-     * @return
-     */
-
     HashMap<String, Set<String>> countries;
 
     @Bean
     public HashMap<String, Set<String>> parseCountries() {
         this.countries = new HashMap<>();
         String stringURL = "https://raw.githubusercontent.com/PRIDE-Utilities/pride-ontology/master/pride-annotations/px-countries.csv";
-        URL url = null;
+        URL url;
         try {
             url = new URL(stringURL);
             File fileTemp = File.createTempFile("countries", ".csv");
@@ -101,10 +89,6 @@ public class PrideProjectsAnnotateCountryFromGitHubJob extends AbstractArchiveJo
                             prideProjectMongoService.update(mongoPrideProject);
                             log.info("The project -- " + mongoPrideProject.getAccession() + " has been updated in MongoDB");
                         }
-
-
-
-
                     });
                     return RepeatStatus.FINISHED;
                 })

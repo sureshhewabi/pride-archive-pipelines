@@ -220,6 +220,27 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .build();
     }
 
+    @Bean
+    public Step estimateCountryCount() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_COUNTRY.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    List<Tuple<String, Integer>> submissionsByCountry = prideProjectMongoService
+                            .findAllStream()
+                            .filter( x-> (x.getCountries()!=null && x.getCountries().size() >0))
+                            .flatMap( x-> x.getCountries().stream())
+                            .collect(Collectors.groupingBy(y -> y.trim()))
+                            .entrySet()
+                            .stream()
+                            .map( x -> new Tuple<String, Integer>(x.getKey() , x.getValue().size()))
+                            .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
+                            .collect(Collectors.toList());
+                    prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_COUNTRY, submissionsByCountry);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+
 
     /**
      * This job estimates different statistics around each submission.
@@ -237,8 +258,11 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .next(estimateModificationCount())
                 .next(estimateOrganismPartCount())
                 .next(estimateDiseasesCount())
+                .next(estimateCountryCount())
                 .build();
     }
+
+
 
     /**
      * Estimate the number of datasets for an specific {@link CvTermReference} in the sample Description.
