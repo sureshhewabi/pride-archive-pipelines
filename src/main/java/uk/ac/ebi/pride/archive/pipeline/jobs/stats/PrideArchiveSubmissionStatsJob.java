@@ -292,6 +292,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             }
                         }
                     }
+                    categoryStats = computeCategoryStats(categoryStats);
 
                     // prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
                     return RepeatStatus.FINISHED;
@@ -299,6 +300,24 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .build();
     }
 
+    private Set<CategoryStats> computeCategoryStats(Set<CategoryStats> categoryStats) {
+        for(CategoryStats category: categoryStats){
+            category = computeCategoryCount(category);
+            categoryStats.add(category);
+        }
+        return categoryStats;
+    }
+
+    private CategoryStats computeCategoryCount(CategoryStats category) {
+        if(category.getSubCategories() == null || category.getSubCategories().isEmpty())
+            return category;
+        int count = 0;
+        for(CategoryStats subCategory: Objects.requireNonNull(category.getSubCategories())){
+            count = count + computeCategoryCount(subCategory).getCategory().getValue();
+        }
+        category.getCategory().setValue(count);
+        return category;
+    }
 
     private Set<CategoryStats> addCategoryStats(Collection<CategoryStats> categories, int count, String... keys){
         if(keys.length == 1 ){
