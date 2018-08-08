@@ -54,7 +54,7 @@ public class PrideProjectsAnnotateCountryFromGitHubJob extends AbstractArchiveJo
             url = new URL(stringURL);
             File fileTemp = File.createTempFile("countries", ".csv");
             FileUtils.copyURLToFile(url, fileTemp);
-            String line = "";
+            String line;
             BufferedReader br = new BufferedReader(new FileReader(fileTemp));
             while ((line = br.readLine()) != null) {
 

@@ -48,13 +48,19 @@ import java.util.stream.Stream;
 @Import({ArchiveMongoConfig.class, DataSourceConfiguration.class})
 public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
 
-    @Autowired
+    private final
     PrideProjectMongoService prideProjectMongoService;
 
-    @Autowired
+    private final
     PrideStatsMongoService prideStatsMongoService;
 
     private Date date;
+
+    @Autowired
+    public PrideArchiveSubmissionStatsJob(PrideProjectMongoService prideProjectMongoService, PrideStatsMongoService prideStatsMongoService) {
+        this.prideProjectMongoService = prideProjectMongoService;
+        this.prideStatsMongoService = prideStatsMongoService;
+    }
 
     /**
      * All the stats are compute at an specific time 00:00:00
@@ -139,7 +145,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .collect(Collectors.groupingBy(ParamProvider::getName))
                             .entrySet()
                             .stream()
-                            .map(x -> new Tuple<String, Integer>(x.getKey(), x.getValue().size()))
+                            .map(x -> new Tuple<>(x.getKey(), x.getValue().size()))
                             .sorted((x, y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_INSTRUMENTS, submissionsByDate);
@@ -212,7 +218,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .collect(Collectors.groupingBy(MongoCvParam::getName))
                             .entrySet()
                             .stream()
-                            .map( x -> new Tuple<String, Integer>(x.getKey() , x.getValue().size()))
+                            .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
                             .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_MODIFICATIONS, submissionsByDate);
@@ -230,10 +236,10 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .findAllStream()
                             .filter( x-> (x.getCountries()!=null && x.getCountries().size() >0))
                             .flatMap( x-> x.getCountries().stream())
-                            .collect(Collectors.groupingBy(y -> y.trim()))
+                            .collect(Collectors.groupingBy(String::trim))
                             .entrySet()
                             .stream()
-                            .map( x -> new Tuple<String, Integer>(x.getKey() , x.getValue().size()))
+                            .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
                             .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_COUNTRY, submissionsByCountry);
@@ -248,34 +254,94 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_CATEGORY.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     Set<CategoryStats> categoryStats = new HashSet<>();
-                    Stream<MongoPrideProject> submissions = prideProjectMongoService.findAllStream();
-                    List<Tuple<String, Integer>> species = estimateDatasetsByTermInSampleDescription(submissions, CvTermReference.EFO_ORGANISM);
-                    species.stream().forEach(organism -> {
-                        categoryStats.add(CategoryStats
-                                .builder()
-                                .category(new Tuple<>(organism.getKey(), organism.getValue()))
-                                .build());
-                    });
 
-                    categoryStats.forEach( organism -> {
-                        List<MongoPrideProject> organismSubmissions = submissions.filter(x -> x.getSamplesDescription()
-                                .stream().filter(y -> y.getKey().getName().equalsIgnoreCase(organism.getCategory().getKey())).count() > 0)
-                                .collect(Collectors.toList());
-                        Set<CategoryStats> organismParts = estimateDatasetsByTermInSampleDescription(organismSubmissions.stream(), CvTermReference.EFO_ORGANISM_PART)
-                                .stream().map( x-> CategoryStats
-                                        .builder()
-                                        .category( new Tuple<>(x.getKey(), x.getValue()))
-                                        .build()).collect(Collectors.toSet());
-                         organism.setSubCategories(organismParts);
+                    List<MongoPrideProject> submissions = prideProjectMongoService.findAllStream().collect(Collectors.toList());
 
-                    });
+                    List<Tuple<String, Integer>> organisms = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_ORGANISM);
+                    List<Tuple<String, Integer>> organismsPart = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_ORGANISM_PART);
+                    List<Tuple<String, Integer>> diseases = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_DISEASE);
+                    List<Tuple<String, Integer>> modifications = submissions.stream().flatMap( x-> x.getPtmList().stream())
+                            .collect(Collectors.groupingBy(MongoCvParam::getName))
+                            .entrySet()
+                            .stream()
+                            .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
+                            .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
+                            .collect(Collectors.toList());
 
-                   // prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
+                    for(int iOrg = 0; iOrg < organisms.size(); iOrg++){
+                        List<MongoPrideProject> currentOrganism = filterProjectsByValueTerm(submissions, CvTermReference.EFO_ORGANISM, organisms.get(iOrg).getKey());
+                        for(int iOrgPart = 0; (iOrgPart < organismsPart.size() && currentOrganism.size()>0); iOrgPart++){
+                            List<MongoPrideProject> currentOrganismPart = filterProjectsByValueTerm(currentOrganism, CvTermReference.EFO_ORGANISM_PART, organismsPart.get(iOrgPart).getKey());
+                            for(int iDiseases = 0; (iDiseases < diseases.size() && currentOrganismPart.size() > 0); iDiseases++){
+                                List<MongoPrideProject> currentDiseases = filterProjectsByValueTerm(currentOrganismPart, CvTermReference.EFO_DISEASE, diseases.get(iDiseases).getKey());
+                                for(int iMod = 0; (iMod < modifications.size() && currentDiseases.size() >0); iMod++){
+                                    int finalIMod = iMod;
+                                    long count = currentDiseases.parallelStream()
+                                            .filter(mongoPrideProject -> mongoPrideProject.getPtmList()
+                                                    .parallelStream().anyMatch(ptm -> ptm.getName().equalsIgnoreCase(modifications.get(finalIMod).getKey()))).count();
+
+                                    if(count > 0){
+                                        log.info(organisms.get(iOrg).getKey() + " | " + organismsPart.get(iOrgPart).getKey()
+                                                + " | " + diseases.get(iDiseases).getKey() + "|" + modifications.get(finalIMod).getKey() + " | " + String.valueOf(count));
+                                        categoryStats = addCategories(categoryStats, count, organisms.get(iOrg).getKey(),
+                                                organismsPart.get(iOrgPart).getKey(), diseases.get(iDiseases).getKey(),
+                                                modifications.get(finalIMod).getKey());
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+
+                    // prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
     }
 
+
+    private Set<CategoryStats> addCategoryStats(Collection<CategoryStats> categories, int count, String... keys){
+        if(keys.length == 1 ){
+            Set<CategoryStats> subCategories = new HashSet<>();
+            CategoryStats current = (categories.stream().anyMatch(x -> x.getCategory().getKey().equalsIgnoreCase(keys[0])))?
+                    categories.stream().filter(x -> x.getCategory().getKey().equalsIgnoreCase(keys[0])).findFirst().get():
+                    CategoryStats.builder().category(new Tuple<>(keys[0], 0))
+                            .subCategories(subCategories)
+                            .build();
+            current.getCategory().setValue(current.getCategory().getValue() + count);
+            categories.add(current);
+        }else if (keys.length > 1){
+            CategoryStats current = (categories.stream().anyMatch(x -> x.getCategory().getKey().equalsIgnoreCase(keys[0])))?
+                    categories.stream().filter(x -> x.getCategory().getKey().equalsIgnoreCase(keys[0])).findFirst().get():
+                    CategoryStats.builder()
+                            .category(new Tuple<>(keys[0], 0))
+                            .subCategories(new HashSet<>())
+                            .build();
+            current.setSubCategories(addCategoryStats(current.getSubCategories(), count, Arrays.copyOfRange(keys, 1, keys.length)));
+            categories.add(current);
+        }
+        return new HashSet<>(categories);
+
+    }
+
+    private Set<CategoryStats> addCategories(Set<CategoryStats> categoryStats, long count, String ... keys) {
+        return addCategoryStats(categoryStats, (int) count, keys);
+    }
+
+    private List<MongoPrideProject> filterProjectsByValueTerm(List<MongoPrideProject> submissions, CvTermReference term, String key) {
+        return submissions.stream().filter(a -> {
+            List<Tuple<MongoCvParam, List<MongoCvParam>>> descriptionValues = a.getSamplesDescription().stream()
+                    .filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
+                    .collect(Collectors.toList());
+            boolean found = false;
+            Iterator<Tuple<MongoCvParam, List<MongoCvParam>>> it = descriptionValues.iterator();
+            while(it.hasNext() && !found){
+                Tuple<MongoCvParam, List<MongoCvParam>> terms = it.next();
+                found = terms.getValue().stream().anyMatch(value -> value.getName().equalsIgnoreCase(key));
+            }
+            return found;
+        }).collect(Collectors.toList());
+    }
 
 
     /**
@@ -287,15 +353,16 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
     public Job computeSubmissionStats() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
-                .start(estimateSubmissionByYear())
-                .next(estimateSubmissionByCategory())
-                .next(estimateSubmissionByMonth())
-                .next(estimateInstrumentsCount())
-                .next(estimateOrganismCount())
-                .next(estimateModificationCount())
-                .next(estimateOrganismPartCount())
-                .next(estimateDiseasesCount())
-                .next(estimateCountryCount())
+                .start(estimateSubmissionByCategory())
+//                .start(estimateSubmissionByYear())
+//                .next(estimateSubmissionByCategory())
+//                .next(estimateSubmissionByMonth())
+//                .next(estimateInstrumentsCount())
+//                .next(estimateOrganismCount())
+//                .next(estimateModificationCount())
+//                .next(estimateOrganismPartCount())
+//                .next(estimateDiseasesCount())
+//                .next(estimateCountryCount())
                 .build();
     }
 
@@ -308,20 +375,20 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return List of Tuple with the values.
      */
     private List<Tuple<String, Integer>> estimateDatasetsByTermInSampleDescription(Stream<MongoPrideProject> projects, CvTermReference term){
-        return projects.map(a -> a.getSamplesDescription())
+        return projects.map(MongoPrideProject::getSamplesDescription)
                 .collect(Collectors.toList())
-                .stream().flatMap(b -> b.stream())
+                .stream().flatMap(Collection::stream)
                 .collect(Collectors.toList())
                 .stream()
                 .filter(c -> c.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
-                .map(d -> d.getValue())
+                .map(Tuple::getValue)
                 .collect(Collectors.toList())
                 .stream()
-                .flatMap(e -> e.stream())
+                .flatMap(Collection::stream)
                 .collect(Collectors.groupingBy(MongoCvParam::getName))
                 .entrySet()
                 .stream()
-                .map(f -> new Tuple<String, Integer>(f.getKey(), f.getValue().size()))
+                .map(f -> new Tuple<>(f.getKey(), f.getValue().size()))
                 .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                 .collect(Collectors.toList());
     }

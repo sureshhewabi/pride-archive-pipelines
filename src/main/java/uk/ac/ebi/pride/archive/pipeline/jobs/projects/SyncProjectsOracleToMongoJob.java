@@ -75,10 +75,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @param override
      */
     public void setOverride(final String override){
-        if(override != null && override.equalsIgnoreCase("TRUE")) {
-            this.override = true;
-        } else
-            this.override = false;
+        this.override = override != null && override.equalsIgnoreCase("TRUE");
     }
 
     /**
@@ -86,7 +83,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @param submissionType The type of Submissions will be push into MongoDb {@link uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.SubmissionsType}
      */
     public void setSubmissionType (final String submissionType){
-        if(submissionType == null || SubmissionPipelineConstants.SubmissionsType.valueOf(submissionType) == null)
+        if(submissionType == null)
             this.submissionType = SubmissionPipelineConstants.SubmissionsType.PUBLIC;
         else
             this.submissionType = SubmissionPipelineConstants.SubmissionsType.valueOf(submissionType);

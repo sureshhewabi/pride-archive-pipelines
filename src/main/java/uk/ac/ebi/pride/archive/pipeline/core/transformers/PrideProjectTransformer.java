@@ -93,7 +93,7 @@ public class PrideProjectTransformer {
                 .collect(Collectors.toList());
 
         // Project Keywords
-        List<String> keywords = Arrays.asList(oracleProject.getKeywords().split(",")).stream()
+        List<String> keywords = Arrays.stream(oracleProject.getKeywords().split(","))
                 .map(StringUtils::convertSentenceStyle).collect(Collectors.toList());
 
         //Project Quant Methods

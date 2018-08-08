@@ -40,7 +40,7 @@ public class SolrCloudMasterConfig {
         return new CloudSolrClient.Builder().withSolrUrl(urls).build();
     }
     @Bean
-    public SolrTemplate solrTemplate(SolrClient solrClient) throws Exception {
+    public SolrTemplate solrTemplate(SolrClient solrClient) {
         return new SolrTemplate(solrClient);
     }
 
