@@ -259,7 +259,15 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
 
                     List<Tuple<String, Integer>> organisms = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_ORGANISM);
                     List<Tuple<String, Integer>> organismsPart = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_ORGANISM_PART);
+
+                    if(organismsPart.stream().noneMatch(x -> x.getKey().equalsIgnoreCase(CvTermReference.PRIDE_NO_ORGANISM_PART.getName())))
+                        organismsPart.add(new Tuple<>(CvTermReference.PRIDE_NO_ORGANISM_PART.getName(), 0));
+
                     List<Tuple<String, Integer>> diseases = estimateDatasetsByTermInSampleDescription(submissions.stream(), CvTermReference.EFO_DISEASE);
+
+                    if(organismsPart.stream().noneMatch(x -> x.getKey().equalsIgnoreCase(CvTermReference.PRIDE_NO_DISEASES.getName())))
+                        diseases.add(new Tuple<>(CvTermReference.PRIDE_NO_DISEASES.getName(), 0));
+
                     List<Tuple<String, Integer>> modifications = submissions.stream().flatMap( x-> x.getPtmList().stream())
                             .collect(Collectors.groupingBy(MongoCvParam::getName))
                             .entrySet()
@@ -267,13 +275,22 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                             .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
                             .sorted((x,y) -> y.getValue().compareTo(x.getValue()))
                             .collect(Collectors.toList());
+                    modifications.add(new Tuple<>(CvTermReference.PRIDE_NO_MODIFICATION.getName(), 0));
 
                     for(int iOrg = 0; iOrg < organisms.size(); iOrg++){
-                        List<MongoPrideProject> currentOrganism = filterProjectsByValueTerm(submissions, CvTermReference.EFO_ORGANISM, organisms.get(iOrg).getKey());
+                        List<MongoPrideProject> currentOrganism = filterProjectsByValueTerm(submissions, CvTermReference.EFO_ORGANISM, organisms.get(iOrg).getKey(), false);
                         for(int iOrgPart = 0; (iOrgPart < organismsPart.size() && currentOrganism.size()>0); iOrgPart++){
-                            List<MongoPrideProject> currentOrganismPart = filterProjectsByValueTerm(currentOrganism, CvTermReference.EFO_ORGANISM_PART, organismsPart.get(iOrgPart).getKey());
+                            List<MongoPrideProject> currentOrganismPart = new ArrayList<>();
+                            if(organismsPart.get(iOrgPart).getKey().equalsIgnoreCase(CvTermReference.PRIDE_NO_ORGANISM_PART.getName()))
+                                currentOrganismPart = filterProjectsByValueTerm(currentOrganism, CvTermReference.EFO_ORGANISM_PART, organismsPart.get(iOrgPart).getKey(), true);
+                            else
+                                currentOrganismPart = filterProjectsByValueTerm(currentOrganism, CvTermReference.EFO_ORGANISM_PART, organismsPart.get(iOrgPart).getKey(), false);
                             for(int iDiseases = 0; (iDiseases < diseases.size() && currentOrganismPart.size() > 0); iDiseases++){
-                                List<MongoPrideProject> currentDiseases = filterProjectsByValueTerm(currentOrganismPart, CvTermReference.EFO_DISEASE, diseases.get(iDiseases).getKey());
+                                List<MongoPrideProject> currentDiseases;
+                                if(organismsPart.get(iOrgPart).getKey().equalsIgnoreCase(CvTermReference.PRIDE_NO_DISEASES.getName()))
+                                    currentDiseases = filterProjectsByValueTerm(currentOrganismPart, CvTermReference.EFO_DISEASE, diseases.get(iDiseases).getKey(), true);
+                                else
+                                     currentDiseases = filterProjectsByValueTerm(currentOrganismPart, CvTermReference.EFO_DISEASE, diseases.get(iDiseases).getKey() ,false);
                                 for(int iMod = 0; (iMod < modifications.size() && currentDiseases.size() >0); iMod++){
                                     int finalIMod = iMod;
                                     long count = currentDiseases.parallelStream()
@@ -293,11 +310,39 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                         }
                     }
                     categoryStats = computeCategoryStats(categoryStats);
-
-                    // prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
+                    prideStatsMongoService.updateSubmissionComplexStats(date, PrideStatsKeysConstants.SUBMISSIONS_PER_CATEGORIES, categoryStats);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
+    }
+
+    private List<MongoPrideProject> filterProjectsByValueTerm(List<MongoPrideProject> submissions, CvTermReference term, String key, boolean addEmpty) {
+        List<MongoPrideProject> resultSubmissions = new ArrayList<>();
+        if(addEmpty){
+            resultSubmissions.addAll(filterProjectsByEmptyValue(submissions, term));
+        }
+        resultSubmissions.addAll(submissions.stream().filter(a -> {
+            List<Tuple<MongoCvParam, List<MongoCvParam>>> descriptionValues = a.getSamplesDescription().stream()
+                    .filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
+                    .collect(Collectors.toList());
+            boolean found = false;
+            Iterator<Tuple<MongoCvParam, List<MongoCvParam>>> it = descriptionValues.iterator();
+            while(it.hasNext() && !found){
+                Tuple<MongoCvParam, List<MongoCvParam>> terms = it.next();
+                found = terms.getValue().stream().anyMatch(value -> value.getName().equalsIgnoreCase(key));
+            }
+            return found;
+        }).collect(Collectors.toList()));
+
+        return resultSubmissions;
+    }
+
+    private List<MongoPrideProject> filterProjectsByEmptyValue(List<MongoPrideProject> submissions, CvTermReference term) {
+        return submissions.stream().filter(a -> {
+                                           return a.getSamplesDescription().
+                                                   stream().
+                                                   filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession())).count() == 0;
+        }).collect(Collectors.toList());
     }
 
     private Set<CategoryStats> computeCategoryStats(Set<CategoryStats> categoryStats) {
@@ -347,20 +392,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
         return addCategoryStats(categoryStats, (int) count, keys);
     }
 
-    private List<MongoPrideProject> filterProjectsByValueTerm(List<MongoPrideProject> submissions, CvTermReference term, String key) {
-        return submissions.stream().filter(a -> {
-            List<Tuple<MongoCvParam, List<MongoCvParam>>> descriptionValues = a.getSamplesDescription().stream()
-                    .filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
-                    .collect(Collectors.toList());
-            boolean found = false;
-            Iterator<Tuple<MongoCvParam, List<MongoCvParam>>> it = descriptionValues.iterator();
-            while(it.hasNext() && !found){
-                Tuple<MongoCvParam, List<MongoCvParam>> terms = it.next();
-                found = terms.getValue().stream().anyMatch(value -> value.getName().equalsIgnoreCase(key));
-            }
-            return found;
-        }).collect(Collectors.toList());
-    }
+
 
 
     /**
@@ -373,15 +405,15 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
                 .start(estimateSubmissionByCategory())
-//                .start(estimateSubmissionByYear())
-//                .next(estimateSubmissionByCategory())
-//                .next(estimateSubmissionByMonth())
-//                .next(estimateInstrumentsCount())
-//                .next(estimateOrganismCount())
-//                .next(estimateModificationCount())
-//                .next(estimateOrganismPartCount())
-//                .next(estimateDiseasesCount())
-//                .next(estimateCountryCount())
+                .start(estimateSubmissionByYear())
+                .next(estimateSubmissionByCategory())
+                .next(estimateSubmissionByMonth())
+                .next(estimateInstrumentsCount())
+                .next(estimateOrganismCount())
+                .next(estimateModificationCount())
+                .next(estimateOrganismPartCount())
+                .next(estimateDiseasesCount())
+                .next(estimateCountryCount())
                 .build();
     }
 
