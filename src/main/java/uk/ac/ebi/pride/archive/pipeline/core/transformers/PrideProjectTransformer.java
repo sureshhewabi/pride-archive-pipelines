@@ -258,7 +258,12 @@ public class PrideProjectTransformer {
         affiliations.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
         project.setAffiliations(affiliations);
 
-        project.setIdentifiedPTMStrings(mongoPrideProject.getPtmList().stream().map(CvParamProvider::getName).collect(Collectors.toSet()));
+        /** Set PTMs **/
+        project.setIdentifiedPTMStringsFromCvParam(mongoPrideProject.getPtmList()
+                .stream()
+                .map(x -> new DefaultCvParam(x.getCvLabel(), x.getAccession(), x.getName(), x.getValue()))
+                .collect(Collectors.toList())
+        );
 
         /** Set Country **/
         List<String> countries = new ArrayList<>();
@@ -276,7 +281,6 @@ public class PrideProjectTransformer {
         project.setInstrumentsFromCvParam(new ArrayList<>(mongoPrideProject.getInstrumentsCvParams()));
         List<Tuple<CvParamProvider, List<CvParamProvider>>> sampleAttributes = new ArrayList<>();
         mongoPrideProject.getSamplesDescription()
-                .stream()
                 .forEach(x ->
                         sampleAttributes.add(new Tuple( new DefaultCvParam(x.getKey().getCvLabel(),
                         x.getKey().getAccession(),
