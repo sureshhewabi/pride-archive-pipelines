@@ -266,11 +266,14 @@ public class PrideProjectTransformer {
         );
 
         /** Set Country **/
-        List<String> countries = new ArrayList<>();
+        Set<String> countries = new HashSet<>();
         countries.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
         countries.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
 
-        project.setAllCountries(new HashSet<>(countries));
+        if(mongoPrideProject.getCountries() != null)
+            countries.addAll(mongoPrideProject.getCountries());
+
+        project.setAllCountries(countries.stream().filter(x-> !x.isEmpty()).collect(Collectors.toSet()));
 
         //Add Dump date
         project.setPublicationDate(mongoPrideProject.getPublicationDate());
