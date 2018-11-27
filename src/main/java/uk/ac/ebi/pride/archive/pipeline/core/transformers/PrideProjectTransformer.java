@@ -1,25 +1,35 @@
 package uk.ac.ebi.pride.archive.pipeline.core.transformers;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.stereotype.Service;
+import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
-import uk.ac.ebi.pride.archive.dataprovider.utils.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.mongodb.archive.model.PrideArchiveField;
+import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.model.reference.MongoReference;
 import uk.ac.ebi.pride.mongodb.archive.model.user.MongoContact;
+import uk.ac.ebi.pride.mongodb.utils.PrideMongoUtils;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
+
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +45,12 @@ import java.util.stream.Collectors;
  * <p>
  * Created by ypriverol (ypriverol@gmail.com) on 08/06/2018.
  */
+
+@Service
 public class PrideProjectTransformer {
+
+    @Autowired
+    private static MongoOperations mongo;
 
 
     /**
@@ -132,9 +147,14 @@ public class PrideProjectTransformer {
      * @return
      */
     public static List<MongoPrideFile> transformOracleFilesToMongoFiles(List<ProjectFile> oracleFiles,
+                                                                        List<MongoPrideMSRun> msRunRawFiles,
                                                                         Project oracleProject, String ftpURL,
-                                                                        String asperaURL) {
-        return oracleFiles.stream().map( oracleFileProject -> transformOracleFileToMongo(oracleFileProject, oracleProject, ftpURL, asperaURL))
+                                                                        String asperaURL,
+                                                                        int accessionSequence) {
+
+        //int finalNumber = PrideMongoUtils.getNextSizedSequence(mongo, PrideArchiveField.PRIDE_FILE_COLLECTION_NAME, oracleFiles.size()) + 1;
+        AtomicInteger atominIntegerSequence = new AtomicInteger(accessionSequence);
+        return oracleFiles.stream().map( oracleFileProject -> transformOracleFileToMongo(oracleFileProject,msRunRawFiles, oracleProject, ftpURL, asperaURL,atominIntegerSequence.getAndDecrement()))
                 .collect(Collectors.toList());
 
     }
@@ -145,17 +165,31 @@ public class PrideProjectTransformer {
      * @param oracleProject oracle Project
      * @return
      */
-    private static MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject, Project oracleProject, String ftpURL, String asperaURL) {
+    private static MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject,List<MongoPrideMSRun> msRunRawFiles, Project oracleProject, String ftpURL, String asperaURL, int finalNumber) {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for(MSFileTypeConstants currentFileType: MSFileTypeConstants.values())
             if(currentFileType.getFileType().getName().equalsIgnoreCase(oracleFileProject.getFileType().getName()))
                 fileType = currentFileType;
         String folderName = Objects.requireNonNull(ProjectFolderSourceConstants.fromTypeString(oracleFileProject.getFileSource().name())).getFolderName();
+        NumberFormat formatter = new DecimalFormat("00000000000");
+
+        //Accession should be common if a same file goes into file and msrun collection
+        String accession = "PXF" + formatter.format(finalNumber);
 
         List<MongoCvParam> publicURLs = oracleProject.isPublicProject()?createPublicFileLocations(oracleFileProject.getFileName(),
                 folderName, oracleProject.getPublicationDate(),oracleProject.getAccession(), ftpURL, asperaURL):Collections.emptyList();
 
+        //check for MSRun files as they need to be stored in file collection and ms run collection
+        if(fileType.getFileType().getName().equals(MSFileTypeConstants.RAW.getFileType().getName())){
+            msRunRawFiles.add(MongoPrideMSRun.builder()
+                    .accession(accession)
+                    .fileName(oracleFileProject.getFileName())
+                    .projectAccessions(Collections.singleton(oracleProject.getAccession()))
+                    .build());
+        }
+
         return MongoPrideFile.builder()
+                .accession(accession)
                 .fileName(oracleFileProject.getFileName())
                 .fileCategory(new MongoCvParam(fileType.getFileType().getCv().getCvLabel(), fileType.getFileType().getCv().getAccession(),
                         fileType.getFileType().getCv().getName(), fileType.getFileType().getCv().getValue()))

@@ -3,8 +3,10 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -14,13 +16,15 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
+import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
+import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,6 +58,24 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Autowired
     SolrProjectService solrProjectService;
 
+    @Value("${accession:#{null}}")
+    private String accession;
+
+
+    private void doProjectSync(MongoPrideProject mongoPrideProject){
+        PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
+        PrideSolrProject status = solrProjectService.save(solrProject);
+        log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
+    }
+
+    private void doFilesSync(PrideSolrProject prideSolrProject){
+        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(prideSolrProject.getAccession());
+        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+        prideSolrProject.setProjectFileNames(fileNames);
+        PrideSolrProject savedProject = solrProjectService.update(prideSolrProject);
+        log.info("The files for project -- " + savedProject.getAccession() + " have been inserted in SolrCloud");
+    }
+
     /**
      * This methods connects to the database read all the Oracle information for public
      * @return
@@ -63,12 +85,18 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
-                            PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
-                            PrideSolrProject status = solrProjectService.save(solrProject);
-                            log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
+                    if(accession != null){
+                        Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
+                        if(mongoPrideProjectOptional.isPresent()) {
+                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
+                            doProjectSync(mongoPrideProject);
+                        }
+                    }else{
+                        prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
+                            doProjectSync(mongoPrideProject);
 
-                    });
+                        });
+                    }
                     return RepeatStatus.FINISHED;
                 })
                 .build();
@@ -82,8 +110,16 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    solrProjectService.deleteAll();
-                    log.info("All Documents has been deleted from the SolrCloud Master");
+                    System.out.println("#####################Accession:"+accession);
+                    if(accession!=null){
+                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
+                        String id = (String)prideSolrProject.getId();
+                        solrProjectService.deleteProjectById(id);
+                        log.info("Document with id: "+id+" has been deleted from the SolrCloud Master");
+                    }else{
+                        solrProjectService.deleteAll();
+                        log.info("All Documents has been deleted from the SolrCloud Master");
+                    }
                     return RepeatStatus.FINISHED;
                 }).build();
     }
@@ -96,13 +132,14 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    solrProjectService.findAll().forEach( x-> {
-                        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(x.getAccession());
-                        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
-                        x.setProjectFileNames(fileNames);
-                        solrProjectService.update(x);
-                    });
-                    log.info("All Documents has been deleted from the SolrCloud Master");
+                    if(accession != null){
+                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
+                        doFilesSync(prideSolrProject);
+                    }else{
+                        solrProjectService.findAll().forEach( prideSolrProject-> {
+                            doFilesSync(prideSolrProject);
+                        });
+                    }
                     return RepeatStatus.FINISHED;
                 }).build();
     }
@@ -121,6 +158,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                 .next(syncProjectMongoDBToSolrCloudStep())
                 .next(syncFilesToSolrProject())
                 .build();
+
     }
 
 

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,12 +20,14 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideFileMongoService;
+import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.utilities.util.Tuple;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,6 +70,10 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
     @Value("${aspera.protocol.url}")
     private String asperaProtocol;
 
+    @Value("${accession:#{null}}")
+    @StepScope
+    private String accession;
+
 
     /**
      * This method take the parameter from the override. If this value is True then the MongoDB
@@ -89,6 +96,29 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
             this.submissionType = SubmissionPipelineConstants.SubmissionsType.valueOf(submissionType);
     }
 
+
+    private void doProjectSync(Project oracleProject){
+        if(!(!oracleProject.isPublicProject() && (submissionType == SubmissionPipelineConstants.SubmissionsType.PUBLIC))) {
+            MongoPrideProject mongoPrideProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
+            Optional<MongoPrideProject> status = prideProjectMongoService.insert(mongoPrideProject);
+            log.info(oracleProject.getAccession() + "-- Inserted Status " + String.valueOf(status.isPresent()));
+        }
+    }
+
+    private  void doFileSync(MongoPrideProject mongoPrideProject){
+        Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
+        List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
+        List<MongoPrideMSRun> msRunRawFiles = new ArrayList<MongoPrideMSRun>();
+        int accessionSequence = prideFileMongoService.getNextAccessionNumber(oracleFiles.size());
+        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles,msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol,accessionSequence),msRunRawFiles);
+        log.info("The following files has been inserted -- " + status.toString());
+        if(msRunRawFiles.size()>0){
+            //to-do
+            log.info("The following MS Run files has been inserted -- " + status.toString());
+        }
+    }
+
+
     /**
      * This methods connects to the database read all the Oracle information for public
      * @return
@@ -100,13 +130,16 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
                 .tasklet((stepContribution, chunkContext) -> {
                     setOverride(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("override"));
                     setSubmissionType(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("submissionType"));
-                    oracleProjectRepository.findAll().forEach( oracleProject ->{
-                        if(!(!oracleProject.isPublicProject() && (submissionType == SubmissionPipelineConstants.SubmissionsType.PUBLIC))){
-                            MongoPrideProject mongoPrideProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
-                            Optional<MongoPrideProject> status = prideProjectMongoService.insert(mongoPrideProject);
-                            log.info(oracleProject.getAccession() + "-- Inserted Status " + String.valueOf(status.isPresent()));
-                        }
+                    //String accession = accession:chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("accession");
+                    System.out.println("############# job param accession:"+accession);
+                    if(accession != null){
+                        Project oracleProject = oracleProjectRepository.findByAccession(accession);
+                        doProjectSync(oracleProject);
+                    }else {
+                        oracleProjectRepository.findAll().forEach(oracleProject -> {
+                            doProjectSync(oracleProject);
                         });
+                    }
                     return RepeatStatus.FINISHED;
                 })
                 .build();
@@ -121,12 +154,19 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
     public Step syncFileInformationToMongoDB() {
         return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    prideProjectMongoService.findAllStream().forEach(mongoPrideProject -> {
-                        Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
-                        List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
-                        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAll(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles, oracleProject,ftpProtocol, asperaProtocol));
-                        log.info("The following files has been inserted -- " + status.toString());
+                    System.out.println("############# job param accession:"+accession);
+                    //String accession = chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("accession");
+                    if(accession != null){
+                        Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
+                        if(mongoPrideProjectOptional.isPresent()) {
+                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
+                            doFileSync(mongoPrideProject);
+                        }
+                    }else {
+                        prideProjectMongoService.findAllStream().forEach(mongoPrideProject -> {
+                            doFileSync(mongoPrideProject);
                         });
+                    }
                     return RepeatStatus.FINISHED;
                 })
                 .build();

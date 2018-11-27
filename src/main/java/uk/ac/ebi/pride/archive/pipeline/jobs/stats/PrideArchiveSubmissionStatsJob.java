@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.param.ParamProvider;
-import uk.ac.ebi.pride.archive.dataprovider.utils.Tuple;
+import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
@@ -50,7 +51,9 @@ public class SyncProjectsOracleToMongoJobTest {
         JobParameters param = new JobParametersBuilder()
                 .addString("override", "TRUE")
                 .addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
+                .addString("accession", "PXD004588")
                 .toJobParameters();
+        ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD004588");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
