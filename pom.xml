@@ -160,6 +160,7 @@
     </dependencies>
 
     <build>
+        <finalName>revised-archive-submission-pipeline</finalName>
         <testResources>
             <testResource>
                 <directory>src/test/resources</directory>

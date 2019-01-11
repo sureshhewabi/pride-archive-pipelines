@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 
 /**
@@ -44,6 +45,7 @@ public class SyncProjectsMongoToSolrCloudJobTest {
          */
         @Test
         public void syncMongoToSolrCloud() throws Exception {
+            ReflectionTestUtils.setField(mongoToSolrCloudJob, "accession", "PXD004588");
             JobExecution jobExecution = jobLauncherTestUtils.launchJob();
             Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
         }

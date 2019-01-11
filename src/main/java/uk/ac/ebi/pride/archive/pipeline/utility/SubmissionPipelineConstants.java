@@ -15,6 +15,8 @@ public class SubmissionPipelineConstants {
        PRIDE_ARCHIVE_SOLR_MASTER_INIT("PrideArchiveSolrCloudInit", "This command will create a new Collection of PRIDE Archive in SolrCloud Production."),
        PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC("PrideArchiveOracleSyncToMongoDB", "This command will sync the Oracle Database data into MongoDB data"),
        PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC("PrideArchiveMongoSyncSolrCloud", "This command sync all the projects from MongoDB to Solr Cloud"),
+       PRIDE_ARCHIVE_RESET_SUBMISSION_MONGODB("PrideArchiveResetSubmissionMongoDB", "This command will reset the submission data from MongoDB"),
+       PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR("PrideArchiveResetSubmissionSolr", "This command will reset the submission data from Solr"),
        PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
        PRIDE_ARCHIVE_SUBMISSION_STATS("PrideArchiveSubmissionStats", "This command compute/estimate the statistics for PRIDE Submissions");
 
@@ -61,8 +63,9 @@ public class SubmissionPipelineConstants {
         /** PRIDE Data Sync from Oracle to MongoDB **/
        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("PrideArchiveOracleToMongoDBSyncStep", "This Step will sync the Oracle Database data into MongoDB data"),
        PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("PrideArchiveSolrCloudStep","Clean all the documents in SolrCloud Master"),
-       PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("PrideArchiveOracleToMongoDBFilesStep", "This Step will sync all the Files in the Oracle data into MongoDB data");
-
+       PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("PrideArchiveOracleToMongoDBFilesStep", "This Step will sync all the Files in the Oracle data into MongoDB data"),
+       PRIDE_ARCHIVE_RESET_SUBMISSION_MONGO("PrideArchiveResetSubmissionMongoDBStep", "This Step will reset the project data in MongoDB"),
+       PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR("PrideArchiveResetSubmissionSolrStep", "This Step will reset the project data in Solr");
         String name;
         String message;
 

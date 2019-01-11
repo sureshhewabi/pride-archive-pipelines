@@ -126,7 +126,7 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
     log.info("Calculating private project data usage.");
     File[] privateAndValidatedDirectories =
         parentDataDir.listFiles(
-            (dir, name) -> !name.matches("^[0-9]{4}$") && !name.matches("resub"));
+            (dir, name) -> !name.matches("^[0-9]{4}$") && !name.matches("resub") && !name.matches("bin"));
     if (privateAndValidatedDirectories != null) {
       for (File privateOrValidatedDirectory : privateAndValidatedDirectories) {
         calculateDataUsagePrivateValidatedPrevalidatedDirectory(privateOrValidatedDirectory);
