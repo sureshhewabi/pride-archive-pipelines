@@ -3,7 +3,6 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -92,10 +91,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             doProjectSync(mongoPrideProject);
                         }
                     }else{
-                        prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
-                            doProjectSync(mongoPrideProject);
-
-                        });
+                        prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -138,9 +134,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                         PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
                         doFilesSync(prideSolrProject);
                     }else{
-                        solrProjectService.findAll().forEach( prideSolrProject-> {
-                            doFilesSync(prideSolrProject);
-                        });
+                        solrProjectService.findAll().forEach(this::doFilesSync);
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
