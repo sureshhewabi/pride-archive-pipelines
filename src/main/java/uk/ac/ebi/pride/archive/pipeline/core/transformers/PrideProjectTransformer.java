@@ -182,6 +182,7 @@ public class PrideProjectTransformer {
             msRunRawFiles.add(MongoPrideMSRun.builder()
                     .accession(accession)
                     .fileName(oracleFileProject.getFileName())
+                    .fileSizeBytes(oracleFileProject.getFileSize())
                     .projectAccessions(Collections.singleton(oracleProject.getAccession()))
                     .build());
         }
