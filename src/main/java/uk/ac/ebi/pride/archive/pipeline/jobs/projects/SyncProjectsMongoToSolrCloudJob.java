@@ -91,14 +91,12 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             doProjectSync(mongoPrideProject);
                         }
                     }else{
-                        /*prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
-                            doProjectSync(mongoPrideProject);
-                        });*/
-                        Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findAllStream().findFirst();
-                        if(mongoPrideProjectOptional.isPresent()) {
-                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
-                            doProjectSync(mongoPrideProject);
-                        }
+                        prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
+//                        Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findAllStream().findFirst();
+//                        if(mongoPrideProjectOptional.isPresent()) {
+//                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
+//                            doProjectSync(mongoPrideProject);
+//                        }
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -109,6 +107,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * Clean all the documents in the SolrCloud Master for Sync
      * @return return Step
      */
+    @Bean
     Step cleanSolrCloud() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
@@ -133,7 +132,8 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * Sync the Files to Solr Project
      * @return Step
      */
-    private Step syncFilesToSolrProject() {
+    @Bean
+    Step syncFilesToSolrProject() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
