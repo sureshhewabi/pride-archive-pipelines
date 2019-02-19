@@ -42,7 +42,7 @@ import java.util.Optional;
  */
 @Configuration
 @Slf4j
-@EnableBatchProcessing
+//@EnableBatchProcessing
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
 public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
 
@@ -111,10 +111,10 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
         List<MongoPrideMSRun> msRunRawFiles = new ArrayList<>();
         int accessionSequence = prideFileMongoService.getNextAccessionNumber(oracleFiles.size());
         List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles,msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol,accessionSequence),msRunRawFiles);
-        log.info("The following files has been inserted -- " + status.toString());
+        log.info("Number of files has been inserted -- " + status.size());
         if(msRunRawFiles.size()>0){
             //to-do
-            log.info("The following MS Run files has been inserted -- " + status.toString());
+            log.info("Number of MS Run files has been inserted -- " + msRunRawFiles.size());
         }
     }
 

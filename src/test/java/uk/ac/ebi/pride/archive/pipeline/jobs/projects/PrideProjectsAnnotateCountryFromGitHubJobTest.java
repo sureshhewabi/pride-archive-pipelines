@@ -33,7 +33,7 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration
 public class PrideProjectsAnnotateCountryFromGitHubJobTest {
 
     @Autowired
-    PrideProjectsAnnotateCountryFromGitHubJob mongoToSolrCloudJob;
+    PrideProjectsAnnotateCountryFromGitHubJob annotateCountryFromGitHubJob;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
