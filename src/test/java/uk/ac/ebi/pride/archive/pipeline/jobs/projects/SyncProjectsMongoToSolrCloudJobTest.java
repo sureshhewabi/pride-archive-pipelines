@@ -45,7 +45,7 @@ public class SyncProjectsMongoToSolrCloudJobTest {
          */
         @Test
         public void syncMongoToSolrCloud() throws Exception {
-            ReflectionTestUtils.setField(mongoToSolrCloudJob, "accession", "PXD004588");
+            ReflectionTestUtils.setField(mongoToSolrCloudJob, "accession", "PXD009118");
             JobExecution jobExecution = jobLauncherTestUtils.launchJob();
             Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
         }

@@ -20,16 +20,18 @@ import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.Project;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
+import uk.ac.ebi.pride.mongodb.archive.service.msruns.PrideMsRunMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 @Configuration
 @Slf4j
-@EnableBatchProcessing
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
 public class ResetProjectMongoJob extends AbstractArchiveJob {
     @Autowired
@@ -37,6 +39,9 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
 
     @Autowired
     PrideFileMongoService prideFileMongoService;
+
+    @Autowired
+    PrideMsRunMongoService prideMsRunMongoService;
 
     @Autowired
     ProjectFileRepository oracleFileRepository;
@@ -73,11 +78,12 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
      */
     @Bean
     public Step resetFileInformationMongoDB() {
-        return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES.name())
+        return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_RESET_FILES_SUBMISSION_MONGO.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     System.out.println("############# job param accession:"+accession);
                     if(isSubmissionResetSafe()){
                         prideFileMongoService.deleteByAccession(accession);
+                        prideMsRunMongoService.deleteByAccession(accession);
                     }else{
                         throw new Exception("Files cannot be safely removed for selected project accession. Please check if other projects are refering to these files.");
                     }
@@ -95,7 +101,15 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
             for(MongoPrideFile prideFile : prideFilesList){
                 if(prideFile.getProjectAccessions().size()>1){
                     //file accessed by multiple projects, cannot be reset/deleted
-                    return false;
+                    throw new Exception("Files cannot be safely removed for selected project accession. Please check if other projects are refering to these files.");
+                }
+            }
+            //check for msruns in collection
+            List<MongoPrideMSRun> prideMSRunFilesList = prideMsRunMongoService.getMSRunsByProject(accession);
+            for(MongoPrideMSRun msRunFile : prideMSRunFilesList){
+                if(msRunFile.getProjectAccessions().size()>1){
+                    //msrun file accessed by multiple projects, cannot be reset/deleted
+                    throw new Exception("MS Run Files cannot be safely removed for selected project accession. Please check if other projects are refering to these files.");
                 }
             }
             return true;
@@ -110,7 +124,7 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job syncOracleToMongoProjectsJob() {
+    public Job resetMongoProjectsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_RESET_SUBMISSION_MONGODB.getName())
                 .start(resetFileInformationMongoDB())

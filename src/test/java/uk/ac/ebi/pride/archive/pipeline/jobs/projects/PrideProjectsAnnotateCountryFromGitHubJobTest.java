@@ -35,7 +35,7 @@ import static org.junit.Assert.*;
 public class PrideProjectsAnnotateCountryFromGitHubJobTest {
 
     @Autowired
-    PrideProjectsAnnotateCountryFromGitHubJob mongoToSolrCloudJob;
+    PrideProjectsAnnotateCountryFromGitHubJob annotateCountryFromGitHubJob;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;

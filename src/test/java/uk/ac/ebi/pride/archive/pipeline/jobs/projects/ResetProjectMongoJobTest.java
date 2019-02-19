@@ -35,7 +35,7 @@ public class ResetProjectMongoJobTest {
      * @throws Exception
      */
     @Test
-    public void syncOracleToMongoDB() throws Exception {
+    public void resetProjectsMongoDB() throws Exception {
         JobParameters param = new JobParametersBuilder()
                 .addString("accession", "PXD004588")
                 .toJobParameters();

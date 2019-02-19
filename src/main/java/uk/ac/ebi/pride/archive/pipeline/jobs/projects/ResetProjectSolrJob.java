@@ -20,7 +20,6 @@ import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 
 @Configuration
 @Slf4j
-@EnableBatchProcessing
 @Import({ArchiveMongoConfig.class, SolrCloudMasterConfig.class, DataSourceConfiguration.class})
 public class ResetProjectSolrJob extends AbstractArchiveJob {
 
@@ -59,7 +58,7 @@ public class ResetProjectSolrJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job syncOracleToMongoProjectsJob() {
+    public Job resetSolrProjectsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR.getName())
                 .start(resetProjectSolr())

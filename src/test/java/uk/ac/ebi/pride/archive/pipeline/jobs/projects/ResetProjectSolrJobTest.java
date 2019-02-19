@@ -33,7 +33,7 @@ public class ResetProjectSolrJobTest {
      * @throws Exception
      */
     @Test
-    public void syncOracleToMongoDB() throws Exception {
+    public void resetProjectSolr() throws Exception {
         JobParameters param = new JobParametersBuilder()
                 .addString("accession", "PXD004588")
                 .toJobParameters();
