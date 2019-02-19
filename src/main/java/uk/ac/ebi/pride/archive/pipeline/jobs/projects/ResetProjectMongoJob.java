@@ -3,7 +3,6 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,16 +18,11 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
-<<<<<<< HEAD
-=======
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
->>>>>>> 409d8b1d8f08fab5b3080a4aaac2b2510142e26d
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.msruns.PrideMsRunMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration

@@ -290,14 +290,14 @@ public class PrideProjectTransformer {
         affiliations.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
         project.setAffiliations(affiliations);
 
-        /** Set PTMs **/
+        // Set PTMs
         project.setIdentifiedPTMStringsFromCvParam(mongoPrideProject.getPtmList()
                 .stream()
                 .map(x -> new DefaultCvParam(x.getCvLabel(), x.getAccession(), x.getName(), x.getValue()))
                 .collect(Collectors.toList())
         );
 
-        /** Set Country **/
+        // Set Country
         Set<String> countries = new HashSet<>();
         countries.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
         countries.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
