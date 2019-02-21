@@ -5,10 +5,12 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.solr.core.SolrTemplate;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
@@ -56,6 +58,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
 
     @Autowired
     SolrProjectService solrProjectService;
+
+//    @Autowired
+//    SolrTemplate template;
 
     @Value("${accession:#{null}}")
     private String accession;
@@ -121,7 +126,10 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             log.info("Document with id: " + id + " has been deleted from the SolrCloud Master");
                         }
                     }else{
-                        solrProjectService.deleteAll();
+                        //solrProjectService.deleteAll();
+                        solrProjectService.findAll().forEach(x-> {
+                            solrProjectService.deleteProjectById(x.getAccession());
+                        });
                         log.info("All Documents has been deleted from the SolrCloud Master");
                     }
                     return RepeatStatus.FINISHED;

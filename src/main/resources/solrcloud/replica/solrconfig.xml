@@ -1362,12 +1362,35 @@
      <transformer name="qecBooster" class="org.apache.solr.response.transform.EditorialMarkerFactory" />
     -->
 
-  <requestHandler name="/cdcr" class="solr.CdcrRequestHandler">
-    <!-- recommended for Target clusters -->
-    <lst name="buffer">
-      <str name="defaultState">disabled</str>
-    </lst>
-  </requestHandler>
+  <!--<requestHandler name="/cdcr" class="solr.CdcrRequestHandler">-->
+    <!--&lt;!&ndash; recommended for Target clusters &ndash;&gt;-->
+    <!--<lst name="buffer">-->
+      <!--<str name="defaultState">disabled</str>-->
+    <!--</lst>-->
+  <!--</requestHandler>-->
+
+  <!--<requestHandler name="/update" class="solr.UpdateRequestHandler">-->
+    <!--<lst name="defaults">-->
+      <!--<str name="update.chain">cdcr-processor-chain</str>-->
+    <!--</lst>-->
+  <!--</requestHandler>-->
+
+  <!--<updateRequestProcessorChain name="cdcr-processor-chain">-->
+    <!--<processor class="solr.CdcrUpdateProcessorFactory"/>-->
+    <!--<processor class="solr.RunUpdateProcessorFactory"/>-->
+  <!--</updateRequestProcessorChain>-->
+
+  <!--&lt;!&ndash; Modify the <updateLog> section of your existing <updateHandler> in your-->
+      <!--config as below &ndash;&gt;-->
+  <!--<updateHandler class="solr.DirectUpdateHandler2">-->
+    <!--<updateLog class="solr.CdcrUpdateLog">-->
+      <!--<str name="dir">${solr.ulog.dir:}</str>-->
+      <!--&lt;!&ndash;Any parameters from the original <updateLog> section &ndash;&gt;-->
+    <!--</updateLog>-->
+
+    <!--&lt;!&ndash; Other configuration options such as autoCommit should still be present &ndash;&gt;-->
+
+  <!--</updateHandler>-->
 
   <requestHandler name="/update" class="solr.UpdateRequestHandler">
     <lst name="defaults">
@@ -1380,15 +1403,35 @@
     <processor class="solr.RunUpdateProcessorFactory"/>
   </updateRequestProcessorChain>
 
-  <!-- Modify the <updateLog> section of your existing <updateHandler> in your
-      config as below -->
+  <requestHandler name="/cdcr" class="solr.CdcrRequestHandler">
+    <lst name="replica">
+      <str name="zkHost">wp-p2m-30.ebi.ac.uk:2181</str>
+      <!--
+      If you have chrooted your Solr information at the target you must include the chroot, for example:
+      <str name="zkHost">10.250.18.211:2181,10.250.18.212:2181/solr</str>
+      -->
+      <str name="source">pride_projects</str>
+      <str name="target">pride_projects</str>
+    </lst>
+
+    <lst name="replicator">
+      <str name="threadPoolSize">8</str>
+      <str name="schedule">1000</str>
+      <str name="batchSize">128</str>
+    </lst>
+
+    <lst name="updateLogSynchronizer">
+      <str name="schedule">1000</str>
+    </lst>
+
+  </requestHandler>
+
+  <!-- Modify the <updateLog> section of your existing <updateHandler>
+       in your config as below -->
   <updateHandler class="solr.DirectUpdateHandler2">
     <updateLog class="solr.CdcrUpdateLog">
       <str name="dir">${solr.ulog.dir:}</str>
       <!--Any parameters from the original <updateLog> section -->
     </updateLog>
-
-    <!-- Other configuration options such as autoCommit should still be present -->
-
   </updateHandler>
 </config>
