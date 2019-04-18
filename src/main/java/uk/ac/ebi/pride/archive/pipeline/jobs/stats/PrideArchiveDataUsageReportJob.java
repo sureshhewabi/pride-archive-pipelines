@@ -84,7 +84,11 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
         parentDataDir.listFiles((dir, name) -> name.matches("^[0-9]{4}$"));
     if (publicDirectoriesYears != null) {
       for (File year : publicDirectoriesYears) {
-        calculateDataUsagePublicYearDirectory(year);
+        if(year!=null && year.isDirectory()) {
+          calculateDataUsagePublicYearDirectory(year);
+        }else{
+          log.warn("Year not a directory:"+year);
+        }
       }
     }
   }
@@ -100,17 +104,25 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
       for (File month : months) {
         long yearMonthDataUsage = 0;
         String key = year.getName() + month.getName();
-        File[] projects = month.listFiles();
-        if (projects != null && 0 < projects.length) {
-          for (File project : projects) {
-            long projectSize = FileUtils.sizeOfDirectory(project);
-            log.info("Project: " + project.getPath() + " Size: " + projectSize);
-            yearMonthDataUsage += projectSize;
+        if(month.isDirectory()){
+          File[] projects = month.listFiles();
+          if (projects != null && 0 < projects.length) {
+            for (File project : projects) {
+              if(project.isDirectory()) {
+                long projectSize = FileUtils.sizeOfDirectory(project);
+                log.info("Project: " + project.getPath() + " Size: " + projectSize);
+                yearMonthDataUsage += projectSize;
+              }else{
+                log.warn("Project not a directory:"+project);
+              }
+            }
+          } else {
+            log.error("Public project directory is empty");
           }
-        } else {
-          log.error("Public project directory is empty");
+          incrementDataUsage(key, yearMonthDataUsage);
+        }else{
+          log.warn("Month not a directory:"+month);
         }
-        incrementDataUsage(key, yearMonthDataUsage);
       }
     } else {
       log.error("Public year directory is empty! " + year.getPath());
@@ -143,7 +155,7 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
   private void calculateDataUsageResubProjects(File parentDataDir) throws IOException {
     log.info("Calculating pending resubmissions project data usage.");
     File[] resubDirectory = parentDataDir.listFiles((dir, name) -> name.matches("resub"));
-    if (resubDirectory != null && resubDirectory.length == 1) {
+    if (resubDirectory != null && resubDirectory.length == 1 && resubDirectory[0].isDirectory()) {
       File[] resubmissions = resubDirectory[0].listFiles();
       if (resubmissions != null && 0 < resubmissions.length) {
         for (File resubmission : resubmissions) {
@@ -152,6 +164,8 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
       } else {
         log.error("Unable to find resubmissions directory in: " + parentDataDir);
       }
+    }else{
+      log.warn("calculateDataUsageResubProjects: resub directory not found");
     }
   }
 
@@ -161,18 +175,26 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
    * @param directory the input directory to calculate the file size for.
    */
   private void calculateDataUsagePrivateValidatedPrevalidatedDirectory(File directory) throws IOException {
-    ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
-    File[] submissionFile = directory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
-    if (submissionFile == null || submissionFile.length < 1) { // validated directory
-      earliest = getEarliestZonedTimeInSubDirectory(directory, "internal", earliest);
-      earliest = getEarliestZonedTimeInSubDirectory(directory, "submitted", earliest);
-    } else {
-      earliest = getEarliestZonedDateFromDirectory(directory);
+    try{
+      if(directory.exists() && directory.isDirectory()) {
+        ZonedDateTime earliest = ZonedDateTime.now(ZoneId.systemDefault());
+        File[] submissionFile = directory.listFiles((dir, name) -> name.contentEquals("submission.px")); // pre-validated directory
+        if (submissionFile == null || submissionFile.length < 1) { // validated directory
+          earliest = getEarliestZonedTimeInSubDirectory(directory, "internal", earliest);
+          earliest = getEarliestZonedTimeInSubDirectory(directory, "submitted", earliest);
+        } else {
+          earliest = getEarliestZonedDateFromDirectory(directory);
+        }
+        int month = earliest.getMonthValue();
+        long dataUsage = FileUtils.sizeOfDirectory(directory);
+        log.info("Project: " + directory.getName() + " " + dataUsage);
+        incrementDataUsage(earliest.getYear() + (month < 10 ? "0" : "") + month, dataUsage);
+      }else{
+        log.warn("calculateDataUsagePrivateValidatedPrevalidatedDirectory: not a dir or doesn't exists : "+directory);
+      }
+    }catch(Exception e){
+      log.error("Error in calculateDataUsagePrivateValidatedPrevalidatedDirectory:"+e.getMessage(),e);
     }
-    int month = earliest.getMonthValue();
-    long dataUsage = FileUtils.sizeOfDirectory(directory);
-    log.info("Project: " + directory.getName() + " " + dataUsage);
-    incrementDataUsage(earliest.getYear() + (month < 10 ? "0" : "") + month, dataUsage);
   }
 
   /**

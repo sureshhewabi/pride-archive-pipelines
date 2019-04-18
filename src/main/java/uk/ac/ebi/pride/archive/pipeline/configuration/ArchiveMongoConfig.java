@@ -15,7 +15,7 @@ import uk.ac.ebi.pride.mongodb.configs.AbstractPrideMongoConfiguration;
 
 @Configuration
 @EnableTransactionManagement
-@ComponentScan(basePackages = {"uk.ac.ebi.pride.mongodb.archive.service"})
+@ComponentScan(basePackages = {"uk.ac.ebi.pride.mongodb.archive.service","uk.ac.ebi.pride.utilities.ols.web.service.cache"})
 @EnableMongoRepositories(basePackages = "uk.ac.ebi.pride.mongodb.archive.repo")
 @EnableAutoConfiguration
 public class ArchiveMongoConfig extends AbstractPrideMongoConfiguration {
