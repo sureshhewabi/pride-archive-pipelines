@@ -3,13 +3,14 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.solr.core.SolrTemplate;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
@@ -57,6 +58,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
 
     @Autowired
     SolrProjectService solrProjectService;
+
+//    @Autowired
+//    SolrTemplate template;
 
     @Value("${accession:#{null}}")
     private String accession;
@@ -110,6 +114,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * Clean all the documents in the SolrCloud Master for Sync
      * @return return Step
      */
+    @Bean
     Step cleanSolrCloud() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
@@ -123,7 +128,10 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             log.info("Document with id: " + id + " has been deleted from the SolrCloud Master");
                         }
                     }else{
-                        solrProjectService.deleteAll();
+                        //solrProjectService.deleteAll();
+                        solrProjectService.findAll().forEach(x-> {
+                            solrProjectService.deleteProjectById(x.getAccession());
+                        });
                         log.info("All Documents has been deleted from the SolrCloud Master");
                     }
                     return RepeatStatus.FINISHED;
@@ -134,7 +142,8 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * Sync the Files to Solr Project
      * @return Step
      */
-    private Step syncFilesToSolrProject() {
+    @Bean
+    Step syncFilesToSolrProject() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -142,9 +151,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                         PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
                         doFilesSync(prideSolrProject);
                     }else{
-                        solrProjectService.findAll().forEach( prideSolrProject-> {
-                            doFilesSync(prideSolrProject);
-                        });
+                        solrProjectService.findAll().forEach(this::doFilesSync);
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
