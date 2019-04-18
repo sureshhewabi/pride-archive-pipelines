@@ -3,7 +3,6 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +107,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
     private  void doFileSync(MongoPrideProject mongoPrideProject){
         Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
         List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
-        List<MongoPrideMSRun> msRunRawFiles = new ArrayList<MongoPrideMSRun>();
+        List<MongoPrideMSRun> msRunRawFiles = new ArrayList<>();
         int accessionSequence = prideFileMongoService.getNextAccessionNumber(oracleFiles.size());
         List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles,msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol,accessionSequence),msRunRawFiles);
         log.info("Number of files has been inserted -- " + status.size());
@@ -136,9 +135,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
                         Project oracleProject = oracleProjectRepository.findByAccession(accession);
                         doProjectSync(oracleProject);
                     }else {
-                        oracleProjectRepository.findAll().forEach(oracleProject -> {
-                            doProjectSync(oracleProject);
-                        });
+                        oracleProjectRepository.findAll().forEach(this::doProjectSync);
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -163,9 +160,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
                             doFileSync(mongoPrideProject);
                         }
                     }else {
-                        prideProjectMongoService.findAllStream().forEach(mongoPrideProject -> {
-                            doFileSync(mongoPrideProject);
-                        });
+                        prideProjectMongoService.findAllStream().forEach(this::doFileSync);
                     }
                     return RepeatStatus.FINISHED;
                 })

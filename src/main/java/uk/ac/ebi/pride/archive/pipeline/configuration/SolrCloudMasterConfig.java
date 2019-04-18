@@ -39,6 +39,7 @@ public class SolrCloudMasterConfig {
         List<String> urls = Arrays.stream(solrURls.split(",")).map(String::trim).collect(Collectors.toList());
         return new CloudSolrClient.Builder().withSolrUrl(urls).build();
     }
+
     @Bean
     public SolrTemplate solrTemplate(SolrClient solrClient) {
         return new SolrTemplate(solrClient);

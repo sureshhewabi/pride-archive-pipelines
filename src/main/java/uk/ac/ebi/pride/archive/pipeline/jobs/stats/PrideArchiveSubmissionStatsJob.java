@@ -338,11 +338,8 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
     }
 
     private List<MongoPrideProject> filterProjectsByEmptyValue(List<MongoPrideProject> submissions, CvTermReference term) {
-        return submissions.stream().filter(a -> {
-                                           return a.getSamplesDescription().
-                                                   stream().
-                                                   filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession())).count() == 0;
-        }).collect(Collectors.toList());
+        return submissions.stream().filter(a -> a.getSamplesDescription().
+                stream().noneMatch(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))).collect(Collectors.toList());
     }
 
     private Set<CategoryStats> computeCategoryStats(Set<CategoryStats> categoryStats) {

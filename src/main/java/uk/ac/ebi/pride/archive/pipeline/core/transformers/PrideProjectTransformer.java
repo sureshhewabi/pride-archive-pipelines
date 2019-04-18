@@ -14,14 +14,12 @@ import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
-import uk.ac.ebi.pride.mongodb.archive.model.PrideArchiveField;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.model.reference.MongoReference;
 import uk.ac.ebi.pride.mongodb.archive.model.user.MongoContact;
-import uk.ac.ebi.pride.mongodb.utils.PrideMongoUtils;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
@@ -184,6 +182,7 @@ public class PrideProjectTransformer {
             msRunRawFiles.add(MongoPrideMSRun.builder()
                     .accession(accession)
                     .fileName(oracleFileProject.getFileName())
+                    .fileSizeBytes(oracleFileProject.getFileSize())
                     .projectAccessions(Collections.singleton(oracleProject.getAccession()))
                     .build());
         }
@@ -292,14 +291,14 @@ public class PrideProjectTransformer {
         affiliations.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getAffiliation).collect(Collectors.toList()));
         project.setAffiliations(affiliations);
 
-        /** Set PTMs **/
+        // Set PTMs
         project.setIdentifiedPTMStringsFromCvParam(mongoPrideProject.getPtmList()
                 .stream()
                 .map(x -> new DefaultCvParam(x.getCvLabel(), x.getAccession(), x.getName(), x.getValue()))
                 .collect(Collectors.toList())
         );
 
-        /** Set Country **/
+        // Set Country
         Set<String> countries = new HashSet<>();
         countries.addAll(mongoPrideProject.getLabHeadContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));
         countries.addAll(mongoPrideProject.getSubmittersContacts().stream().map(ContactProvider::getCountry).collect(Collectors.toList()));

@@ -1,5 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.services.solrcloud;
 
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -54,6 +55,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * This method/step connects to the database read all the Oracle information for public
      * @return org.springframework.batch.core.Step
      */
+    @Ignore
     private Step deletePRIDEArchiveCollectionSolrCloud() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_DELETE_COLLECTION.name())
@@ -73,6 +75,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * This method/step create a Collection in the solrcloud
      * @return org.springframework.batch.core.Step
      */
+    @Ignore
     private Step createArchiveCollectionSolrCloud() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_CREATE_COLLECTION.name())
