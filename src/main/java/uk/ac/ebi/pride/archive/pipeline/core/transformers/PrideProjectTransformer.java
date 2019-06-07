@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.pride.archive.dataprovider.assay.AssayType;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
+import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileSource;
+import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileType;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
@@ -19,6 +21,7 @@ import uk.ac.ebi.pride.archive.repo.repos.assay.software.Software;
 import uk.ac.ebi.pride.archive.repo.repos.assay.software.SoftwareCvParam;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
@@ -383,7 +386,7 @@ public class PrideProjectTransformer {
                 .collect(Collectors.toList());
     }
 
-    public static List<MongoPrideAssay> transformOracleAssayToMongo(List<Assay> assays, Project project) {
+    public static List<MongoPrideAssay> transformOracleAssayToMongo(List<Assay> assays, List<ProjectFile> files, List<MongoPrideFile> mongoFiles, Project project) {
         List<MongoPrideAssay> mongoAssays = new ArrayList<>();
         for( Assay assay: assays){
             // Get the software information
@@ -446,6 +449,8 @@ public class PrideProjectTransformer {
                     CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getName(),
                     String.valueOf(0)));
 
+            List<MongoAssayFile> prideFiles = getMongoAssayFile(assay.getId(), files, mongoFiles);
+
             MongoPrideAssay mongoPrideAssay = MongoPrideAssay.builder()
                     .assayType(AssayType.IDENTIFICATION)
                     .accession(assay.getAccession())
@@ -459,5 +464,49 @@ public class PrideProjectTransformer {
             mongoAssays.add(mongoPrideAssay);
         }
         return mongoAssays;
+    }
+
+    private static List<MongoAssayFile> getMongoAssayFile(Long id, List<ProjectFile> files, List<MongoPrideFile> mongoFiles) {
+        List<MongoAssayFile> mongoAssayFiles = new ArrayList<>();
+
+        List<Tuple<ProjectFile, MongoPrideFile>> filterFiles = files.stream()
+                .filter(x -> x.getAssayId() == id).map( x-> {
+                    Optional<MongoPrideFile> mongoPrideFile = mongoFiles.stream()
+                            .filter(y -> y.getFileName().equalsIgnoreCase(x.getFileName())).findFirst();
+                    return mongoPrideFile.map(mongoPrideFile1 -> new Tuple<>(x, mongoPrideFile1)).orElse(null);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        for(int i = 0 ; i < filterFiles.size(); i++){
+            Tuple<ProjectFile, MongoPrideFile> oracleFile = filterFiles.get(i);
+            if((oracleFile.getKey().getFileSource() == ProjectFileSource.GENERATED &&
+                    oracleFile.getKey().getFileName().contains("pride.mztab")) ||
+                    (oracleFile.getKey().getFileType() == ProjectFileType.RESULT)){
+
+                MongoAssayFile resultFile = MongoAssayFile.builder()
+                        .fileName(oracleFile.getKey().getFileName())
+                        .fileAccession(oracleFile.getValue().getAccession())
+                        .fileCategory((MongoCvParam) oracleFile.getValue().getFileCategory())
+                        .build();
+                List<MongoAssayFile> relatedFiles = new ArrayList<>();
+                for(int j = 0; j < filterFiles.size(); j++){
+                    Tuple<ProjectFile, MongoPrideFile> peakFile = filterFiles.get(j);
+                    if (peakFile.getKey().getFileSource() == ProjectFileSource.GENERATED &&
+                            !peakFile.getKey().getFileName().contains("pride.mztab")){
+
+                        MongoAssayFile mgfFile = MongoAssayFile.builder()
+                                .fileAccession(peakFile.getValue().getAccession())
+                                .fileCategory((MongoCvParam) peakFile.getValue().getFileCategory())
+                                .fileName(peakFile.getKey().getFileName())
+                                .build();
+                        relatedFiles.add(mgfFile);
+                    }
+                }
+                resultFile.setRelatedFiles(relatedFiles);
+            }
+        }
+
+        return mongoAssayFiles;
     }
 }

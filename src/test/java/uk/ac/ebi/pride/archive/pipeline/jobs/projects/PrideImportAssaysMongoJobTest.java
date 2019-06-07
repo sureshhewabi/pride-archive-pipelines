@@ -38,7 +38,7 @@ public class PrideImportAssaysMongoJobTest {
         JobParameters param = new JobParametersBuilder()
                 .addString("accession", "PXD000779")
                 .toJobParameters();
-        ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD000779");
+        //ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD000779");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }

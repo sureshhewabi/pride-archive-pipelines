@@ -43,7 +43,8 @@ public class SubmissionPipelineConstants {
     public enum PrideArchiveStepNames{
 
        /** PRIDE SolrCloud Creation Tasks **/
-        PRIDE_ARCHIVE_SOLR_CLOUD_DELETE_COLLECTION("PrideArchiveSolrCloudDeleteCollectionStep", "This Step will delete the collection PRIDE Archive in SolrCloud Production."),
+
+       PRIDE_ARCHIVE_SOLR_CLOUD_DELETE_COLLECTION("PrideArchiveSolrCloudDeleteCollectionStep", "This Step will delete the collection PRIDE Archive in SolrCloud Production."),
         PRIDE_ARCHIVE_SOLR_CLOUD_CREATE_COLLECTION("PrideArchiveSolrCloudCreateCollectionStep", "This Step will create the collection PRIDE Archive in SolrCloud Production."),
         PRIDE_ARCHIVE_SOLR_CLOUD_REFINE_COLLECTION("PrideArchiveSolrCloudRefineCollectionStep", "This Step will refine the collection PRIDE Archive in SolrCloud Production."),
 
@@ -63,14 +64,16 @@ public class SubmissionPipelineConstants {
 
 
         /** PRIDE Data Sync from Oracle to MongoDB **/
-       PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("PrideArchiveOracleToMongoDBSyncStep", "This Step will sync the Oracle Database data into MongoDB data"),
-       PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("PrideArchiveSolrCloudStep","Clean all the documents in SolrCloud Master"),
-       PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("PrideArchiveOracleToMongoDBFilesStep", "This Step will sync all the Files in the Oracle data into MongoDB data"),
-       PRIDE_ARCHIVE_RESET_SUBMISSION_MONGO("PrideArchiveResetSubmissionMongoDBStep", "This Step will reset the project data in MongoDB"),
-       PRIDE_ARCHIVE_RESET_FILES_SUBMISSION_MONGO("PrideArchiveResetFilesSubmissionMongoDBStep", "This Step will reset the files data in MongoDB"),
-       PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR("PrideArchiveResetSubmissionSolrStep", "This Step will reset the project data in Solr"),
 
-       PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB");
+        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("PrideArchiveOracleToMongoDBSyncStep", "This Step will sync the Oracle Database data into MongoDB data"),
+        PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("PrideArchiveSolrCloudStep","Clean all the documents in SolrCloud Master"),
+        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("PrideArchiveOracleToMongoDBFilesStep", "This Step will sync all the Files in the Oracle data into MongoDB data"),
+        PRIDE_ARCHIVE_RESET_SUBMISSION_MONGO("PrideArchiveResetSubmissionMongoDBStep", "This Step will reset the project data in MongoDB"),
+        PRIDE_ARCHIVE_RESET_FILES_SUBMISSION_MONGO("PrideArchiveResetFilesSubmissionMongoDBStep", "This Step will reset the files data in MongoDB"),
+        PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR("PrideArchiveResetSubmissionSolrStep", "This Step will reset the project data in Solr"),
+
+        PRIDE_ARCHIVE_SYNC_ASSAY_FILE("PrideArchiveAnnotateFileToAssayStep", "This Step will important the file information for each Project to MongoDB"),
+        PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB");
 
        String name;
        String message;
