@@ -4,6 +4,7 @@ package uk.ac.ebi.pride.archive.pipeline.core.transformers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.pride.archive.dataprovider.assay.AssayType;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
@@ -12,8 +13,13 @@ import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
+import uk.ac.ebi.pride.archive.repo.repos.assay.Assay;
+import uk.ac.ebi.pride.archive.repo.repos.assay.AssayPTM;
+import uk.ac.ebi.pride.archive.repo.repos.assay.software.Software;
+import uk.ac.ebi.pride.archive.repo.repos.assay.software.SoftwareCvParam;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.project.*;
+import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
@@ -375,5 +381,83 @@ public class PrideProjectTransformer {
                 .stream()
                 .map(x -> new Tuple<>(x.getKey(), x.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    public static List<MongoPrideAssay> transformOracleAssayToMongo(List<Assay> assays, Project project) {
+        List<MongoPrideAssay> mongoAssays = new ArrayList<>();
+        for( Assay assay: assays){
+            // Get the software information
+            Set<MongoCvParam> softwareMongo = new HashSet<>();
+            if(assay.getSoftwares() != null && assay.getSoftwares().size() > 0) {
+                for (Software software : assay.getSoftwares()) {
+                    if (software.getSoftwareCvParams() != null && software.getSoftwareCvParams().size() > 0) {
+                        for (SoftwareCvParam cvParam : software.getSoftwareCvParams()) {
+                            if (cvParam != null && cvParam.getCvParam() != null) {
+                                boolean presentTool = softwareMongo
+                                        .stream()
+                                        .anyMatch(x -> x.getAccession().equalsIgnoreCase(cvParam.getCvParam().getAccession()));
+                                if(!presentTool){
+                                    MongoCvParam mongoTool = new MongoCvParam(cvParam.getCvParam().getCvLabel(),
+                                            cvParam.getCvParam().getAccession(),
+                                            cvParam.getCvParam().getName(), cvParam.getCvParam().getValue());
+                                    softwareMongo.add(mongoTool);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //Get PTMs information
+            List<Tuple<MongoCvParam, Integer>> ptms = new ArrayList<>();
+            if(assay.getPtms() != null && assay.getPtms().size() > 0) {
+                for (AssayPTM ptm : assay.getPtms()) {
+                    if (ptm.getCvParam() != null) {
+                        MongoCvParam ptmMongo = new MongoCvParam(ptm.getCvParam().getCvLabel(),
+                                ptm.getCvParam().getAccession(),
+                                ptm.getCvParam().getName(), ptm.getCvParam().getValue());
+                        ptms.add(new Tuple<>(ptmMongo, 0));
+
+                    }
+
+                }
+
+            }
+
+            //Initiation of Summary parameters
+            List<MongoCvParam> summaryResults = new ArrayList<>();
+            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getCvLabel(),
+                    CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getAccession(),
+                    CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getName(),
+                    String.valueOf(assay.getProteinCount())));
+
+            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getCvLabel(),
+                    CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getAccession(),
+                    CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getName(),
+                    String.valueOf(assay.getPeptideCount())));
+
+            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PSMS.getCvLabel(),
+                    CvTermReference.PRIDE_NUMBER_ID_PSMS.getAccession(),
+                    CvTermReference.PRIDE_NUMBER_ID_PSMS.getName(),
+                    String.valueOf(0)));
+
+            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getCvLabel(),
+                    CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getAccession(),
+                    CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getName(),
+                    String.valueOf(0)));
+
+            MongoPrideAssay mongoPrideAssay = MongoPrideAssay.builder()
+                    .assayType(AssayType.IDENTIFICATION)
+                    .accession(assay.getAccession())
+                    .title(project.getTitle())
+                    .projectAccessions(Collections.singleton(project.getAccession()))
+                    .analysisAccessions(Collections.singleton(project.getAccession()))
+                    .dataAnalysisSoftwares(softwareMongo)
+                    .summaryResults(summaryResults)
+                    .ptmsResults(ptms)
+                    .build();
+            mongoAssays.add(mongoPrideAssay);
+        }
+        return mongoAssays;
     }
 }

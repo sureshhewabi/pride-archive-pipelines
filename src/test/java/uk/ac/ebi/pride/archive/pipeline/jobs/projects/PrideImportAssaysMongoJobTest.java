@@ -17,27 +17,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
-/**
- * This code is licensed under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * ==Overview==
- * <p>
- * This class
- * <p>
- * Created by ypriverol (ypriverol@gmail.com) on 06/06/2018.
- */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {SyncProjectsOracleToMongoJob.class, JobRunnerTestConfiguration.class})
+@ContextConfiguration(classes = {PrideImportAssaysMongoJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
-public class SyncProjectsOracleToMongoJobTest {
+public class PrideImportAssaysMongoJobTest {
 
     @Autowired
-    SyncProjectsOracleToMongoJob prideOracleToMongo;
+    PrideImportAssaysMongoJob prideOracleToMongo;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -47,15 +34,12 @@ public class SyncProjectsOracleToMongoJobTest {
      * @throws Exception
      */
     @Test
-    public void syncOracleToMongoDB() throws Exception {
+    public void syncAssayInformationToMongo() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                .addString("override", "TRUE")
-                .addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
-          //      .addString("accession", "PXD004588")
+                .addString("accession", "PXD000779")
                 .toJobParameters();
-       // ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD004588");
+        ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD000779");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
 }
-
