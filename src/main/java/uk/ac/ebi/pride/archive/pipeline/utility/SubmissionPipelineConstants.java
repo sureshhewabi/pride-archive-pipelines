@@ -20,6 +20,8 @@ public class SubmissionPipelineConstants {
        PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
        PRIDE_ARCHIVE_SUBMISSION_STATS("PrideArchiveSubmissionStats", "This command compute/estimate the statistics for PRIDE Submissions"),
        PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC("PrideImportAssayToMongo", "This command sync the Assay information from Oracle to MongoDB"),
+       PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS("PrideAnalysisAssayInformation", "This command analyze the information of an assay"),
+
        PRIDE_USERS_AAP_SYNC("PrideUsersAAPSync", "This job will sync the users from PRIDE to AAP");
 
        String name;
@@ -73,7 +75,9 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR("PrideArchiveResetSubmissionSolrStep", "This Step will reset the project data in Solr"),
 
         PRIDE_ARCHIVE_SYNC_ASSAY_FILE("PrideArchiveAnnotateFileToAssayStep", "This Step will important the file information for each Project to MongoDB"),
-        PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB");
+        PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB"),
+        PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE("PrideAssayInference", "This step performns the assay inference")
+        ;
 
        String name;
        String message;

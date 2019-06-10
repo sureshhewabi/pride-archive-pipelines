@@ -18,7 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
-        <jmztab.version>3.0.5</jmztab.version>
+        <jmztab.version>3.0.8</jmztab.version>
         <px.submission.core.version>2.0.18</px.submission.core.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
         <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
@@ -27,9 +27,38 @@
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <maven.test.skip>true</maven.test.skip>
+        <pia.version>1.3.10</pia.version>
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>de.mpc.pia</groupId>
+            <artifactId>pia</artifactId>
+            <version>${pia.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- Data provider -->
         <dependency>

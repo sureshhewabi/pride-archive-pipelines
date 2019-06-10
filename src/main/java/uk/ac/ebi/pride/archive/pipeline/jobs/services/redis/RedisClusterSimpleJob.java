@@ -6,25 +6,14 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisPoolConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveRedisConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
-import uk.ac.ebi.pride.archive.pipeline.services.RedisMessageNotifier;
-import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.integration.message.model.FileType;
+import uk.ac.ebi.pride.archive.pipeline.services.redis.RedisMessageNotifier;
 import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
-import uk.ac.ebi.pride.integration.message.model.impl.FileGenerationPayload;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @Configuration
 @Slf4j

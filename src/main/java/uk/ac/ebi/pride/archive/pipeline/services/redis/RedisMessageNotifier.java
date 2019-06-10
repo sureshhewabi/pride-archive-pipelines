@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.services;
+package uk.ac.ebi.pride.archive.pipeline.services.redis;
 
 import java.util.Calendar;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
