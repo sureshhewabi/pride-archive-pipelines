@@ -6,7 +6,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
-import uk.ac.ebi.pride.archive.pipeline.jobs.services.redis.RedisClusterConfigurer;
+import uk.ac.ebi.pride.archive.pipeline.jobs.services.redis.RedisClusterSimpleJob;
 //import uk.ac.ebi.pride.psmindex.mongo.search.indexer.MongoProjectPsmIndexer;
 //import uk.ac.ebi.pride.psmindex.mongo.search.service.MongoPsmIndexService;
 //import uk.ac.ebi.pride.psmindex.mongo.search.service.MongoPsmSearchService;
@@ -29,7 +29,7 @@ import uk.ac.ebi.pride.archive.pipeline.jobs.services.redis.RedisClusterConfigur
   basePackageClasses = {
     ArchiveMongoConfig.class,
     ArchiveOracleConfig.class,
-    RedisClusterConfigurer.class
+    RedisClusterSimpleJob.class
   }
 )
 public class IndexMztabResultFileForPsm {
