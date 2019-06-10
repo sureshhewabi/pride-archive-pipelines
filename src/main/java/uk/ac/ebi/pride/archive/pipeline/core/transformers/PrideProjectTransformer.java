@@ -460,6 +460,7 @@ public class PrideProjectTransformer {
                     .dataAnalysisSoftwares(softwareMongo)
                     .summaryResults(summaryResults)
                     .ptmsResults(ptms)
+                    .assayFiles(prideFiles)
                     .build();
             mongoAssays.add(mongoPrideAssay);
         }
@@ -470,7 +471,7 @@ public class PrideProjectTransformer {
         List<MongoAssayFile> mongoAssayFiles = new ArrayList<>();
 
         List<Tuple<ProjectFile, MongoPrideFile>> filterFiles = files.stream()
-                .filter(x -> x.getAssayId() == id).map( x-> {
+                .filter(x -> x.getAssayId() != null && x.getAssayId().longValue() == id.longValue()).map( x-> {
                     Optional<MongoPrideFile> mongoPrideFile = mongoFiles.stream()
                             .filter(y -> y.getFileName().equalsIgnoreCase(x.getFileName())).findFirst();
                     return mongoPrideFile.map(mongoPrideFile1 -> new Tuple<>(x, mongoPrideFile1)).orElse(null);
@@ -492,8 +493,9 @@ public class PrideProjectTransformer {
                 List<MongoAssayFile> relatedFiles = new ArrayList<>();
                 for(int j = 0; j < filterFiles.size(); j++){
                     Tuple<ProjectFile, MongoPrideFile> peakFile = filterFiles.get(j);
-                    if (peakFile.getKey().getFileSource() == ProjectFileSource.GENERATED &&
-                            !peakFile.getKey().getFileName().contains("pride.mztab")){
+                    if (oracleFile.getKey().getFileSource() == ProjectFileSource.GENERATED &&
+                            oracleFile.getKey().getFileName().contains("pride.mztab") &&
+                            peakFile.getKey().getFileSource() == ProjectFileSource.GENERATED && !peakFile.getKey().getFileName().contains("pride.mztab")){
 
                         MongoAssayFile mgfFile = MongoAssayFile.builder()
                                 .fileAccession(peakFile.getValue().getAccession())
@@ -502,8 +504,20 @@ public class PrideProjectTransformer {
                                 .build();
                         relatedFiles.add(mgfFile);
                     }
+                    if(oracleFile.getKey().getFileType() == ProjectFileType.RESULT &&
+                            peakFile.getKey().getFileSource() == ProjectFileSource.SUBMITTED && peakFile.getKey().getFileType() == ProjectFileType.PEAK){
+
+                        MongoAssayFile mgfFile = MongoAssayFile.builder()
+                                .fileAccession(peakFile.getValue().getAccession())
+                                .fileCategory((MongoCvParam) peakFile.getValue().getFileCategory())
+                                .fileName(peakFile.getKey().getFileName())
+                                .build();
+                        relatedFiles.add(mgfFile);
+
+                    }
                 }
                 resultFile.setRelatedFiles(relatedFiles);
+                mongoAssayFiles.add(resultFile);
             }
         }
 

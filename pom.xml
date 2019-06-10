@@ -25,6 +25,7 @@
         <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
         <uk.ac.ebi.pride.archive.data-provider.version>1.0.0-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
+        <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <maven.test.skip>true</maven.test.skip>
     </properties>
 
@@ -63,6 +64,13 @@
             <groupId>uk.ac.ebi.pride.archive</groupId>
             <artifactId>archive-repo</artifactId>
             <version>${uk.ac.ebi.pride.archive.repo.version}</version>
+        </dependency>
+
+        <!-- Archive integration library -->
+        <dependency>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>archive-integration</artifactId>
+            <version>${archive.integration.version}</version>
         </dependency>
 
         <dependency>

@@ -115,18 +115,4 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
                     return RepeatStatus.FINISHED;
                 }).build();
     }
-
-//    @Bean
-//    Step annotateFilesForAssayStep(){
-//        return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_ASSAY_FILE.name())
-//                .tasklet((stepContribution, chunkContext) -> {
-//                    if(accession != null){
-//                        projectFiles = fileOracleRepository.findAllByProjectId(accession);
-//                    }else{
-//
-//                    }
-//
-//                    return RepeatStatus.FINISHED;
-//                }).build();
-//    }
 }
