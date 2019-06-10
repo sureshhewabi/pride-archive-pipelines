@@ -20,6 +20,7 @@ import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.RedisMessageNotifier;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.integration.message.model.FileType;
+import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
 import uk.ac.ebi.pride.integration.message.model.impl.FileGenerationPayload;
 
 import java.util.HashSet;
@@ -71,7 +72,11 @@ public class RedisClusterSimpleJob extends AbstractArchiveJob {
                 .get("testSendMessage")
                 .tasklet(
                         (stepContribution, chunkContext) -> {
-                            messageNotifier.sendNotification("archive.mgf.completion.queue", new FileGenerationPayload("/mgf/mgf.mgf", FileType.MGF), FileGenerationPayload.class);
+
+                            messageNotifier.sendNotification("archive.incoming.assay.annotation.queue",
+                                    new AssayDataGenerationPayload("PXD000000", "1234455678"), AssayDataGenerationPayload.class);
+
+
                             return RepeatStatus.FINISHED;
                         })
                 .build();
