@@ -7,6 +7,17 @@ package uk.ac.ebi.pride.archive.pipeline.utility;
  */
 public class SubmissionPipelineConstants {
 
+    public enum FileType{
+        PRIDE,
+        MZTAB,
+        MZID,
+        MGF,
+        MS2,
+        MZML,
+        MZXML,
+        APL
+    }
+
    public enum SubmissionsType{
         ALL, PUBLIC, PRIVATE
    }
@@ -77,7 +88,8 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SYNC_ASSAY_FILE("PrideArchiveAnnotateFileToAssayStep", "This Step will important the file information for each Project to MongoDB"),
         PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB"),
         PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE("PrideAssayInference", "This step performns the assay inference"),
-        PRIDE_ARCHIVE_MONGODB_ASSAY_UPDATE("PrideAssayUpdate", "This step performs the assay information update")
+        PRIDE_ARCHIVE_MONGODB_ASSAY_UPDATE("PrideAssayUpdate", "This step performs the assay information update"),
+        PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE("PrideAssaySpectrumUpdate", "This step read the spectrum information from the file and insert it into mongoDB and S3")
         ;
 
        String name;

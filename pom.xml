@@ -26,6 +26,7 @@
         <uk.ac.ebi.pride.archive.data-provider.version>1.0.0-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
+        <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
         <pia.version>1.3.10</pia.version>
     </properties>
@@ -58,6 +59,14 @@
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Begin of the jmzReader Dependencies. MzML and Pride XML files will be parse
+          with jaxb and jmzml directly in order to keep more matadata -->
+        <dependency>
+            <groupId>uk.ac.ebi.pride.tools</groupId>
+            <artifactId>jmzreader</artifactId>
+            <version>${uk.ac.ebi.pride.tools-jmzreader.version}</version>
         </dependency>
 
         <!-- Data provider -->

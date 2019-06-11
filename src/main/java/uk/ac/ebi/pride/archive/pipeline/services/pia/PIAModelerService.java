@@ -4,7 +4,6 @@ import de.mpc.pia.intermediate.compiler.PIACompiler;
 import de.mpc.pia.intermediate.compiler.PIASimpleCompiler;
 import de.mpc.pia.intermediate.compiler.parser.InputFileParserFactory;
 import de.mpc.pia.modeller.PIAModeller;
-import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.inference.SpectrumExtractorInference;
 import de.mpc.pia.modeller.protein.scoring.AbstractScoring;
 import de.mpc.pia.modeller.protein.scoring.MultiplicativeScoring;
@@ -13,24 +12,18 @@ import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import lombok.extern.slf4j.Slf4j;
+import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 @Slf4j
 public class PIAModelerService {
 
     private static final Long MERGE_FILE_ID = 0L;
 
-    public enum FileType{
-        PRIDE,
-        MZTAB,
-        MZID
-    }
 
     public PIAModelerService() {
     }
@@ -40,7 +33,7 @@ public class PIAModelerService {
      * @param filePath assay file path, pride xml, mzidentml
      * @param qThreshold q-value threshold
      */
-    public PIAModeller performProteinInference(String assayId, String filePath, FileType fileType, double qThreshold )
+    public PIAModeller performProteinInference(String assayId, String filePath, SubmissionPipelineConstants.FileType fileType, double qThreshold )
             throws IOException {
 
         PIAModeller modeller = computeFDRPSMLevel(assayId, filePath, fileType);
@@ -104,14 +97,14 @@ public class PIAModelerService {
      * @return PIAModeller
      * @throws IOException
      */
-    private PIAModeller computeFDRPSMLevel(String assayKey, String filePath, FileType fileType) throws IOException {
+    private PIAModeller computeFDRPSMLevel(String assayKey, String filePath, SubmissionPipelineConstants.FileType fileType) throws IOException {
         PIAModeller piaModeller = null;
         PIACompiler piaCompiler = new PIASimpleCompiler();
 
         String type = InputFileParserFactory.InputFileTypes.MZTAB_INPUT.getFileTypeShort();
-        if(fileType == FileType.PRIDE)
+        if(fileType == SubmissionPipelineConstants.FileType.PRIDE)
            type = InputFileParserFactory.InputFileTypes.PRIDEXML_INPUT.getFileTypeShort();
-        else if (fileType == FileType.MZID)
+        else if (fileType == SubmissionPipelineConstants.FileType.MZID)
            type = InputFileParserFactory.InputFileTypes.MZIDENTML_INPUT.getFileTypeShort();
 
         piaCompiler.getDataFromFile(assayKey, filePath, null, type);

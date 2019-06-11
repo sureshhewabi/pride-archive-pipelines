@@ -1,6 +1,7 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
+import de.mpc.pia.intermediate.Modification;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.ReportProtein;
@@ -18,9 +19,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import uk.ac.ebi.pride.archive.dataprovider.common.ITuple;
+import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
+import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
@@ -29,11 +33,13 @@ import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
+import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -69,6 +75,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     @Value("${qValueThreshold:#{0.01}}")
     private Double qValueThershold;
 
+    /** List of reported Peptides **/
+    List<ReportPeptide> peptides;
+
+    /** Reported Proteins **/
+    List<ReportProtein> proteins;
+
 
 
     /**
@@ -82,7 +94,38 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
                 .start(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
+                .next(indexSpectra())
                 .build();
+    }
+
+    @Bean
+    public Step indexSpectra() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    if(modeller != null && assay != null && peptides.size() > 0){
+                        Optional<MongoAssayFile> assayResultFile = assay.getAssayFiles()
+                                .stream().filter(x -> x.getFileCategory()
+                                        .getValue().equalsIgnoreCase("RESULT")).findFirst();
+
+                        if(assayResultFile.isPresent() && assayResultFile.get().getRelatedFiles().size() == 0){
+                            Map<String, SubmissionPipelineConstants.FileType> files = Collections
+                                    .singletonMap("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3), SubmissionPipelineConstants.FileType.PRIDE);
+                            JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(files);
+                            peptides.stream().forEach( peptide -> {
+                                peptide.getPSMs().stream().forEach( psm -> {
+                                    try {
+                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID());
+                                        log.info(spectrum.getId() + " " + spectrum.getPrecursorMZ());
+                                    } catch (JMzReaderException e) {
+                                        e.printStackTrace();
+                                    }
+                                });
+                            });
+                        }
+                    }
+                    return RepeatStatus.FINISHED;
+                }).build();
     }
 
     @Bean
@@ -98,8 +141,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .filter(entry -> entry.getValue().getIsDecoy())
                                 .count();
 
-                        List<ReportPeptide> peptides = new ArrayList<>();
-                        List<ReportProtein> proteins = new ArrayList<>();
+                        peptides = new ArrayList<>();
+                        proteins = new ArrayList<>();
                         List<ReportPSM> psms = new ArrayList<>();
                         if (nrDecoys > 0){
                             // setting filter for peptide level filtering
@@ -130,7 +173,18 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES, modifiedPeptides.size());
                             newValues.add(param);
                         }
+
+                        List<Tuple<MongoCvParam, Integer>> modificationCount = modifiedPeptides.stream()
+                                .flatMap(x -> x.getModifications().values().stream())
+                                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                                .entrySet().stream()
+                                .map( entry -> {
+                                    return new Tuple<MongoCvParam, Integer>(new MongoCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue());
+                                })
+                                .collect(Collectors.toList());
+
                         assay.setSummaryResults(newValues);
+                        assay.setPtmsResults(modificationCount);
                         prideProjectMongoService.updateAssay(assay);
 
                     }
@@ -158,7 +212,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .stream().filter(x -> x.getFileCategory()
                                         .getValue().equalsIgnoreCase("RESULT")).findFirst();
                         modeller = piaModellerService.performProteinInference(assayAccession, "/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3),
-                                PIAModelerService.FileType.PRIDE, qValueThershold);
+                                SubmissionPipelineConstants.FileType.PRIDE, qValueThershold);
                         this.assay = assay.get();
                     }
                     return RepeatStatus.FINISHED;
