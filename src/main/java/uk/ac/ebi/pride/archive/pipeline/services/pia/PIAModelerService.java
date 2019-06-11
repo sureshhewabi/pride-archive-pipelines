@@ -40,7 +40,7 @@ public class PIAModelerService {
      * @param filePath assay file path, pride xml, mzidentml
      * @param qThreshold q-value threshold
      */
-    public void performProteinInference(String assayId, String filePath, FileType fileType,  double qThreshold )
+    public PIAModeller performProteinInference(String assayId, String filePath, FileType fileType, double qThreshold )
             throws IOException {
 
         PIAModeller modeller = computeFDRPSMLevel(assayId, filePath, fileType);
@@ -52,13 +52,7 @@ public class PIAModelerService {
                     .filter(entry -> entry.getValue().getIsDecoy())
                     .count();
 
-//        log.debug("Decoys calculated in all files: " + modeller.getPSMModeller()
-//                .getAllFilesHaveFDRCalculated() );
-//
-//        log.debug("Decoys in all files: " + nrDecoys);
-
-            // check, whether the FDR is calculated and whether there are any decoys in all files
-            if (modeller.getPSMModeller().getAllFilesHaveFDRCalculated() && nrDecoys > 0) {
+            if (modeller.getPSMModeller().getAllFilesHaveFDRCalculated()) {
 
                 modeller.getPeptideModeller().calculateFDR(MERGE_FILE_ID);
 
@@ -76,26 +70,28 @@ public class PIAModelerService {
                 modeller.getProteinModeller().updateDecoyStates();
                 modeller.getProteinModeller().calculateFDR();
 
-                // get the FDR filtered peptides
-                List<ReportPeptide> peptides = modeller.getPeptideModeller()
-                        .getFilteredReportPeptides(MERGE_FILE_ID, new ArrayList<>());
-
-                List<ReportPeptide> noDecoyPeptides = new ArrayList<>();
-                if (!peptides.isEmpty()) {
-                    for (ReportPeptide peptide : peptides) {
-                        if (!peptide.getIsDecoy()) {
-                            noDecoyPeptides.add(peptide);
-                        }
-                    }
-                } else {
-                    //log.error("There are no peptides at all!");
-                }
+//                // get the FDR filtered peptides
+//                List<ReportPeptide> peptides = modeller.getPeptideModeller()
+//                        .getFilteredReportPeptides(MERGE_FILE_ID, new ArrayList<>());
+//
+//                List<ReportPeptide> noDecoyPeptides = new ArrayList<>();
+//                if (!peptides.isEmpty()) {
+//                    for (ReportPeptide peptide : peptides) {
+//                        if (!peptide.getIsDecoy()) {
+//                            noDecoyPeptides.add(peptide);
+//                        }
+//                    }
+//                } else {
+//                    //log.error("There are no peptides at all!");
+//                }
 
                 //log.info("number of FDR 0.01 filtered target peptides: " + noDecoyPeptides.size() + " / " + peptides.size());
             } else {
-                log.info("no decoys in the data!");
+                log.info("No decoy information is present in the data!");
             }
         }
+
+        return modeller;
 
 
     }
@@ -131,7 +127,7 @@ public class PIAModelerService {
             piaCompiler.writeOutXML(inferenceTempFile);
             piaCompiler.finish();
             piaModeller = new PIAModeller(inferenceTempFile.getAbsolutePath());
-            piaModeller.setCreatePSMSets(false);
+            piaModeller.setCreatePSMSets(true);
             piaModeller.getPSMModeller().setAllDecoyPattern("searchengine");
             piaModeller.getPSMModeller().setAllTopIdentifications(0);
 

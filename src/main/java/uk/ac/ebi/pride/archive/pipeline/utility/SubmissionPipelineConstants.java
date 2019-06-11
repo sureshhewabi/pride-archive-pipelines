@@ -76,7 +76,8 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_SYNC_ASSAY_FILE("PrideArchiveAnnotateFileToAssayStep", "This Step will important the file information for each Project to MongoDB"),
         PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO("PrideArchiveImportAssayInformationStep", "This Step will import the assay information from Oracle to MongoDB"),
-        PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE("PrideAssayInference", "This step performns the assay inference")
+        PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE("PrideAssayInference", "This step performns the assay inference"),
+        PRIDE_ARCHIVE_MONGODB_ASSAY_UPDATE("PrideAssayUpdate", "This step performs the assay information update")
         ;
 
        String name;
