@@ -1,7 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
-import de.mpc.pia.intermediate.Modification;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.ReportProtein;
@@ -19,7 +18,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.dataprovider.common.ITuple;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
@@ -39,7 +37,6 @@ import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -112,11 +109,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             Map<String, SubmissionPipelineConstants.FileType> files = Collections
                                     .singletonMap("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3), SubmissionPipelineConstants.FileType.PRIDE);
                             JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(files);
-                            peptides.stream().forEach( peptide -> {
-                                peptide.getPSMs().stream().forEach( psm -> {
+                            peptides.forEach(peptide -> {
+                                peptide.getPSMs().forEach(psm -> {
                                     try {
                                         Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID());
-                                        log.info(spectrum.getId() + " " + spectrum.getPrecursorMZ());
+                                        log.info(spectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - spectrum.getPrecursorMZ()));
                                     } catch (JMzReaderException e) {
                                         e.printStackTrace();
                                     }
@@ -161,7 +158,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             psms    = modeller.getPSMModeller().getFilteredReportPSMs(FILE_ID, new ArrayList<>());
                         }
 
-                        List<ReportPeptide> modifiedPeptides = peptides.stream().filter(x -> x.getModifications().size() > 0).collect(Collectors.toList());;
+                        List<ReportPeptide> modifiedPeptides = peptides.stream().filter(x -> x.getModifications().size() > 0).collect(Collectors.toList());
 
                         //Update reported peptides
                         List<MongoCvParam> summaryResults = assay.getSummaryResults();
@@ -178,9 +175,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .flatMap(x -> x.getModifications().values().stream())
                                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                                 .entrySet().stream()
-                                .map( entry -> {
-                                    return new Tuple<MongoCvParam, Integer>(new MongoCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue());
-                                })
+                                .map( entry -> new Tuple<MongoCvParam, Integer>(new MongoCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
                                 .collect(Collectors.toList());
 
                         assay.setSummaryResults(newValues);
