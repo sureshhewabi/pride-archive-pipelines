@@ -29,6 +29,7 @@
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
         <pia.version>1.3.10</pia.version>
+        <aws.version>1.11.569</aws.version>
     </properties>
 
     <dependencies>
@@ -67,6 +68,12 @@
             <groupId>uk.ac.ebi.pride.tools</groupId>
             <artifactId>jmzreader</artifactId>
             <version>${uk.ac.ebi.pride.tools-jmzreader.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${aws.version}</version>
         </dependency>
 
         <!-- Data provider -->
