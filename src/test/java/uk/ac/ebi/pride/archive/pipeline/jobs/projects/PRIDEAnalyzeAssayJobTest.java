@@ -40,8 +40,8 @@ public class PRIDEAnalyzeAssayJobTest {
                 .addString("projectAccession", "PRD000475")
                 .addString("assayAccession", "17964")
                 .toJobParameters();
-        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PRD000475");
-        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "17964");
+        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD000001");
+        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "22134");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }

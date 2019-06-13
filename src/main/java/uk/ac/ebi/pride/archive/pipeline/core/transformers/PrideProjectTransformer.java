@@ -125,6 +125,7 @@ public class PrideProjectTransformer {
                         quant.getCvParam().getName(), quant.getCvParam().getValue()))
                 .collect(Collectors.toList());
 
+
         return MongoPrideProject.builder()
                 .title(oracleProject.getTitle())
                 .accession(oracleProject.getAccession())
@@ -142,6 +143,7 @@ public class PrideProjectTransformer {
                 .ptmList(ptms)
                 .softwareList(softwareList)
                 .projectTags(projectTags)
+                .submissionType(oracleProject.getSubmissionType().name())
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
                 .build();

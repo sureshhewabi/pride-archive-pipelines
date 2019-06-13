@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
@@ -102,17 +103,22 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
                 .tasklet((stepContribution, chunkContext) -> {
                     if(accession != null){
                         Project project = projectRepository.findByAccession(accession);
-                        List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
-                        List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
-                        doProjectAssaySync(assays, files, project);
+                        if(project.getSubmissionType() != SubmissionType.PRIDE)
+                            syncProject(project);
                     }else{
                         projectRepository.findAll().forEach(x -> {
-                            List<Assay> assays = assayRepository.findAllByProjectId(x.getId());
-                            List<ProjectFile> files = fileOracleRepository.findAllByProjectId(x.getId());
-                            doProjectAssaySync(assays, files, x);
+                            if(x.getSubmissionType() != SubmissionType.PRIDE){
+                              syncProject(x);
+                            }
                         });
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
+    }
+
+    private void syncProject( Project  project){
+        List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
+        List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
+        doProjectAssaySync(assays, files, project);
     }
 }

@@ -9,6 +9,7 @@ import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.impl.PeptideScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
+import de.mpc.pia.tools.OntologyConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -19,12 +20,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
+import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
+import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
+import uk.ac.ebi.pride.archive.spectra.configs.AWS3Configuration;
+import uk.ac.ebi.pride.archive.spectra.model.ArchivePSM;
+import uk.ac.ebi.pride.archive.spectra.model.CvParam;
+import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
@@ -35,16 +42,17 @@ import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveMongoConfig.class, DataSourceConfiguration.class, AWS3Configuration.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
-    private static final Long MERGE_FILE_ID = 0L;
+    private static final Long MERGE_FILE_ID = 1L;
     private static final Long FILE_ID = 1L;
     @Autowired
     PrideProjectMongoService prideProjectMongoService;
@@ -53,6 +61,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     PrideFileMongoRepository prideFileMongoRepository;
 
     private PIAModelerService piaModellerService;
+
+    @Autowired
+    S3SpectralArchive spectralArchive;
 
     private PIAModeller modeller;
     private MongoPrideAssay assay;
@@ -110,11 +121,54 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     .singletonMap("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3), SubmissionPipelineConstants.FileType.PRIDE);
                             JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(files);
                             peptides.forEach(peptide -> {
+
                                 peptide.getPSMs().forEach(psm -> {
                                     try {
-                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID());
+                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3),
+                                                psm.getSourceID());
                                         log.info(spectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - spectrum.getPrecursorMZ()));
+                                        double[] masses = new double[spectrum.getPeakList().size()];
+                                        double[] intensities = new double[spectrum.getPeakList().size()];
+                                        int count = 0;
+                                        for(Map.Entry entry: spectrum.getPeakList().entrySet()){
+                                            masses[count] = (Double)entry.getKey();
+                                            intensities[count] = (Double) entry.getValue();
+                                            count++;
+                                        }
+
+                                        List<CvParam> properties = new ArrayList<>();
+
+                                        for(ScoreModelEnum scoreModel: ScoreModelEnum.values()){
+                                            Double scoreValue = psm.getScore(scoreModel.getShortName());
+                                            if(scoreValue != null && !scoreValue.isNaN()){
+                                                for(CvTermReference ref: CvTermReference.values()){
+                                                    if (ref.getAccession().equalsIgnoreCase(scoreModel.getCvAccession()))
+                                                        properties.add(new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue)));
+                                                }
+                                            }
+                                        }
+
+                                        properties.add(new CvParam("MS", OntologyConstants.PSM_LEVEL_QVALUE.getPsiAccession(), OntologyConstants.PSM_LEVEL_QVALUE.getPsiName(), String.valueOf(psm.getQValue())));
+                                        properties.add(new CvParam("MS", OntologyConstants.PEPTIDE_LEVEL_QVALUE.getPsiAccession(), OntologyConstants.PEPTIDE_LEVEL_QVALUE.getPsiName(), String.valueOf(peptide.getQValue())));
+
+                                        PSMProvider archivePSM = ArchivePSM
+                                                .builder()
+                                                .peptideSequence(psm.getSequence())
+                                                .deltaMass(psm.getDeltaMass())
+                                                .msLevel(spectrum.getMsLevel())
+                                                .precursorCharge(spectrum.getPrecursorCharge())
+                                                .masses(masses)
+                                                .intensities(intensities)
+                                                .properties(properties)
+                                                .usi("mzspec:" + assay.getProjectAccessions().iterator().next() + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3) + ":indexNumber:" + psm.getSourceID())
+                                                .build();
+
+                                        spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
+
+
                                     } catch (JMzReaderException e) {
+                                        e.printStackTrace();
+                                    } catch (IOException e) {
                                         e.printStackTrace();
                                     }
                                 });

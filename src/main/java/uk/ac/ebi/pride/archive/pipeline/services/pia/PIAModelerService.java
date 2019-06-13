@@ -22,7 +22,7 @@ import java.util.HashMap;
 @Slf4j
 public class PIAModelerService {
 
-    private static final Long MERGE_FILE_ID = 0L;
+    private static final Long MERGE_FILE_ID = 1L;
 
 
     public PIAModelerService() {
@@ -54,10 +54,8 @@ public class PIAModelerService {
                         false, qThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
 
                 seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
-                seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID,
-                        ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
-                seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID,
-                        PSMForScoring.ONLY_BEST.getShortName());
+                seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
+                seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
 
                 modeller.getProteinModeller().infereProteins(seInference);
                 modeller.getProteinModeller().updateDecoyStates();
@@ -123,6 +121,7 @@ public class PIAModelerService {
             piaModeller.setCreatePSMSets(true);
             piaModeller.getPSMModeller().setAllDecoyPattern("searchengine");
             piaModeller.getPSMModeller().setAllTopIdentifications(0);
+            piaModeller.setConsiderModifications(true);
 
             // calculate FDR on PSM level
             piaModeller.getPSMModeller().calculateAllFDR();

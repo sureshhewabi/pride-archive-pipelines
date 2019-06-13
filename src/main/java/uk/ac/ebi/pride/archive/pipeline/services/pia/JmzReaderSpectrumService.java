@@ -47,11 +47,6 @@ public class JmzReaderSpectrumService {
                 this.readers.put(key, new PRIDEXmlWrapper(new File(key)));
             }
         }
-        ;
-        s3Client = AmazonS3ClientBuilder.standard()
-                .withRegion(clientRegion)
-                .withCredentials(new ProfileCredentialsProvider())
-                .build();
     }
 
     /**
@@ -70,41 +65,5 @@ public class JmzReaderSpectrumService {
         return reader.getSpectrumById(id);
     }
 
-
-//    public String readS3PSM() throws IOException {
-//
-//        S3Object fullObject = null, objectPortion = null, headerOverrideObject = null;
-//        try {
-//            System.out.println("Downloading an object");
-//            fullObject = s3Client.getObject(new GetObjectRequest(bucketName, key));
-//            System.out.println("Content-Type: " + fullObject.getObjectMetadata().getContentType());
-//            System.out.println("Content: ");
-//            displayTextInputStream(fullObject.getObjectContent());
-//
-//            // Get a range of bytes from an object and print the bytes.
-//            GetObjectRequest rangeObjectRequest = new GetObjectRequest(bucketName, key)
-//                .withRange(0,9);
-//            objectPortion = s3Client.getObject(rangeObjectRequest);
-//            System.out.println("Printing bytes retrieved.");
-//            displayTextInputStream(objectPortion.getObjectContent());
-//        } catch(SdkClientException e) {
-//            e.printStackTrace();
-//        } finally {
-//            if(fullObject != null) {
-//                fullObject.close();
-//            }
-//            if(objectPortion != null) {
-//            objectPortion.close();
-//            }
-//            if(headerOverrideObject != null) {
-//                headerOverrideObject.close();
-//            }
-//        }
-//        return "";
-//    }
-//
-//    private void displayTextInputStream(S3ObjectInputStream objectContent) {
-//
-//    }
 
 }
