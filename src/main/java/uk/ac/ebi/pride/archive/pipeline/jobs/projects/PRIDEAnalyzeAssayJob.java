@@ -1,13 +1,16 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
+import de.mpc.pia.intermediate.Modification;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.ReportProtein;
 import de.mpc.pia.modeller.psm.ReportPSM;
 import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
+import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.report.filter.impl.PeptideScoreFilter;
+import de.mpc.pia.modeller.score.ScoreModel;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import de.mpc.pia.tools.OntologyConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +24,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
+import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModification;
+import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
+import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.MoleculesMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -32,12 +39,15 @@ import uk.ac.ebi.pride.archive.spectra.configs.AWS3Configuration;
 import uk.ac.ebi.pride.archive.spectra.model.ArchivePSM;
 import uk.ac.ebi.pride.archive.spectra.model.CvParam;
 import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
+import uk.ac.ebi.pride.archive.spectra.utils.Constants;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+import uk.ac.ebi.pride.mongodb.molecules.service.protein.PrideProteinEvidenceMongoService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
@@ -49,7 +59,7 @@ import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, DataSourceConfiguration.class, AWS3Configuration.class})
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, DataSourceConfiguration.class, AWS3Configuration.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
@@ -64,6 +74,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Autowired
     S3SpectralArchive spectralArchive;
+
+    @Autowired
+    PrideProteinEvidenceMongoService proteinService;
 
     private PIAModeller modeller;
     private MongoPrideAssay assay;
@@ -103,7 +116,116 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .start(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
                 .next(indexSpectra())
+                .next(proteinIndex())
                 .build();
+    }
+
+    @Bean
+    public Step proteinIndex(){
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
+                .tasklet((stepContribution, chunkContext) -> {
+
+                    proteins.stream().forEach( protein -> {
+                        Set<String> proteinGroups = protein.getAccessions()
+                                .stream().map(x -> x.getAccession())
+                                .collect(Collectors.toSet());
+                        List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>();
+                        proteinPTMs.addAll(convertModifications(
+                                protein.getRepresentative().getAccession(), protein.getPeptides()));
+                        PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
+                                .builder()
+                                .reportedAccession(protein.getRepresentative().getAccession())
+                                .isDecoy(protein.getIsDecoy())
+                                .proteinGroupMembers(proteinGroups)
+                                .ptms(proteinPTMs)
+                                .assayAccession(assay.getAccession())
+                                .build();
+
+                        proteinService.save(proteinEvidence);
+
+                    });
+
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    private Collection<? extends IdentifiedModificationProvider> convertModifications(String proteinAccession, List<ReportPeptide> peptides) {
+
+        List<DefaultIdentifiedModification> ptms = new ArrayList<>();
+
+        for (ReportPeptide item : peptides) {
+
+            for (Map.Entry<Integer, Modification> ptmEntry : item.getModifications().entrySet()) {
+
+                Modification ptm = ptmEntry.getValue();
+                Integer position = ptmEntry.getKey();
+                List<DefaultCvParam> probabilities = ptm.getProbability()
+                        .stream().map( oldProbability -> {
+                            return  new DefaultCvParam(oldProbability.getCvLabel(),
+                                    oldProbability.getAccession(),
+                                    oldProbability.getName(),
+                                    String.valueOf(oldProbability.getValue()));
+                        })
+                        .collect(Collectors.toList());
+                // ignore modifications that can't be processed correctly (can not be mapped to the protein)
+                if (ptm.getAccession() == null) {
+                    continue;
+                }
+
+                // if we can calculate the position, we add it to the modification
+                // -1 to calculate properly the modification offset
+                item.getPeptide().getAccessionOccurrences().stream().forEach( peptideEvidence ->{
+
+                    if(peptideEvidence.getAccession().getAccession() == proteinAccession){
+
+                        if (peptideEvidence.getStart() != null && peptideEvidence.getStart() >= 0 && position >= 0) {
+
+                            int startPos = peptideEvidence.getStart();
+                            // n-term and c-term mods are not propagated to the protein except the case that the start
+                            // position is 1 (beginning of the protein)
+                            int proteinPosition = startPos + position - 1;
+
+                            Optional<DefaultIdentifiedModification> proteinExist = ptms.stream()
+                                    .filter(currentMod -> currentMod.getModificationCvTerm()
+                                            .getAccession().equalsIgnoreCase(ptm.getAccession()))
+                                    .findAny();
+                            if(proteinExist.isPresent()){
+                                proteinExist.get().addPosition(proteinPosition, probabilities);
+                            }else{
+                                DefaultCvParam ptmName = new DefaultCvParam(ptm.getCvLabel(),
+                                        ptm.getAccession(), ptm.getDescription(),
+                                        String.valueOf(ptm.getMass()));
+                                DefaultIdentifiedModification newPTM = new DefaultIdentifiedModification(null, null, ptmName, null);
+                                newPTM.addPosition(proteinPosition, probabilities);
+                                ptms.add(newPTM);
+                            }
+
+                            if (position > 0 && position < (item.getSequence().length() + 1)) {
+//                                mod.addPosition(position, null);
+//                                modifications.add(mod);
+                                log.info(String.valueOf(proteinPosition));
+                                log.info(ptm.getAccession());
+                            } else if(position == 0) { //n-term for protein
+//                                mod.addPosition(position, null);
+//                                modifications.add(mod);
+                                log.info(String.valueOf(proteinPosition));
+                                log.info(ptm.getAccession());
+
+                            }
+                        } else {
+//                            modifications.add(mod);
+                            //if position is not set null is reported
+                        }
+
+                    }
+
+                });
+
+            }
+        }
+        return ptms;
+
     }
 
     @Bean
@@ -124,7 +246,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                                 peptide.getPSMs().forEach(psm -> {
                                     try {
-                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3),
+                                        String spectrumFile = assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3);
+                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + spectrumFile,
                                                 psm.getSourceID());
                                         log.info(spectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - spectrum.getPrecursorMZ()));
                                         double[] masses = new double[spectrum.getPeakList().size()];
@@ -160,7 +283,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .masses(masses)
                                                 .intensities(intensities)
                                                 .properties(properties)
-                                                .usi("mzspec:" + assay.getProjectAccessions().iterator().next() + assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3) + ":indexNumber:" + psm.getSourceID())
+                                                .spectrumFile(spectrumFile)
+                                                .usi(Constants.buildUsi(Constants.ScanType.SCAN,
+                                                        projectAccession,
+                                                        assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID()))
                                                 .build();
 
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
@@ -198,8 +324,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         if (nrDecoys > 0){
                             // setting filter for peptide level filtering
                             List<AbstractFilter> filters = new ArrayList<>();
-                            filters.add(new PeptideScoreFilter(FilterComparator.less_equal, false, qValueThershold,
-                                    ScoreModelEnum.PEPTIDE_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
+                            filters.add(new PSMScoreFilter(FilterComparator.less_equal, false, qValueThershold,
+                                    ScoreModelEnum.PSM_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
 
                             // get the FDR filtered peptides
                             peptides = modeller.getPeptideModeller().getFilteredReportPeptides(MERGE_FILE_ID, filters);

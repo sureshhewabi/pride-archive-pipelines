@@ -62,6 +62,12 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>pride-spectra-archive</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
         <!-- Begin of the jmzReader Dependencies. MzML and Pride XML files will be parse
           with jaxb and jmzml directly in order to keep more matadata -->
         <dependency>

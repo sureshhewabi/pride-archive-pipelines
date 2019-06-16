@@ -4,12 +4,19 @@ import de.mpc.pia.intermediate.compiler.PIACompiler;
 import de.mpc.pia.intermediate.compiler.PIASimpleCompiler;
 import de.mpc.pia.intermediate.compiler.parser.InputFileParserFactory;
 import de.mpc.pia.modeller.PIAModeller;
+import de.mpc.pia.modeller.peptide.ReportPeptide;
+import de.mpc.pia.modeller.protein.ReportProtein;
+import de.mpc.pia.modeller.protein.inference.OccamsRazorInference;
 import de.mpc.pia.modeller.protein.inference.SpectrumExtractorInference;
 import de.mpc.pia.modeller.protein.scoring.AbstractScoring;
 import de.mpc.pia.modeller.protein.scoring.MultiplicativeScoring;
 import de.mpc.pia.modeller.protein.scoring.settings.PSMForScoring;
+import de.mpc.pia.modeller.psm.ReportPSM;
+import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
+import de.mpc.pia.modeller.report.filter.RegisteredFilters;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
+import de.mpc.pia.modeller.score.FDRData;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import lombok.extern.slf4j.Slf4j;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
@@ -17,7 +24,9 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @Slf4j
 public class PIAModelerService {
@@ -36,53 +45,74 @@ public class PIAModelerService {
     public PIAModeller performProteinInference(String assayId, String filePath, SubmissionPipelineConstants.FileType fileType, double qThreshold )
             throws IOException {
 
-        PIAModeller modeller = computeFDRPSMLevel(assayId, filePath, fileType);
+        PIAModeller piaModeller = computeFDRPSMLevel(assayId, filePath, fileType);
 
-        if (modeller != null){
-            long nrDecoys = modeller.getPSMModeller()
-                    .getReportPSMSets().entrySet()
-                    .stream()
-                    .filter(entry -> entry.getValue().getIsDecoy())
-                    .count();
-
-            if (modeller.getPSMModeller().getAllFilesHaveFDRCalculated()) {
-
-                modeller.getPeptideModeller().calculateFDR(MERGE_FILE_ID);
-
-                SpectrumExtractorInference seInference = new SpectrumExtractorInference();
-                seInference.addFilter( new PSMScoreFilter(FilterComparator.less_equal,
-                        false, qThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
-
-                seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
-                seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
-                seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
-
-                modeller.getProteinModeller().infereProteins(seInference);
-                modeller.getProteinModeller().updateDecoyStates();
-                modeller.getProteinModeller().calculateFDR();
-
-//                // get the FDR filtered peptides
-//                List<ReportPeptide> peptides = modeller.getPeptideModeller()
-//                        .getFilteredReportPeptides(MERGE_FILE_ID, new ArrayList<>());
+        if (piaModeller != null){
+//            long nrDecoys = modeller.getPSMModeller()
+//                    .getReportPSMSets().entrySet()
+//                    .stream()
+//                    .filter(entry -> entry.getValue().getIsDecoy())
+//                    .count();
 //
-//                List<ReportPeptide> noDecoyPeptides = new ArrayList<>();
-//                if (!peptides.isEmpty()) {
-//                    for (ReportPeptide peptide : peptides) {
-//                        if (!peptide.getIsDecoy()) {
-//                            noDecoyPeptides.add(peptide);
-//                        }
-//                    }
-//                } else {
-//                    //log.error("There are no peptides at all!");
-//                }
+//            if (modeller.getPSMModeller().getAllFilesHaveFDRCalculated()) {
+//
+//                modeller.getPeptideModeller().calculateFDR(MERGE_FILE_ID);
+//
+//                OccamsRazorInference seInference = new OccamsRazorInference();
+//                seInference.addFilter( new PSMScoreFilter(FilterComparator.less_equal,
+//                        false, qThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+//
+//                seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
+//                seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
+//                seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
+//
+//                modeller.getProteinModeller().infereProteins(seInference);
+//                modeller.getProteinModeller().updateDecoyStates();
+//                modeller.getProteinModeller().calculateFDR();
 
-                //log.info("number of FDR 0.01 filtered target peptides: " + noDecoyPeptides.size() + " / " + peptides.size());
-            } else {
-                log.info("No decoy information is present in the data!");
-            }
+            piaModeller.setCreatePSMSets(true);
+
+            piaModeller.getPSMModeller().setAllDecoyPattern("searchengine");
+            piaModeller.getPSMModeller().setAllTopIdentifications(0);
+
+            piaModeller.getPSMModeller().calculateAllFDR();
+            piaModeller.getPSMModeller().calculateCombinedFDRScore();
+
+            piaModeller.setConsiderModifications(true);
+
+            // protein level
+            OccamsRazorInference seInference = new OccamsRazorInference();
+
+            seInference.addFilter(
+                    new PSMScoreFilter(FilterComparator.less_equal, false, 0.01, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+
+            seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
+            seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
+            seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
+
+            piaModeller.getProteinModeller().infereProteins(seInference);
+
+            piaModeller.getProteinModeller().updateFDRData(FDRData.DecoyStrategy.SEARCHENGINE, "searchengine", 0.01);
+            piaModeller.getProteinModeller().updateDecoyStates();
+            piaModeller.getProteinModeller().calculateFDR();
+
+//            List<AbstractFilter> filters = new ArrayList<>();
+//            filters.add(new PSMScoreFilter(FilterComparator.less_equal, false, qValueThershold,
+//                    ScoreModelEnum.PSM_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
+//
+//            List<ReportProtein> proteins = piaModeller.getProteinModeller().getFilteredReportProteins(filters);
+//            List<ReportPSM> psms = piaModeller.getPSMModeller().getFilteredReportPSMs(1L, filters);
+//            List<ReportPeptide> peptides = piaModeller.getPeptideModeller().getFilteredReportPeptides(1L, filters);
+//            log.info(String.valueOf(proteins.size()));
+
+
+
+//            } else {
+//                log.info("No decoy information is present in the data!");
+//            }
         }
 
-        return modeller;
+        return piaModeller;
 
 
     }
@@ -96,6 +126,7 @@ public class PIAModelerService {
      * @throws IOException
      */
     private PIAModeller computeFDRPSMLevel(String assayKey, String filePath, SubmissionPipelineConstants.FileType fileType) throws IOException {
+
         PIAModeller piaModeller = null;
         PIACompiler piaCompiler = new PIASimpleCompiler();
 
@@ -118,15 +149,6 @@ public class PIAModelerService {
             piaCompiler.writeOutXML(inferenceTempFile);
             piaCompiler.finish();
             piaModeller = new PIAModeller(inferenceTempFile.getAbsolutePath());
-            piaModeller.setCreatePSMSets(true);
-            piaModeller.getPSMModeller().setAllDecoyPattern("searchengine");
-            piaModeller.getPSMModeller().setAllTopIdentifications(0);
-            piaModeller.setConsiderModifications(true);
-
-            // calculate FDR on PSM level
-            piaModeller.getPSMModeller().calculateAllFDR();
-            piaModeller.setConsiderModifications(false);
-            piaModeller.getPSMModeller().updateDecoyStates(MERGE_FILE_ID);
 
             if (inferenceTempFile.exists()) {
                 inferenceTempFile.deleteOnExit();
