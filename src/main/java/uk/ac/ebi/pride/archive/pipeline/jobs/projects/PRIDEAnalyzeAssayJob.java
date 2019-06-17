@@ -143,8 +143,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         List<CvParamProvider> attributes = new ArrayList<>();
                         DecimalFormat df = new DecimalFormat("###.#####");
 
-                        if(protein.getQValue() != null && !protein.getQValue().isNaN()
-                                && !protein.getQValue().isInfinite()){
+                        if(!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())){
 
                             String value = df.format(protein.getQValue());
 
