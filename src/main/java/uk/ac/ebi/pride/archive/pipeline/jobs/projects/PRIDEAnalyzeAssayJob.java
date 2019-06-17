@@ -1,6 +1,7 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
+import de.mpc.pia.intermediate.Accession;
 import de.mpc.pia.intermediate.Modification;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
@@ -9,8 +10,6 @@ import de.mpc.pia.modeller.psm.ReportPSM;
 import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
-import de.mpc.pia.modeller.report.filter.impl.PeptideScoreFilter;
-import de.mpc.pia.modeller.score.ScoreModel;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import de.mpc.pia.tools.OntologyConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -46,11 +45,11 @@ import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
-import uk.ac.ebi.pride.mongodb.molecules.service.protein.PrideProteinEvidenceMongoService;
+import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
-import uk.ac.ebi.pride.tools.utils.AccessionResolver;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.io.IOException;
@@ -78,7 +77,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     S3SpectralArchive spectralArchive;
 
     @Autowired
-    PrideProteinEvidenceMongoService proteinService;
+    PrideMoleculesMongoService moleculesService;
 
     private PIAModeller modeller;
     private MongoPrideAssay assay;
@@ -117,22 +116,22 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .start(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
                 .next(indexSpectra())
-                .next(proteinIndex())
+                .next(proteinPeptideIndex())
                 .build();
     }
 
     @Bean
-    public Step proteinIndex(){
+    public Step proteinPeptideIndex(){
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
-                    proteins.stream().forEach( protein -> {
+                    proteins.forEach(protein -> {
+
                         Set<String> proteinGroups = protein.getAccessions()
-                                .stream().map(x -> x.getAccession())
+                                .stream().map(Accession::getAccession)
                                 .collect(Collectors.toSet());
 
-                        //GEt PTMs
                         List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>();
                         proteinPTMs.addAll(convertModifications(
                                 protein.getRepresentative().getAccession(), protein.getPeptides()));
@@ -161,11 +160,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             attributes.add(scoreParam);
                         }
 
-                        AccessionResolver proteinDetails = new AccessionResolver(protein.getRepresentative().getAccession(), null);
 
-                        if(proteinDetails.isValidAccession()){
-
-                        }
                         PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
                                 .builder()
                                 .reportedAccession(protein.getRepresentative().getAccession())
@@ -177,7 +172,21 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .assayAccession(assay.getAccession())
                                 .build();
 
-                        proteinService.save(proteinEvidence);
+                        moleculesService.saveProteinEvidences(proteinEvidence);
+
+                        protein.getPeptides().forEach( peptide -> {
+
+                            PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
+                                    .builder()
+                                    .assayAccession(assay.getAccession())
+                                    .proteinAccession(protein.getRepresentative().getAccession())
+                                    .isDecoy(peptide.getIsDecoy())
+                                    .peptideAccession(peptide.getStringID())
+                                    .peptideSequence(peptide.getSequence())
+                                    .build();
+                            moleculesService.savePeptideEvidence(peptideEvidence);
+
+                        });
 
                     });
 
