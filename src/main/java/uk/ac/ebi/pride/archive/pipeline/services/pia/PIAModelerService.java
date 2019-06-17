@@ -10,6 +10,7 @@ import de.mpc.pia.modeller.protein.inference.OccamsRazorInference;
 import de.mpc.pia.modeller.protein.inference.SpectrumExtractorInference;
 import de.mpc.pia.modeller.protein.scoring.AbstractScoring;
 import de.mpc.pia.modeller.protein.scoring.MultiplicativeScoring;
+import de.mpc.pia.modeller.protein.scoring.ProteinScoringFactory;
 import de.mpc.pia.modeller.protein.scoring.settings.PSMForScoring;
 import de.mpc.pia.modeller.psm.ReportPSM;
 import de.mpc.pia.modeller.report.filter.AbstractFilter;
@@ -48,27 +49,6 @@ public class PIAModelerService {
         PIAModeller piaModeller = computeFDRPSMLevel(assayId, filePath, fileType);
 
         if (piaModeller != null){
-//            long nrDecoys = modeller.getPSMModeller()
-//                    .getReportPSMSets().entrySet()
-//                    .stream()
-//                    .filter(entry -> entry.getValue().getIsDecoy())
-//                    .count();
-//
-//            if (modeller.getPSMModeller().getAllFilesHaveFDRCalculated()) {
-//
-//                modeller.getPeptideModeller().calculateFDR(MERGE_FILE_ID);
-//
-//                OccamsRazorInference seInference = new OccamsRazorInference();
-//                seInference.addFilter( new PSMScoreFilter(FilterComparator.less_equal,
-//                        false, qThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
-//
-//                seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
-//                seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
-//                seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
-//
-//                modeller.getProteinModeller().infereProteins(seInference);
-//                modeller.getProteinModeller().updateDecoyStates();
-//                modeller.getProteinModeller().calculateFDR();
 
             piaModeller.setCreatePSMSets(true);
 
@@ -90,26 +70,13 @@ public class PIAModelerService {
             seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
             seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
 
+
             piaModeller.getProteinModeller().infereProteins(seInference);
 
             piaModeller.getProteinModeller().updateFDRData(FDRData.DecoyStrategy.SEARCHENGINE, "searchengine", 0.01);
             piaModeller.getProteinModeller().updateDecoyStates();
             piaModeller.getProteinModeller().calculateFDR();
 
-//            List<AbstractFilter> filters = new ArrayList<>();
-//            filters.add(new PSMScoreFilter(FilterComparator.less_equal, false, qValueThershold,
-//                    ScoreModelEnum.PSM_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
-//
-//            List<ReportProtein> proteins = piaModeller.getProteinModeller().getFilteredReportProteins(filters);
-//            List<ReportPSM> psms = piaModeller.getPSMModeller().getFilteredReportPSMs(1L, filters);
-//            List<ReportPeptide> peptides = piaModeller.getPeptideModeller().getFilteredReportPeptides(1L, filters);
-//            log.info(String.valueOf(proteins.size()));
-
-
-
-//            } else {
-//                log.info("No decoy information is present in the data!");
-//            }
         }
 
         return piaModeller;

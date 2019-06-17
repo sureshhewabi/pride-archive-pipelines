@@ -30,9 +30,23 @@
         <maven.test.skip>true</maven.test.skip>
         <pia.version>1.3.10</pia.version>
         <aws.version>1.11.569</aws.version>
+        <accession.resolver.version>1.0.1</accession.resolver.version>
     </properties>
 
     <dependencies>
+
+        <!-- pride utils for cleaning protein accessions -->
+        <dependency>
+            <groupId>uk.ac.ebi.pride.tools</groupId>
+            <artifactId>accession-resolver</artifactId>
+            <version>${accession.resolver.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>de.mpc.pia</groupId>

@@ -50,9 +50,11 @@ import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence
 import uk.ac.ebi.pride.mongodb.molecules.service.protein.PrideProteinEvidenceMongoService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
+import uk.ac.ebi.pride.tools.utils.AccessionResolver;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -103,7 +105,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     List<ReportProtein> proteins;
 
 
-
     /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
      *
@@ -130,15 +131,50 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         Set<String> proteinGroups = protein.getAccessions()
                                 .stream().map(x -> x.getAccession())
                                 .collect(Collectors.toSet());
+
+                        //GEt PTMs
                         List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>();
                         proteinPTMs.addAll(convertModifications(
                                 protein.getRepresentative().getAccession(), protein.getPeptides()));
+
+                        log.info(String.valueOf(protein.getQValue()));
+
+                        DefaultCvParam scoreParam = null;
+                        List<CvParamProvider> attributes = new ArrayList<>();
+                        DecimalFormat df = new DecimalFormat("###.#####");
+
+                        if(protein.getQValue() != null && !protein.getQValue().isNaN()
+                                && !protein.getQValue().isInfinite()){
+
+                            String value = df.format(protein.getQValue());
+
+                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
+                                    CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getAccession(),
+                                    CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getName(), value);
+                            attributes.add(scoreParam);
+                        }
+
+                        if(protein.getScore() != null && !protein.getScore().isNaN()){
+                            String value = df.format(protein.getScore());
+                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
+                                    CvTermReference.MS_PIA_PROTEIN_SCORE.getAccession(),
+                                    CvTermReference.MS_PIA_PROTEIN_SCORE.getName(), value);
+                            attributes.add(scoreParam);
+                        }
+
+                        AccessionResolver proteinDetails = new AccessionResolver(protein.getRepresentative().getAccession(), null);
+
+                        if(proteinDetails.isValidAccession()){
+
+                        }
                         PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
                                 .builder()
                                 .reportedAccession(protein.getRepresentative().getAccession())
                                 .isDecoy(protein.getIsDecoy())
                                 .proteinGroupMembers(proteinGroups)
                                 .ptms(proteinPTMs)
+                                .bestSearchEngineScore(scoreParam)
+                                .additionalAttributes(attributes)
                                 .assayAccession(assay.getAccession())
                                 .build();
 
@@ -204,13 +240,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             if (position > 0 && position < (item.getSequence().length() + 1)) {
 //                                mod.addPosition(position, null);
 //                                modifications.add(mod);
-                                log.info(String.valueOf(proteinPosition));
-                                log.info(ptm.getAccession());
+//                                log.info(String.valueOf(proteinPosition));
+//                                log.info(ptm.getAccession());
                             } else if(position == 0) { //n-term for protein
 //                                mod.addPosition(position, null);
 //                                modifications.add(mod);
-                                log.info(String.valueOf(proteinPosition));
-                                log.info(ptm.getAccession());
+//                                log.info(String.valueOf(proteinPosition));
+//                                log.info(ptm.getAccession());
 
                             }
                         } else {
