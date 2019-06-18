@@ -103,11 +103,11 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
                 .tasklet((stepContribution, chunkContext) -> {
                     if(accession != null){
                         Project project = projectRepository.findByAccession(accession);
-                        if(project.getSubmissionType() != SubmissionType.PRIDE)
+                        if(project.getSubmissionType() != SubmissionType.PRIDE.name())
                             syncProject(project);
                     }else{
                         projectRepository.findAll().forEach(x -> {
-                            if(x.getSubmissionType() != SubmissionType.PRIDE){
+                            if(x.getSubmissionType() != SubmissionType.PRIDE.name()){
                               syncProject(x);
                             }
                         });

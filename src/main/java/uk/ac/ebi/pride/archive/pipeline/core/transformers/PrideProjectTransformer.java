@@ -143,7 +143,7 @@ public class PrideProjectTransformer {
                 .ptmList(ptms)
                 .softwareList(softwareList)
                 .projectTags(projectTags)
-                .submissionType(oracleProject.getSubmissionType().name())
+                .submissionType(oracleProject.getSubmissionType())
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
                 .build();

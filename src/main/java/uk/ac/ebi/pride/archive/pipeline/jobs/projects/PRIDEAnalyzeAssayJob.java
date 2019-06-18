@@ -57,6 +57,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 @Slf4j
@@ -103,6 +104,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     /** Reported Proteins **/
     List<ReportProtein> proteins;
 
+    List<ReportPSM> psms;
+
+    DecimalFormat df = new DecimalFormat("###.#####");
+
 
     /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
@@ -140,7 +145,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         DefaultCvParam scoreParam = null;
                         List<CvParamProvider> attributes = new ArrayList<>();
-                        DecimalFormat df = new DecimalFormat("###.#####");
+
 
                         if(!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())){
 
@@ -174,24 +179,51 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         moleculesService.saveProteinEvidences(proteinEvidence);
 
-                        protein.getPeptides().forEach( peptide -> {
-
-                            PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
-                                    .builder()
-                                    .assayAccession(assay.getAccession())
-                                    .proteinAccession(protein.getRepresentative().getAccession())
-                                    .isDecoy(peptide.getIsDecoy())
-                                    .peptideAccession(peptide.getStringID())
-                                    .peptideSequence(peptide.getSequence())
-                                    .build();
-                            moleculesService.savePeptideEvidence(peptideEvidence);
-
-                        });
+                        indexPeptideByProtein(protein, peptides);
 
                     });
 
                     return RepeatStatus.FINISHED;
                 }).build();
+    }
+
+    private void indexPeptideByProtein(ReportProtein protein, List<ReportPeptide> peptides) {
+
+        protein.getPeptides().forEach( peptide -> {
+
+            Optional<ReportPeptide> firstPeptide = peptides.stream()
+                    .filter(globalPeptide -> globalPeptide.getPeptide().getID() == peptide.getPeptide().getID())
+                    .findFirst();
+            if(firstPeptide.isPresent()){
+
+                List<CvParamProvider> peptideAttributes = new ArrayList<>();
+                if(!Double.isInfinite(firstPeptide.get().getQValue()) && !Double.isNaN(firstPeptide.get().getQValue())){
+
+                    String value = df.format(firstPeptide.get().getQValue());
+
+                    CvParamProvider peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
+                            .getCvLabel(),
+                            CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(),
+                            CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), value);
+                    peptideAttributes.add(peptideScore);
+                }
+
+                PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
+                        .builder()
+                        .assayAccession(assay.getAccession())
+                        .proteinAccession(protein.getRepresentative().getAccession())
+                        .isDecoy(peptide.getIsDecoy())
+                        .peptideAccession(peptide.getStringID())
+                        .peptideSequence(peptide.getSequence())
+                        .additionalAttributes(peptideAttributes)
+                        .proteinAccession(projectAccession)
+                        .build();
+                moleculesService.savePeptideEvidence(peptideEvidence);
+            }
+
+
+        });
+
     }
 
     private Collection<? extends IdentifiedModificationProvider> convertModifications(String proteinAccession, List<ReportPeptide> peptides) {
@@ -364,11 +396,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         peptides = new ArrayList<>();
                         proteins = new ArrayList<>();
-                        List<ReportPSM> psms = new ArrayList<>();
                         if (nrDecoys > 0){
                             // setting filter for peptide level filtering
                             List<AbstractFilter> filters = new ArrayList<>();
-                            filters.add(new PSMScoreFilter(FilterComparator.less_equal, false, qValueThershold,
+                            filters.add(new PSMScoreFilter(FilterComparator.less_equal, false,
+                                    qValueThershold,
                                     ScoreModelEnum.PSM_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
 
                             // get the FDR filtered peptides
@@ -382,11 +414,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             psms    = modeller.getPSMModeller().getFilteredReportPSMs(FILE_ID, new ArrayList<>());
                         }
 
-                        List<ReportPeptide> modifiedPeptides = peptides.stream().filter(x -> x.getModifications().size() > 0).collect(Collectors.toList());
+                        List<ReportPeptide> modifiedPeptides = peptides.
+                                stream().filter(x -> x.getModifications().size() > 0)
+                                .collect(Collectors.toList());
 
                         //Update reported peptides
                         List<MongoCvParam> summaryResults = assay.getSummaryResults();
                         List<MongoCvParam> newValues = new ArrayList<>(summaryResults.size());
+
                         for(MongoCvParam param: summaryResults){
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, peptides.size());
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PROTEINS, proteins.size());
@@ -429,9 +464,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     if(assay.isPresent() && project.isPresent()){
                         Optional<MongoAssayFile> assayResultFile = assay.get().getAssayFiles()
                                 .stream().filter(x -> x.getFileCategory()
-                                        .getValue().equalsIgnoreCase("RESULT")).findFirst();
-                        modeller = piaModellerService.performProteinInference(assayAccession, "/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3),
-                                SubmissionPipelineConstants.FileType.PRIDE, qValueThershold);
+                                        .getValue().equalsIgnoreCase("RESULT"))
+                                .findFirst();
+                        modeller = piaModellerService.performProteinInference(assayAccession,
+                                "/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,
+                                        assayResultFile.get().getFileName().length() -3),
+                                SubmissionPipelineConstants.FileType.PRIDE, qValueThershold, qValueThershold);
                         this.assay = assay.get();
                     }
                     return RepeatStatus.FINISHED;

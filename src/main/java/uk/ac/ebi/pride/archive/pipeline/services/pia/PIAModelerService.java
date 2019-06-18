@@ -41,9 +41,12 @@ public class PIAModelerService {
     /**
      * Perform the protein inference for a file. Including all the thershold.
      * @param filePath assay file path, pride xml, mzidentml
-     * @param qThreshold q-value threshold
+     * @param psmQThreshold q-value threshold
+     * @param proteinQThreshold q-value threshold
      */
-    public PIAModeller performProteinInference(String assayId, String filePath, SubmissionPipelineConstants.FileType fileType, double qThreshold )
+    public PIAModeller performProteinInference(String assayId,
+                                               String filePath, SubmissionPipelineConstants.FileType fileType,
+                                               double psmQThreshold, double proteinQThreshold)
             throws IOException {
 
         PIAModeller piaModeller = computeFDRPSMLevel(assayId, filePath, fileType);
@@ -57,25 +60,29 @@ public class PIAModelerService {
 
             piaModeller.getPSMModeller().calculateAllFDR();
             piaModeller.getPSMModeller().calculateCombinedFDRScore();
-
             piaModeller.setConsiderModifications(true);
 
             // protein level
             OccamsRazorInference seInference = new OccamsRazorInference();
 
-            seInference.addFilter(
-                    new PSMScoreFilter(FilterComparator.less_equal, false, 0.01, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+            seInference.addFilter(new PSMScoreFilter(FilterComparator.less_equal, false, psmQThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
 
             seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
-            seInference.getScoring().setSetting(AbstractScoring.SCORING_SETTING_ID, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
-            seInference.getScoring().setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID, PSMForScoring.ONLY_BEST.getShortName());
+            seInference.getScoring()
+                    .setSetting(AbstractScoring.SCORING_SETTING_ID,
+                            ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName());
+            seInference.getScoring()
+                    .setSetting(AbstractScoring.SCORING_SPECTRA_SETTING_ID,
+                            PSMForScoring.ONLY_BEST.getShortName());
 
 
             piaModeller.getProteinModeller().infereProteins(seInference);
 
-            piaModeller.getProteinModeller().updateFDRData(FDRData.DecoyStrategy.SEARCHENGINE, "searchengine", 0.01);
+            piaModeller.getProteinModeller()
+                    .updateFDRData(FDRData.DecoyStrategy.SEARCHENGINE, "searchengine", proteinQThreshold);
             piaModeller.getProteinModeller().updateDecoyStates();
             piaModeller.getProteinModeller().calculateFDR();
+            piaModeller.getPeptideModeller().calculateFDR(1L);
 
         }
 
