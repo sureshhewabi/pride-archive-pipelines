@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @ComponentScan(basePackages = "uk.ac.ebi.pride.solr.indexes.pride.services")
 public class SolrCloudMasterConfig {
 
-    @Value("${spring.pridedb.solr.hx.url}")
+    @Value("${spring.pridedb.solr.hh.url}")
     private String solrURls;
 
     @Bean

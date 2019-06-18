@@ -75,6 +75,8 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("PrideArchiveAnnotateProjectWithCountry", "This job take a configuration file from github and annotate the Projects with the Country"),
 
+        /*AAP user sync*/
+        PRIDE_USERS_AAP_SYNC("PrideUsersAAPSyncStep","This step will sync pride users into AAP DB"),
 
         /** PRIDE Data Sync from Oracle to MongoDB **/
 
