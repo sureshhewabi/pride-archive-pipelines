@@ -57,7 +57,6 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Configuration
 @Slf4j
@@ -138,7 +137,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .collect(Collectors.toSet());
 
                         List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>();
-                        proteinPTMs.addAll(convertModifications(
+                        proteinPTMs.addAll(convertProteinModifications(
                                 protein.getRepresentative().getAccession(), protein.getPeptides()));
 
                         log.info(String.valueOf(protein.getQValue()));
@@ -187,6 +186,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 }).build();
     }
 
+    /**
+     * This method index all the peptides that identified a protein into the mongoDB
+     * @param protein Identified Protein
+     * @param peptides Collection of identified peptides in the experiment
+     */
     private void indexPeptideByProtein(ReportProtein protein, List<ReportPeptide> peptides) {
 
         protein.getPeptides().forEach( peptide -> {
@@ -208,15 +212,32 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     peptideAttributes.add(peptideScore);
                 }
 
+
+                if(!Double.isInfinite(firstPeptide.get().getScore("peptide_fdr_score"))
+                        && !Double.isNaN(firstPeptide.get().getScore("peptide_fdr_score"))){
+
+                    String value = df.format(firstPeptide.get().getScore("peptide_fdr_score"));
+
+                    CvParamProvider peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
+                            .getCvLabel(),
+                            CvTermReference.MS_PIA_PEPTIDE_FDR.getAccession(),
+                            CvTermReference.MS_PIA_PEPTIDE_FDR.getName(), value);
+                    peptideAttributes.add(peptideScore);
+                }
+
+                if(protein.getRepresentative().getAccession().equalsIgnoreCase("DECOY_ECA0723"))
+                    System.out.println(protein.getRepresentative().getAccession());
+
                 PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
                         .builder()
                         .assayAccession(assay.getAccession())
                         .proteinAccession(protein.getRepresentative().getAccession())
-                        .isDecoy(peptide.getIsDecoy())
+                        .isDecoy(firstPeptide.get().getIsDecoy())
                         .peptideAccession(peptide.getStringID())
                         .peptideSequence(peptide.getSequence())
                         .additionalAttributes(peptideAttributes)
-                        .proteinAccession(projectAccession)
+                        .projectAccession(projectAccession)
+                        .ptmList(convertPeptideModifications(firstPeptide.get()))
                         .build();
                 moleculesService.savePeptideEvidence(peptideEvidence);
             }
@@ -226,7 +247,48 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     }
 
-    private Collection<? extends IdentifiedModificationProvider> convertModifications(String proteinAccession, List<ReportPeptide> peptides) {
+    private Collection<? extends IdentifiedModificationProvider> convertPeptideModifications(ReportPeptide peptide) {
+
+        List<DefaultIdentifiedModification> ptms = new ArrayList<>();
+
+        for (Map.Entry<Integer, Modification> ptmEntry : peptide.getModifications().entrySet()) {
+            Modification ptm = ptmEntry.getValue();
+            Integer position = ptmEntry.getKey();
+            List<DefaultCvParam> probabilities = ptm.getProbability()
+                    .stream().map( oldProbability -> {
+                        return  new DefaultCvParam(oldProbability.getCvLabel(),
+                                oldProbability.getAccession(),
+                                oldProbability.getName(),
+                                String.valueOf(oldProbability.getValue()));
+                    })
+                    .collect(Collectors.toList());
+            // ignore modifications that can't be processed correctly (can not be mapped to the protein)
+            if (ptm.getAccession() == null) {
+                continue;
+            }
+
+
+            Optional<DefaultIdentifiedModification> proteinExist = ptms.stream()
+                    .filter(currentMod -> currentMod.getModificationCvTerm()
+                            .getAccession().equalsIgnoreCase(ptm.getAccession()))
+                    .findAny();
+            if(proteinExist.isPresent()){
+                proteinExist.get().addPosition(position, probabilities);
+            }else{
+                DefaultCvParam ptmName = new DefaultCvParam(ptm.getCvLabel(),
+                        ptm.getAccession(), ptm.getDescription(),
+                        String.valueOf(ptm.getMass()));
+                DefaultIdentifiedModification newPTM = new DefaultIdentifiedModification(null, null, ptmName, null);
+                newPTM.addPosition(position, probabilities);
+                ptms.add(newPTM);
+            }
+        }
+        return ptms;
+
+    }
+
+
+    private Collection<? extends IdentifiedModificationProvider> convertProteinModifications(String proteinAccession, List<ReportPeptide> peptides) {
 
         List<DefaultIdentifiedModification> ptms = new ArrayList<>();
 
@@ -251,7 +313,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                 // if we can calculate the position, we add it to the modification
                 // -1 to calculate properly the modification offset
-                item.getPeptide().getAccessionOccurrences().stream().forEach( peptideEvidence ->{
+                item.getPeptide().getAccessionOccurrences().forEach(peptideEvidence ->{
 
                     if(peptideEvidence.getAccession().getAccession() == proteinAccession){
 
