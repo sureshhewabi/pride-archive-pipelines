@@ -104,6 +104,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     List<ReportProtein> proteins;
 
     List<ReportPSM> psms;
+    Map<Long, List<String>> peptideUsi = new HashMap<>();
 
     DecimalFormat df = new DecimalFormat("###.#####");
 
@@ -228,6 +229,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 if(protein.getRepresentative().getAccession().equalsIgnoreCase("DECOY_ECA0723"))
                     System.out.println(protein.getRepresentative().getAccession());
 
+                List<String> usiList = peptideUsi.get(firstPeptide.get().getPeptide().getID());
+
                 PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
                         .builder()
                         .assayAccession(assay.getAccession())
@@ -237,6 +240,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .peptideSequence(peptide.getSequence())
                         .additionalAttributes(peptideAttributes)
                         .projectAccession(projectAccession)
+                        .psmAccessions(usiList)
                         .ptmList(convertPeptideModifications(firstPeptide.get()))
                         .build();
                 moleculesService.savePeptideEvidence(peptideEvidence);
@@ -419,8 +423,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             }
                                         }
 
-                                        properties.add(new CvParam("MS", OntologyConstants.PSM_LEVEL_QVALUE.getPsiAccession(), OntologyConstants.PSM_LEVEL_QVALUE.getPsiName(), String.valueOf(psm.getQValue())));
-                                        properties.add(new CvParam("MS", OntologyConstants.PEPTIDE_LEVEL_QVALUE.getPsiAccession(), OntologyConstants.PEPTIDE_LEVEL_QVALUE.getPsiName(), String.valueOf(peptide.getQValue())));
+                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(), String.valueOf(psm.getQValue())));
+                                        properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), String.valueOf(peptide.getQValue())));
 
                                         PSMProvider archivePSM = ArchivePSM
                                                 .builder()
@@ -432,13 +436,20 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .intensities(intensities)
                                                 .properties(properties)
                                                 .spectrumFile(spectrumFile)
-                                                .usi(Constants.buildUsi(Constants.ScanType.SCAN,
+                                                .usi(Constants.buildUsi(Constants.ScanType.INDEX,
                                                         projectAccession,
                                                         assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID()))
                                                 .build();
 
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
-
+                                        List<String> usis = new ArrayList<>();
+                                        if(peptideUsi.containsKey(peptide.getPeptide().getID())){
+                                            usis = peptideUsi.get(peptide.getPeptide().getID());
+                                        }
+                                        usis.add(Constants.buildUsi(Constants.ScanType.INDEX,
+                                                projectAccession,
+                                                assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID()));
+                                        peptideUsi.put(peptide.getPeptide().getID(), usis);
 
                                     } catch (JMzReaderException e) {
                                         e.printStackTrace();
