@@ -1,6 +1,13 @@
 package uk.ac.ebi.pride.archive.pipeline.utility;
 
-import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+import uk.ac.ebi.jmzidml.model.mzidml.FileFormat;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
+import uk.ac.ebi.pride.archive.spectra.utils.Constants;
+import uk.ac.ebi.pride.utilities.util.Triple;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 /**
  * This class contains a set of constants that are needed to process the data in the submission pipeline.
@@ -8,6 +15,24 @@ import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence
  * @author ypriverol
  */
 public class SubmissionPipelineConstants {
+
+
+    /** Supported id format used in the spectrum file. */
+    public static enum SpecIdFormat {
+        MASCOT_QUERY_NUM,
+        MULTI_PEAK_LIST_NATIVE_ID,
+        SINGLE_PEAK_LIST_NATIVE_ID,
+        SCAN_NUMBER_NATIVE_ID,
+        MZML_ID,
+        MZDATA_ID,
+        WIFF_NATIVE_ID,
+        SPECTRUM_NATIVE_ID,
+        WIFF_MGF_TITLE,
+        NONE
+    }
+
+    private static final String SIGN = "[+-]";
+    public static final String INTEGER = SIGN + "?\\d+";
 
 
     public enum FileType{
@@ -18,6 +43,8 @@ public class SubmissionPipelineConstants {
         MS2,
         MZML,
         MZXML,
+        DTA,
+        PKL,
         APL;
 
         public static FileType getFileTypeFromPRIDEFileName( String filename){
@@ -31,6 +58,22 @@ public class SubmissionPipelineConstants {
             }else if(filename.contains(".xml"))
                 return PRIDE;
             return null;
+        }
+
+        public static FileType getFileTypeFromSpectraData(SpectraData spectraData){
+            FileFormat specFileFormat = spectraData.getFileFormat();
+                if (specFileFormat != null) {
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1000613")) return DTA;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1001062")) return MGF;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1000565")) return PKL;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1002996")) return APL;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1000584") || specFileFormat.getCvParam().getAccession().equals("MS:1000562"))
+                        return MZML;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1000566")) return MZXML;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1001466")) return MS2;
+                    if (specFileFormat.getCvParam().getAccession().equals("MS:1002600")) return PRIDE;
+                }
+                return null;
         }
     }
 
@@ -152,5 +195,102 @@ public class SubmissionPipelineConstants {
             return originalPath.substring(0, originalPath.length()-3);
         }
         return originalPath;
+    }
+
+    /**
+     * Check if the ms File is supported and match with some of the par of the name in the Spectra Files
+     * This method should be used in high-throughput, when you add different files.
+     *
+     * @param msIdentMLFiles List of  the MS files related with the MZIdentML
+     * @return The relation between the SpectraData and the corresponding File.
+     */
+    public static List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> combineSpectraControllers(String buildPath, List<String> msIdentMLFiles, List<SpectraData> spectraDataList) {
+
+        List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> spectraFileMap = new ArrayList<>();
+
+        for (String file : msIdentMLFiles) {
+            Iterator iterator = spectraDataList.iterator();
+            while (iterator.hasNext()) {
+                SpectraData spectraData = (SpectraData) iterator.next();
+                if (spectraData.getLocation() != null && spectraData.getLocation().toLowerCase().contains(file.toLowerCase())) {
+                    spectraFileMap.add(new Triple<>(buildPath + file, spectraData,
+                            SubmissionPipelineConstants.FileType.getFileTypeFromSpectraData(spectraData)));
+                }else if(file.contains(spectraData.getId())
+                        || (spectraData.getName() != null && file.toLowerCase().contains(spectraData.getName().toLowerCase()))){
+                    spectraFileMap.add(new Triple<>(buildPath + file, spectraData, SubmissionPipelineConstants
+                            .FileType.getFileTypeFromSpectraData(spectraData)));
+                }
+            }
+        }
+        return spectraFileMap;
+    }
+
+    public static String getSpectrumId(uk.ac.ebi.jmzidml.model.mzidml.SpectraData spectraData, String spectrumID) {
+        SpecIdFormat fileIdFormat = getSpectraDataIdFormat(spectraData.getSpectrumIDFormat().getCvParam().getAccession());
+
+        if (fileIdFormat == SpecIdFormat.MASCOT_QUERY_NUM) {
+            String rValueStr = spectrumID.replaceAll("query=", "");
+            String id = null;
+            if(rValueStr.matches(INTEGER)){
+                id = Integer.toString(Integer.parseInt(rValueStr) + 1);
+            }
+            return id;
+        } else if (fileIdFormat == SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID) {
+            String rValueStr = spectrumID.replaceAll("index=", "");
+            String id;
+            if(rValueStr.matches(INTEGER)){
+                id = Integer.toString(Integer.parseInt(rValueStr) + 1);
+                return id;
+            }
+            return spectrumID;
+        } else if (fileIdFormat == SpecIdFormat.SINGLE_PEAK_LIST_NATIVE_ID) {
+            return spectrumID.replaceAll("file=", "");
+        } else if (fileIdFormat == SpecIdFormat.MZML_ID) {
+            return spectrumID.replaceAll("mzMLid=", "");
+        } else if (fileIdFormat == SpecIdFormat.SCAN_NUMBER_NATIVE_ID) {
+            return spectrumID.replaceAll("scan=", "");
+        } else {
+            return spectrumID;
+        }
+    }
+
+    public static String buildUsi(String projectAccession, Triple<String, SpectraData, FileType> refeFile, String spectrumTitle) {
+        Constants.ScanType scanType = Constants.ScanType.INDEX;
+        SpecIdFormat fileIFormat = getSpectraDataIdFormat(refeFile.getSecond().getSpectrumIDFormat().getCvParam().getAccession());
+        String spectrumID = getSpectrumId(refeFile.getSecond(), spectrumTitle);
+        if(fileIFormat == SpecIdFormat.MASCOT_QUERY_NUM || fileIFormat == SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID){
+            scanType = Constants.ScanType.INDEX;
+        }else if(fileIFormat == SpecIdFormat.MZML_ID || fileIFormat == SpecIdFormat.SPECTRUM_NATIVE_ID){
+            //Get the scan number for the id
+            scanType = Constants.ScanType.SCAN;
+            String[] scanStrings = spectrumID.split("scan=");
+            spectrumID = scanStrings[1];
+        }
+        Path p = Paths.get(refeFile.getFirst());
+        String fileName = p.getFileName().toString();
+        return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + spectrumID;
+
+
+
+    }
+
+
+    /**
+     * Spectrum Id format for an specific CVterm accession
+     *
+     * @param accession CvTerm Accession
+     * @return Specific Spectrum Id Format
+     */
+    public static SpecIdFormat getSpectraDataIdFormat(String accession) {
+        if (accession.equals("MS:1001528")) return SpecIdFormat.MASCOT_QUERY_NUM;
+        if (accession.equals("MS:1000774")) return SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID;
+        if (accession.equals("MS:1000775")) return SpecIdFormat.SINGLE_PEAK_LIST_NATIVE_ID;
+        if (accession.equals("MS:1001530")) return SpecIdFormat.MZML_ID;
+        if (accession.equals("MS:1000776")) return SpecIdFormat.SCAN_NUMBER_NATIVE_ID;
+        if (accession.equals("MS:1000770")) return SpecIdFormat.WIFF_NATIVE_ID;
+        if (accession.equals("MS:1000777")) return SpecIdFormat.MZDATA_ID;
+        if (accession.equals(("MS:1000768"))) return SpecIdFormat.SPECTRUM_NATIVE_ID;
+        if (accession.equals("MS:1000796")) return SpecIdFormat.WIFF_MGF_TITLE;
+        return SpecIdFormat.NONE;
     }
 }
