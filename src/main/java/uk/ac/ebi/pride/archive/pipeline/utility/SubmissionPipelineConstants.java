@@ -28,7 +28,8 @@ public class SubmissionPipelineConstants {
                 return MZML;
             }else if (filename.contains("mgf")){
                 return MGF;
-            }
+            }else if(filename.contains(".xml"))
+                return PRIDE;
             return null;
         }
     }

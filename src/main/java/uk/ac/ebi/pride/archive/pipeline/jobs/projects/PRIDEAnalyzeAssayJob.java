@@ -3,6 +3,7 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import de.mpc.pia.intermediate.Accession;
 import de.mpc.pia.intermediate.Modification;
+import de.mpc.pia.intermediate.PeptideSpectrumMatch;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.ReportProtein;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModification;
@@ -54,6 +56,7 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
+import uk.ac.ebi.pride.utilities.util.Triple;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -400,23 +403,47 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .stream().filter(x -> x.getFileCategory()
                                         .getValue().equalsIgnoreCase("RESULT")).findFirst();
 
-                        if(assayResultFile.isPresent() && assayResultFile.get().getRelatedFiles().size() == 0){
-                            Map<String, SubmissionPipelineConstants.FileType> files = Collections
-                                    .singletonMap(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
-                                            SubmissionPipelineConstants.FileType.PRIDE);
+                        List<SpectraData> spectrumFiles = modeller.getSpectraData()
+                                .entrySet().stream().map(Map.Entry::getValue)
+                                .collect(Collectors.toList());
+
+                        if(assayResultFile.isPresent() && spectrumFiles.size() > 0)
+                        {
+
+                            List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> files = new ArrayList<>();
+                            spectrumFiles.stream().forEach( specData -> {
+                                if(specData.getFileFormat().getCvParam().getAccession()
+                                        .equalsIgnoreCase(OntologyConstants.PRIDE_XML.getPsiAccession())){
+                                    files.add(new Triple<>(SubmissionPipelineConstants
+                                            .returnUnCompressPath(buildPath + specData.getName()),
+                                            specData,
+                                            SubmissionPipelineConstants.FileType.PRIDE));
+                                }
+                            });
+
                             JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(files);
                             peptides.forEach(peptide -> {
 
                                 peptide.getPSMs().forEach(psm -> {
                                     try {
-                                        String spectrumFile = assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3);
-                                        Spectrum spectrum = service.getSpectrum(SubmissionPipelineConstants.returnUnCompressPath(buildPath + spectrumFile),
-                                                psm.getSourceID());
-                                        log.info(spectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - spectrum.getPrecursorMZ()));
-                                        double[] masses = new double[spectrum.getPeakList().size()];
-                                        double[] intensities = new double[spectrum.getPeakList().size()];
+                                        PeptideSpectrumMatch spectrum = null;
+                                        if(psm instanceof ReportPSM)
+                                           spectrum = ((ReportPSM) psm).getSpectrum();
+
+                                        PeptideSpectrumMatch finalSpectrum = spectrum;
+                                        Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = files.stream()
+                                                .filter(x -> x.getSecond().getId()
+                                                        .equalsIgnoreCase(finalSpectrum.getSpectrumIdentification()
+                                                                .getInputSpectra().get(0).getSpectraDataRef()))
+                                                .findFirst();
+
+                                        String spectrumFile = refeFile.get().getFirst();
+                                        Spectrum fileSpectrum = service.getSpectrum(spectrumFile, psm.getSourceID());
+                                        log.info(fileSpectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - fileSpectrum.getPrecursorMZ()));
+                                        double[] masses = new double[fileSpectrum.getPeakList().size()];
+                                        double[] intensities = new double[fileSpectrum.getPeakList().size()];
                                         int count = 0;
-                                        for(Map.Entry entry: spectrum.getPeakList().entrySet()){
+                                        for(Map.Entry entry: fileSpectrum.getPeakList().entrySet()){
                                             masses[count] = (Double)entry.getKey();
                                             intensities[count] = (Double) entry.getValue();
                                             count++;
@@ -445,8 +472,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .builder()
                                                 .peptideSequence(psm.getSequence())
                                                 .deltaMass(psm.getDeltaMass())
-                                                .msLevel(spectrum.getMsLevel())
-                                                .precursorCharge(spectrum.getPrecursorCharge())
+                                                .msLevel(fileSpectrum.getMsLevel())
+                                                .precursorCharge(fileSpectrum.getPrecursorCharge())
                                                 .masses(masses)
                                                 .intensities(intensities)
                                                 .properties(properties)
