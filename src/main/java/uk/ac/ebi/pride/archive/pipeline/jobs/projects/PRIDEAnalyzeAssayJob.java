@@ -29,7 +29,6 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModificati
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
-import uk.ac.ebi.pride.archive.dataprovider.utils.SubmissionTypeConstants;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.MoleculesMongoConfig;
@@ -574,6 +573,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         String[] allDateString = allDate.split("-");
                         String year = null, month = null;
 
+                        SubmissionPipelineConstants.FileType fileType = SubmissionPipelineConstants.FileType.getFileTypeFromPRIDEFileName(assayResultFile.get().getFileName());
+
                         if(allDateString.length == 2){
                             year = allDateString[0];
                             month = allDateString[1];
@@ -583,7 +584,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     projectAccession, year, month);
                             modeller = piaModellerService.performProteinInference(assayAccession,
                                     SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
-                                    SubmissionPipelineConstants.FileType.PRIDE, qValueThershold, qValueThershold);
+                                    fileType, qValueThershold, qValueThershold);
                             this.assay = assay.get();
                         }else{
                             String errorMessage = "The Year and Month for Project Accession can't be found -- " + project.get().getAccession();

@@ -18,7 +18,19 @@ public class SubmissionPipelineConstants {
         MS2,
         MZML,
         MZXML,
-        APL
+        APL;
+
+        public static FileType getFileTypeFromPRIDEFileName( String filename){
+            filename = returnUnCompressPath(filename.toLowerCase());
+            if(filename.contains(".mzid") || filename.contains("mzIdentML")){
+                return MZID;
+            }else if (filename.contains(".mzml")){
+                return MZML;
+            }else if (filename.contains("mgf")){
+                return MGF;
+            }
+            return null;
+        }
     }
 
     public enum Compress_Type{
