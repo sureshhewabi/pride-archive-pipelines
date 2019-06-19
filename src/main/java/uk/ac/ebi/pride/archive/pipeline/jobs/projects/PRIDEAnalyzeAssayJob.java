@@ -45,6 +45,7 @@ import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
@@ -104,7 +105,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     List<ReportProtein> proteins;
 
     List<ReportPSM> psms;
-    Map<Long, List<String>> peptideUsi = new HashMap<>();
+    Map<Long, List<PeptideSpectrumOverview>> peptideUsi = new HashMap<>();
 
     DecimalFormat df = new DecimalFormat("###.#####");
 
@@ -229,7 +230,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 if(protein.getRepresentative().getAccession().equalsIgnoreCase("DECOY_ECA0723"))
                     System.out.println(protein.getRepresentative().getAccession());
 
-                List<String> usiList = peptideUsi.get(firstPeptide.get().getPeptide().getID());
+                List<PeptideSpectrumOverview> usiList = peptideUsi.get(firstPeptide.get().getPeptide().getID());
 
                 PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
                         .builder()
@@ -442,13 +443,17 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .build();
 
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
-                                        List<String> usis = new ArrayList<>();
+                                        List<PeptideSpectrumOverview> usis = new ArrayList<>();
                                         if(peptideUsi.containsKey(peptide.getPeptide().getID())){
                                             usis = peptideUsi.get(peptide.getPeptide().getID());
                                         }
-                                        usis.add(Constants.buildUsi(Constants.ScanType.INDEX,
-                                                projectAccession,
-                                                assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID()));
+                                        usis.add(PeptideSpectrumOverview.builder()
+                                                .usi(Constants.buildUsi(Constants.ScanType.INDEX,
+                                                        projectAccession,
+                                                        assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3), psm.getSourceID()))
+                                                .charge(psm.getCharge())
+                                                .precursorMass(psm.getMassToCharge())
+                                                .build());
                                         peptideUsi.put(peptide.getPeptide().getID(), usis);
 
                                     } catch (JMzReaderException e) {
