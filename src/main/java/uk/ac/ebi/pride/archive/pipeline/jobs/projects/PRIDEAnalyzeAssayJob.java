@@ -247,6 +247,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     }
 
+    /**
+     * Convert Peptide Modifications from PIA modeller to PeptideEvidence modifications
+     * @param peptide Peptide from PIA
+     * @return List if {@link IdentifiedModificationProvider}
+     */
     private Collection<? extends IdentifiedModificationProvider> convertPeptideModifications(ReportPeptide peptide) {
 
         List<DefaultIdentifiedModification> ptms = new ArrayList<>();
@@ -287,7 +292,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     }
 
-
+    /**
+     * Convert peptide modifications to Protein modifications. Adjust the localization using the start and end positions.
+     * @param proteinAccession Protein Accession
+     * @param peptides List of peptides
+     * @return List of {@link IdentifiedModificationProvider}
+     */
     private Collection<? extends IdentifiedModificationProvider> convertProteinModifications(String proteinAccession, List<ReportPeptide> peptides) {
 
         List<DefaultIdentifiedModification> ptms = new ArrayList<>();
