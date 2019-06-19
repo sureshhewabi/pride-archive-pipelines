@@ -13,8 +13,10 @@ import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import de.mpc.pia.tools.OntologyConstants;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +29,7 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModificati
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
+import uk.ac.ebi.pride.archive.dataprovider.utils.SubmissionTypeConstants;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.MoleculesMongoConfig;
@@ -54,7 +57,9 @@ import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.io.IOException;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -79,6 +84,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Autowired
     PrideMoleculesMongoService moleculesService;
+
+    @Value("${pride.data.prod.directory}")
+    String productionPath;
 
     private PIAModeller modeller;
     private MongoPrideAssay assay;
@@ -106,6 +114,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     List<ReportPSM> psms;
     Map<Long, List<PeptideSpectrumOverview>> peptideUsi = new HashMap<>();
+
+    String buildPath;
 
     DecimalFormat df = new DecimalFormat("###.#####");
 
@@ -393,14 +403,15 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         if(assayResultFile.isPresent() && assayResultFile.get().getRelatedFiles().size() == 0){
                             Map<String, SubmissionPipelineConstants.FileType> files = Collections
-                                    .singletonMap("/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,  assayResultFile.get().getFileName().length() -3), SubmissionPipelineConstants.FileType.PRIDE);
+                                    .singletonMap(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
+                                            SubmissionPipelineConstants.FileType.PRIDE);
                             JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(files);
                             peptides.forEach(peptide -> {
 
                                 peptide.getPSMs().forEach(psm -> {
                                     try {
                                         String spectrumFile = assayResultFile.get().getFileName().substring(0, assayResultFile.get().getFileName().length() - 3);
-                                        Spectrum spectrum = service.getSpectrum("/Users/yperez/work/ms_work/pride_data/" + spectrumFile,
+                                        Spectrum spectrum = service.getSpectrum(SubmissionPipelineConstants.returnUnCompressPath(buildPath + spectrumFile),
                                                 psm.getSourceID());
                                         log.info(spectrum.getId() + " " + String.valueOf(psm.getMassToCharge() - spectrum.getPrecursorMZ()));
                                         double[] masses = new double[spectrum.getPeakList().size()];
@@ -424,8 +435,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             }
                                         }
 
-                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(), String.valueOf(psm.getQValue())));
-                                        properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), String.valueOf(peptide.getQValue())));
+                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
+                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
+                                                String.valueOf(psm.getQValue())));
+                                        properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(),
+                                                CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
+                                                String.valueOf(peptide.getQValue())));
 
                                         PSMProvider archivePSM = ArchivePSM
                                                 .builder()
@@ -554,11 +569,27 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .stream().filter(x -> x.getFileCategory()
                                         .getValue().equalsIgnoreCase("RESULT"))
                                 .findFirst();
-                        modeller = piaModellerService.performProteinInference(assayAccession,
-                                "/Users/yperez/work/ms_work/pride_data/" + assayResultFile.get().getFileName().substring(0,
-                                        assayResultFile.get().getFileName().length() -3),
-                                SubmissionPipelineConstants.FileType.PRIDE, qValueThershold, qValueThershold);
-                        this.assay = assay.get();
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
+                        String allDate = dateFormat.format(project.get().getPublicationDate());
+                        String[] allDateString = allDate.split("-");
+                        String year = null, month = null;
+
+                        if(allDateString.length == 2){
+                            year = allDateString[0];
+                            month = allDateString[1];
+                        }
+                        if(year != null && month != null){
+                            buildPath = SubmissionPipelineConstants.buildInternalPath(productionPath,
+                                    projectAccession, year, month);
+                            modeller = piaModellerService.performProteinInference(assayAccession,
+                                    SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
+                                    SubmissionPipelineConstants.FileType.PRIDE, qValueThershold, qValueThershold);
+                            this.assay = assay.get();
+                        }else{
+                            String errorMessage = "The Year and Month for Project Accession can't be found -- " + project.get().getAccession();
+                            log.error(errorMessage);
+                            throw new IOException(errorMessage);
+                        }
                     }
                     return RepeatStatus.FINISHED;
                 }).build();

@@ -93,6 +93,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
                 .start(importProjectAssayInformationStep())
+                //TODO: @SURESH ADD THE TASK THAT NOTFIEID TO REDIS THAT THE ASSAY IS READY TO BE ANNOTATED.
                 .build();
     }
 

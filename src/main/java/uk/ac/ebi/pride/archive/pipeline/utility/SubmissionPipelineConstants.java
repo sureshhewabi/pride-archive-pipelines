@@ -1,11 +1,14 @@
 package uk.ac.ebi.pride.archive.pipeline.utility;
 
+import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+
 /**
  * This class contains a set of constants that are needed to process the data in the submission pipeline.
  *
  * @author ypriverol
  */
 public class SubmissionPipelineConstants {
+
 
     public enum FileType{
         PRIDE,
@@ -16,6 +19,21 @@ public class SubmissionPipelineConstants {
         MZML,
         MZXML,
         APL
+    }
+
+    public enum Compress_Type{
+        GZIP("gz"),
+        ZIP("zip");
+
+        String extension;
+
+        Compress_Type(String extension) {
+            this.extension = extension;
+        }
+
+        public String getExtension() {
+            return extension;
+        }
     }
 
    public enum SubmissionsType{
@@ -110,5 +128,16 @@ public class SubmissionPipelineConstants {
             return message;
         }
 
+    }
+
+    public static String buildInternalPath(String productionPath, String projectAccession, String publicationYear, String publicationMonth){
+        return productionPath + publicationYear + "/" + publicationMonth + "/" + projectAccession + "/" + "internal/";
+    }
+
+    public static String returnUnCompressPath(String originalPath){
+        if(originalPath.endsWith(Compress_Type.GZIP.extension) || originalPath.endsWith(Compress_Type.ZIP.extension)){
+            return originalPath.substring(0, originalPath.length()-3);
+        }
+        return originalPath;
     }
 }
