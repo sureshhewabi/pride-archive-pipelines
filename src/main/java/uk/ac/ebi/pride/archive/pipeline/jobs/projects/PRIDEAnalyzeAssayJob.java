@@ -419,7 +419,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             .collect(Collectors.toList()), spectrumFiles);
 
                             JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(mongoRelatedFiles);
-                            peptides.stream().forEach(peptide -> {
+                            peptides.parallelStream().forEach(peptide -> {
 
                                 peptide.getPSMs().parallelStream().forEach(psm -> {
                                     try {
@@ -435,7 +435,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .findFirst();
 
                                         String spectrumFile = refeFile.get().getFirst();
-                                        Spectrum fileSpectrum = service.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), psm.getSpectrumTitle()));
+                                        Spectrum fileSpectrum = service.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), (ReportPSM) psm));
                                         log.info(fileSpectrum.getId() + " " + (psm.getMassToCharge() - fileSpectrum.getPrecursorMZ()));
                                         double[] masses = new double[fileSpectrum.getPeakList().size()];
                                         double[] intensities = new double[fileSpectrum.getPeakList().size()];
@@ -468,6 +468,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         PSMProvider archivePSM = ArchivePSM
                                                 .builder()
                                                 .peptideSequence(psm.getSequence())
+                                                .isDecoy(psm.getIsDecoy())
+                                                .retentionTime(psm.getRetentionTime())
                                                 .deltaMass(psm.getDeltaMass())
                                                 .msLevel(fileSpectrum.getMsLevel())
                                                 .precursorCharge(fileSpectrum.getPrecursorCharge())
@@ -475,9 +477,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .intensities(intensities)
                                                 .properties(properties)
                                                 .spectrumFile(spectrumFile)
+                                                .precursorMz(fileSpectrum.getPrecursorMZ())
                                                 .usi(SubmissionPipelineConstants.buildUsi(
                                                         projectAccession,
-                                                        refeFile.get(), psm.getSpectrumTitle()))
+                                                        refeFile.get(), (ReportPSM) psm))
                                                 .build();
 
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
@@ -488,7 +491,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         usis.add(PeptideSpectrumOverview.builder()
                                                 .usi(SubmissionPipelineConstants.buildUsi(
                                                         projectAccession,
-                                                        refeFile.get(), psm.getSpectrumTitle()))
+                                                        refeFile.get(), (ReportPSM) psm))
                                                 .charge(psm.getCharge())
                                                 .precursorMass(psm.getMassToCharge())
                                                 .build());
