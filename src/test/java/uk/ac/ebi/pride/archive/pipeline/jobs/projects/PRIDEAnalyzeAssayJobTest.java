@@ -16,6 +16,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
 
+import java.util.stream.IntStream;
+
 import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -36,19 +38,27 @@ public class PRIDEAnalyzeAssayJobTest {
      */
     @Test
     public void analyzeAssayInformationToMongo() throws Exception {
-        JobParameters param = new JobParametersBuilder()
-                .addString("projectAccession", "PRD000475")
-                .addString("assayAccession", "17964")
-                .toJobParameters();
-        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD000001");
-        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "22134");
-//         ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002089");
-//         ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "51884");
+        IntStream.range(51876, 51940).forEach( x -> {
+            JobParameters param = new JobParametersBuilder()
+                    .addString("projectAccession", "PXD002089")
+                    .addString("assayAccession", String.valueOf(x))
+                    .toJobParameters();
+//        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD000001");
+//        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "22134");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002089");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", String.valueOf(x));
 //                 ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD001072");
 //         ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "37786");
 
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
-        Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
+            JobExecution jobExecution = null;
+            try {
+                jobExecution = jobLauncherTestUtils.launchJob(param);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
+        });
+
     }
 }
 

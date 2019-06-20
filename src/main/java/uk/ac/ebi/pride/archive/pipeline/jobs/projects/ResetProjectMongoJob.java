@@ -28,6 +28,8 @@ import java.util.List;
 @Configuration
 @Slf4j
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
+//Todo: We need to extend the Reset Submission to remove also the ASSAY information and Protein/Peptide Collections. @Suresh can you take care of this task.?
+
 public class ResetProjectMongoJob extends AbstractArchiveJob {
     @Autowired
     PrideProjectMongoService prideProjectMongoService;

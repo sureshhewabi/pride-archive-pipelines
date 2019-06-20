@@ -12,12 +12,9 @@ import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
-import de.mpc.pia.tools.OntologyConstants;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,7 +39,6 @@ import uk.ac.ebi.pride.archive.spectra.configs.AWS3Configuration;
 import uk.ac.ebi.pride.archive.spectra.model.ArchivePSM;
 import uk.ac.ebi.pride.archive.spectra.model.CvParam;
 import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
-import uk.ac.ebi.pride.archive.spectra.utils.Constants;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
@@ -56,6 +52,7 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
+import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
 import uk.ac.ebi.pride.utilities.util.Triple;
 
 import java.io.IOException;
@@ -185,6 +182,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .isDecoy(protein.getIsDecoy())
                                 .proteinGroupMembers(proteinGroups)
                                 .ptms(proteinPTMs)
+                                .proteinSequence(protein.getRepresentative().getDbSequence())
                                 .bestSearchEngineScore(scoreParam)
                                 .additionalAttributes(attributes)
                                 .assayAccession(assay.getAccession())
@@ -465,11 +463,25 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
                                                 String.valueOf(peptide.getQValue())));
 
+                                        double retentionTime = Double.NaN;
+                                        if(psm.getRetentionTime() != null)
+                                            retentionTime = psm.getRetentionTime();
+
+                                        List<Double> ptmMasses = peptide.getModifications().entrySet()
+                                                .stream().map( x-> x.getValue().getMass()).collect(Collectors.toList());
+                                        double deltaMass = MoleculeUtilities
+                                                .calculateDeltaMz(peptide.getSequence(),
+                                                        spectrum.getMassToCharge(),
+                                                        spectrum.getCharge(),
+                                                        ptmMasses);
+
+                                        log.info("Delta Mass -- " + df.format(Math.abs(deltaMass)));
+
                                         PSMProvider archivePSM = ArchivePSM
                                                 .builder()
                                                 .peptideSequence(psm.getSequence())
                                                 .isDecoy(psm.getIsDecoy())
-                                                .retentionTime(psm.getRetentionTime())
+                                                .retentionTime(retentionTime)
                                                 .deltaMass(psm.getDeltaMass())
                                                 .msLevel(fileSpectrum.getMsLevel())
                                                 .precursorCharge(fileSpectrum.getPrecursorCharge())
