@@ -28,9 +28,7 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModificati
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.MoleculesMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -45,6 +43,8 @@ import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
+import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
@@ -60,6 +60,7 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -182,6 +183,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .isDecoy(protein.getIsDecoy())
                                 .proteinGroupMembers(proteinGroups)
                                 .ptms(proteinPTMs)
+                                .projectAccession(projectAccession)
                                 .proteinSequence(protein.getRepresentative().getDbSequence())
                                 .bestSearchEngineScore(scoreParam)
                                 .additionalAttributes(attributes)
@@ -405,6 +407,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .entrySet().stream().map(Map.Entry::getValue)
                                 .collect(Collectors.toList());
 
+                        AtomicInteger totalPSM = new AtomicInteger();
+                        AtomicInteger errorDeltaPSM = new AtomicInteger();
+
                         if(assayResultFile.isPresent() && spectrumFiles.size() > 0)
                         {
 
@@ -424,6 +429,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         PeptideSpectrumMatch spectrum = null;
                                         if(psm instanceof ReportPSM)
                                            spectrum = ((ReportPSM) psm).getSpectrum();
+
+                                        totalPSM.set(totalPSM.get() + 1);
 
                                         PeptideSpectrumMatch finalSpectrum = spectrum;
                                         Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = mongoRelatedFiles.stream()
@@ -475,7 +482,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         spectrum.getCharge(),
                                                         ptmMasses);
 
-                                        log.info("Delta Mass -- " + df.format(Math.abs(deltaMass)));
+                                        log.debug("Delta Mass -- " + deltaMass);
+
+                                        if(deltaMass > 0.9){
+                                           errorDeltaPSM.set(errorDeltaPSM.get() + 1);
+                                        }
 
                                         PSMProvider archivePSM = ArchivePSM
                                                 .builder()
@@ -515,6 +526,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 });
                             });
                         }
+                        log.info("Delta Mass Rate -- " + (errorDeltaPSM.get() / totalPSM.get()));
                     }
                     return RepeatStatus.FINISHED;
                 }).build();

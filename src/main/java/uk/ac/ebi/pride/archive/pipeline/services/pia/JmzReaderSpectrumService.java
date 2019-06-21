@@ -16,6 +16,7 @@ import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.tools.mgf_parser.MgfFile;
 import uk.ac.ebi.pride.tools.mzdata_wrapper.MzMlWrapper;
+import uk.ac.ebi.pride.tools.pkl_parser.PklFile;
 import uk.ac.ebi.pride.tools.pride_wrapper.PRIDEXmlWrapper;
 import uk.ac.ebi.pride.utilities.util.Triple;
 
@@ -52,6 +53,9 @@ public class JmzReaderSpectrumService {
             }
             if( value == SubmissionPipelineConstants.FileType.MZML){
                 this.readers.put(key, new MzMlWrapper(new File(key)));
+            }
+            if( value == SubmissionPipelineConstants.FileType.PKL){
+                this.readers.put(key, new PklFile(new File(key)));
             }
         }
     }
