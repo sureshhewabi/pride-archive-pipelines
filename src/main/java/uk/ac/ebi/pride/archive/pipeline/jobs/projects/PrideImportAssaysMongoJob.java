@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveMongoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
@@ -27,6 +26,7 @@ import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 
 import java.util.Collections;
 import java.util.List;
