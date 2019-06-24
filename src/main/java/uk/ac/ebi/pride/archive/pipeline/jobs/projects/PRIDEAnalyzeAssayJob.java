@@ -463,9 +463,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             }
                                         }
 
-                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
-                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
-                                                String.valueOf(psm.getQValue())));
+//                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
+//                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
+//                                                String.valueOf(psm.getQValue())));
+
                                         properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(),
                                                 CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
                                                 String.valueOf(peptide.getQValue())));
