@@ -34,7 +34,7 @@ import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.spectra.configs.AWS3Configuration;
-import uk.ac.ebi.pride.archive.spectra.model.ArchivePSM;
+import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
 import uk.ac.ebi.pride.archive.spectra.model.CvParam;
 import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
@@ -488,12 +488,17 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                            errorDeltaPSM.set(errorDeltaPSM.get() + 1);
                                         }
 
-                                        PSMProvider archivePSM = ArchivePSM
+                                        properties.add(new CvParam(CvTermReference.MS_DELTA_MASS.getCvLabel(),
+                                                CvTermReference.MS_DELTA_MASS.getAccession(),
+                                                CvTermReference.MS_DELTA_MASS.getName(),
+                                                String.valueOf(deltaMass))
+                                        );
+
+                                        PSMProvider archivePSM = ArchiveSpectrum
                                                 .builder()
                                                 .peptideSequence(psm.getSequence())
                                                 .isDecoy(psm.getIsDecoy())
                                                 .retentionTime(retentionTime)
-                                                .deltaMass(psm.getDeltaMass())
                                                 .msLevel(fileSpectrum.getMsLevel())
                                                 .precursorCharge(fileSpectrum.getPrecursorCharge())
                                                 .masses(masses)
