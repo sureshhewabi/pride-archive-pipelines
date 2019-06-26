@@ -30,6 +30,7 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvi
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -50,6 +51,8 @@ import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
+import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
+import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
@@ -67,7 +70,8 @@ import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, DataSourceConfiguration.class, AWS3Configuration.class})
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class,
+        DataSourceConfiguration.class, AWS3Configuration.class, SolrCloudMasterConfig.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
@@ -85,6 +89,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Autowired
     PrideMoleculesMongoService moleculesService;
+
+    @Autowired
+    SolrProjectService solrProjectService;
 
     @Value("${pride.data.prod.directory}")
     String productionPath;
@@ -148,6 +155,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
+                    Set<String> proteinIds = new HashSet<>();
+                    Set<String> peptideSequences = new HashSet<>();
+
                     proteins.forEach(protein -> {
 
                         Set<String> proteinGroups = protein.getAccessions()
@@ -182,6 +192,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             attributes.add(scoreParam);
                         }
 
+                        proteinIds.add(protein.getRepresentative().getAccession());
+                        protein.getPeptides().stream().forEach(x -> peptideSequences.add(x.getSequence()));
 
                         PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
                                 .builder()
@@ -203,6 +215,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         indexPeptideByProtein(protein, peptides);
 
                     });
+
+                    PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
+                    solrProject.addProteinIdentifications(proteinIds);
+                    solrProject.addPeptideSequences(peptideSequences);
+                    solrProjectService.update(solrProject);
+
+
 
                     return RepeatStatus.FINISHED;
                 }).build();
