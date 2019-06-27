@@ -15,6 +15,7 @@ import de.mpc.pia.modeller.score.ScoreModelEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,7 +101,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     @Value("${accession:#{null}}")
     private String projectAccession;
 
-    @Value("${accession:#{null}}")
+    @Value("${assayAccession:#{null}}")
     private String assayAccession;
 
     @Value("${qValueThreshold:#{0.01}}")
@@ -141,6 +142,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
+                    System.out.println("############# job param projectAccession: " + projectAccession);
+                    System.out.println("############# job param accession:" + assayAccession);
 
                     proteins.forEach(protein -> {
 
