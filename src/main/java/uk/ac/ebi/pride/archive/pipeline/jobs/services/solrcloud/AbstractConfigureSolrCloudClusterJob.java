@@ -41,12 +41,12 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job createPrideArchiveSolrCloudCollection() {
+    public Job createPrideArchiveSolrCloudCollectionJob() {
         this.solrAPIHelper = SolrAPIHelper.getInstance(getSolrMasterURL());
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_MASTER_INIT.getName())
-                .start(deletePRIDEArchiveCollectionSolrCloud())
-                .next(createArchiveCollectionSolrCloud())
+                .start(deletePrideArchiveCollectionSolrCloudStep())
+                .next(createPrideArchiveCollectionSolrCloudStep())
 //                .next(refineArchiveCollectionSolrCloud())
                 .build();
     }
@@ -56,7 +56,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * @return org.springframework.batch.core.Step
      */
     @Ignore
-    private Step deletePRIDEArchiveCollectionSolrCloud() {
+    private Step deletePrideArchiveCollectionSolrCloudStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_DELETE_COLLECTION.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -76,7 +76,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * @return org.springframework.batch.core.Step
      */
     @Ignore
-    private Step createArchiveCollectionSolrCloud() {
+    private Step createPrideArchiveCollectionSolrCloudStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_CREATE_COLLECTION.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -95,7 +95,7 @@ public abstract class AbstractConfigureSolrCloudClusterJob extends AbstractArchi
      * Refine the PRIDE Archive Collection.
      * @return org.springframework.batch.core.Step
      */
-    private Step refineArchiveCollectionSolrCloud() {
+    private Step refineArchiveCollectionSolrCloudStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_CLOUD_REFINE_COLLECTION.name())
                 .tasklet((stepContribution, chunkContext) -> {

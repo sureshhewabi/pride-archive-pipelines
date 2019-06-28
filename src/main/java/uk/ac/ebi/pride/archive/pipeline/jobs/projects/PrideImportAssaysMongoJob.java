@@ -89,7 +89,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job importProjectAssayInformation() {
+    public Job importProjectAssaysInformationJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
                 .start(importProjectAssayInformationStep())

@@ -55,7 +55,7 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
      * @return
      */
     @Bean
-    Step resetProjectMongoDB() {
+    Step resetProjectMongoDBStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_RESET_SUBMISSION_MONGO.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -74,7 +74,7 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
      * @return Step
      */
     @Bean
-    public Step resetFileInformationMongoDB() {
+    public Step resetFileInformationMongoDBStep() {
         return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_RESET_FILES_SUBMISSION_MONGO.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     System.out.println("############# job param accession:"+accession);
@@ -124,8 +124,8 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
     public Job resetMongoProjectsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_RESET_SUBMISSION_MONGODB.getName())
-                .start(resetFileInformationMongoDB())
-                .on("COMPLETED").to(resetProjectMongoDB())
+                .start(resetFileInformationMongoDBStep())
+                .on("COMPLETED").to(resetProjectMongoDBStep())
                 .end()
                 .build();
     }

@@ -33,7 +33,7 @@ public class ResetProjectSolrJob extends AbstractArchiveJob {
      * @return
      */
     @Bean
-    Step resetProjectSolr() {
+    Step resetProjectSolrStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -60,7 +60,7 @@ public class ResetProjectSolrJob extends AbstractArchiveJob {
     public Job resetSolrProjectsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR.getName())
-                .start(resetProjectSolr())
+                .start(resetProjectSolrStep())
                 .build();
     }
 

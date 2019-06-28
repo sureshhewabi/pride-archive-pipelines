@@ -148,7 +148,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
      * @return Step
      */
     @Bean
-    public Step syncFileInformationToMongoDB() {
+    public Step syncFileInformationToMongoDBStep() {
         return stepBuilderFactory.get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     System.out.println("############# job param accession:"+accession);
@@ -180,7 +180,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC.getName())
                 .start(syncProjectOracleToMongoDB())
-                .next(syncFileInformationToMongoDB())
+                .next(syncFileInformationToMongoDBStep())
                 .build();
     }
 
