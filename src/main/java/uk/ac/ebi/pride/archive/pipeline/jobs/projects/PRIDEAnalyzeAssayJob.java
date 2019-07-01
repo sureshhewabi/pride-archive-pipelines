@@ -202,7 +202,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
                 .start(stepBuilderFactory
-                        .get("init")
+                        .get("initJob")
                         .tasklet(initJob(null, null))
                         .build())
                 .next(analyzeAssayInformationStep())

@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,9 +72,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     @Autowired
     ProjectFileRepository fileOracleRepository;
 
-    @Value("${accession:#{null}}")
     private String accession;
-
 
     private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project){
         Optional<MongoPrideProject> projectMongo = prideProjectMongoService.findByAccession(project.getAccession());
@@ -93,10 +93,26 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     @Bean
     public Job importProjectAssaysInformationJob() {
         return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
-                .start(importProjectAssayInformationStep())
+                .get(SubmissionPipelineConstants.PrideArchiveJobNames
+                        .PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
+                .start(stepBuilderFactory
+                        .get("initJob")
+                        .tasklet(initJob(null))
+                        .build())
+                .next(importProjectAssayInformationStep())
                 //TODO: @SURESH ADD THE TASK THAT NOTFIEID TO REDIS THAT THE ASSAY IS READY TO BE ANNOTATED.
                 .build();
+    }
+
+    @Bean
+    @StepScope
+    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
+        return (stepContribution, chunkContext) ->
+        {
+            this.accession = projectAccession;
+            System.out.println(String.format("==================>>>>>>> Run the job for Project %s Assay %s", projectAccession));
+            return RepeatStatus.FINISHED;
+        };
     }
 
     @Bean
