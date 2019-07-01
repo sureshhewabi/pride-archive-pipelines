@@ -78,7 +78,7 @@ public class PrideProjectsAnnotateCountryFromGitHubJob extends AbstractArchiveJo
 
 
     @Bean
-    Step annotateProjectsWithCountry() {
+    Step annotateProjectsWithCountryStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -105,7 +105,7 @@ public class PrideProjectsAnnotateCountryFromGitHubJob extends AbstractArchiveJo
     public Job annotateProjectsWithCountryJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY.getName())
-                .start(annotateProjectsWithCountry())
+                .start(annotateProjectsWithCountryStep())
                 .build();
     }
 

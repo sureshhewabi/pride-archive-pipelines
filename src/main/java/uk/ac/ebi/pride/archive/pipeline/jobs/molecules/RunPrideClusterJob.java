@@ -69,8 +69,8 @@ public class RunPrideClusterJob extends AbstractArchiveJob {
 //            .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
 //            .start(analyzeAssayInformationStep())
 //            .next(updateAssayInformationStep())
-//            .next(indexSpectra())
-//            .next(proteinPeptideIndex())
+//            .next(indexSpectraStep())
+//            .next(proteinPeptideIndexStep())
 //            .build();
     return null;
   }

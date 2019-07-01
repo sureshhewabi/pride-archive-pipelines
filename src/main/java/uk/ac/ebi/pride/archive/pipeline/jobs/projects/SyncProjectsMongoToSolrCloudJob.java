@@ -113,7 +113,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * @return return Step
      */
     @Bean
-    Step cleanSolrCloud() {
+    Step cleanSolrCloudStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -141,7 +141,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * @return Step
      */
     @Bean
-    Step syncFilesToSolrProject() {
+    Step syncFilesToSolrProjectStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -165,9 +165,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     public Job syncMongoProjectToSolrCloudJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC.getName())
-                .start(cleanSolrCloud())
+                .start(cleanSolrCloudStep())
                 .next(syncProjectMongoDBToSolrCloudStep())
-                .next(syncFilesToSolrProject())
+                .next(syncFilesToSolrProjectStep())
                 .build();
 
     }

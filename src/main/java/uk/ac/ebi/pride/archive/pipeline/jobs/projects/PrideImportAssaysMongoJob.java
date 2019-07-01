@@ -3,6 +3,7 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ import java.util.Optional;
  * Created by ypriverol (ypriverol@gmail.com) on 13/06/2018.
  */
 @Configuration
+@EnableBatchProcessing
 @Slf4j
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
@@ -98,7 +100,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job importProjectAssayInformation() {
+    public Job importProjectAssaysInformationJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
                 .start(importProjectAssayInformationStep())

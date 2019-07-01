@@ -31,6 +31,7 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvi
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -51,8 +52,12 @@ import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
+import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
+import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
+import uk.ac.ebi.pride.tools.protein_details_fetcher.ProteinDetailFetcher;
+import uk.ac.ebi.pride.tools.protein_details_fetcher.model.Protein;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
 import uk.ac.ebi.pride.utilities.util.Triple;
@@ -68,7 +73,9 @@ import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, DataSourceConfiguration.class, AWS3Configuration.class})
+@EnableBatchProcessing
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class,
+        DataSourceConfiguration.class, AWS3Configuration.class, SolrCloudMasterConfig.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
@@ -87,6 +94,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     @Autowired
     PrideMoleculesMongoService moleculesService;
 
+    @Autowired
+    SolrProjectService solrProjectService;
+
     @Value("${pride.data.prod.directory}")
     String productionPath;
 
@@ -102,7 +112,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return piaModellerService;
     }
 
-    @Value("${accession:#{null}}")
+    @Value("${projectAccession:#{null}}")
     private String projectAccession;
 
     @Value("${assayAccession:#{null}}")
@@ -133,26 +143,41 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job analyzeAssayInformation() {
+    public Job analyzeAssayInformationJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
                 .start(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
-                .next(indexSpectra())
-                .next(proteinPeptideIndex())
+                .next(indexSpectraStep())
+                .next(proteinPeptideIndexStep())
                 .build();
     }
 
     @Bean
-    public Step proteinPeptideIndex(){
+    public Step proteinPeptideIndexStep(){
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     System.out.println("############# job param projectAccession: " + projectAccession);
                     System.out.println("############# job param accession:" + assayAccession);
 
+                    Set<String> proteinIds = new HashSet<>();
+                    Set<String> peptideSequences = new HashSet<>();
+
+                    List<String> proteinMaps = proteins.stream().map(x -> x.getRepresentative().getAccession()).collect(Collectors.toList());
+                    ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
+                    Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
+
+                    log.info(String.valueOf(mappedProteins.size()));
+
                     proteins.forEach(protein -> {
 
+                        String proteinSequence = protein.getRepresentative().getDbSequence();
+                        if(proteinSequence == null || proteinSequence.isEmpty()){
+                            if(mappedProteins.containsKey(protein.getRepresentative().getAccession())){
+                                proteinSequence = mappedProteins.get(protein.getRepresentative().getAccession()).getSequenceString();
+                            }
+                        }
                         Set<String> proteinGroups = protein.getAccessions()
                                 .stream().map(Accession::getAccession)
                                 .collect(Collectors.toSet());
@@ -185,6 +210,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             attributes.add(scoreParam);
                         }
 
+                        proteinIds.add(protein.getRepresentative().getAccession());
+                        protein.getPeptides().stream().forEach(x -> peptideSequences.add(x.getSequence()));
 
                         PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
                                 .builder()
@@ -193,7 +220,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .proteinGroupMembers(proteinGroups)
                                 .ptms(proteinPTMs)
                                 .projectAccession(projectAccession)
-                                .proteinSequence(protein.getRepresentative().getDbSequence())
+                                .proteinSequence(proteinSequence)
                                 .bestSearchEngineScore(scoreParam)
                                 .additionalAttributes(attributes)
                                 .assayAccession(assay.getAccession())
@@ -206,6 +233,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         indexPeptideByProtein(protein, peptides);
 
                     });
+
+                    PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
+                    solrProject.addProteinIdentifications(proteinIds);
+                    solrProject.addPeptideSequences(peptideSequences);
+                    solrProjectService.update(solrProject);
+
+
 
                     return RepeatStatus.FINISHED;
                 }).build();
@@ -427,7 +461,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step indexSpectra() {
+    public Step indexSpectraStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -516,7 +550,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         spectrum.getCharge(),
                                                         ptmMasses);
 
-                                        log.debug("Delta Mass -- " + deltaMass);
+                                        log.info("Delta Mass -- " + deltaMass);
 
                                         if(deltaMass > 0.9){
                                            errorDeltaPSM.set(errorDeltaPSM.get() + 1);
@@ -671,6 +705,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.name())
                 .tasklet((stepContribution, chunkContext) -> {
+                    log.info("Analyzing project -- " + projectAccession + " and Assay -- " + assayAccession);
                     Optional<MongoPrideProject> project = prideProjectMongoService.findByAccession(projectAccession);
                     Optional<MongoPrideAssay> assay = prideProjectMongoService.findAssayByAccession(assayAccession);
                     if(assay.isPresent() && project.isPresent()){

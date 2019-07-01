@@ -81,7 +81,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    Step estimateSubmissionByYear() {
+    Step estimateSubmissionByYearStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_YEAR.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -108,7 +108,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateSubmissionByMonth() {
+    public Step estimateSubmissionByMonthStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_MONTH.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -135,7 +135,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateInstrumentsCount() {
+    public Step estimateInstrumentsCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_INSTRUMENT.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -160,7 +160,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateOrganismCount() {
+    public Step estimateOrganismCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_ORGANISM.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -176,7 +176,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateOrganismPartCount() {
+    public Step estimateOrganismPartCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_ORGANISM_PART.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -192,7 +192,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateDiseasesCount() {
+    public Step estimateDiseasesCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_DISEASES.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -208,7 +208,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return @{@link Step}
      */
     @Bean
-    public Step estimateModificationCount() {
+    public Step estimateModificationCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_MODIFICATIONS.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -228,7 +228,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step estimateCountryCount() {
+    public Step estimateCountryCountStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_COUNTRY.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -249,7 +249,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step estimateSubmissionByCategory() {
+    public Step estimateSubmissionByCategoryStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SUBMISSION_STATS_CATEGORY.name())
                 .tasklet((stepContribution, chunkContext) -> {
@@ -398,19 +398,19 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
      * @return the calculatePrideArchiveDataUsage job
      */
     @Bean
-    public Job computeSubmissionStats() {
+    public Job computeSubmissionStatsJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SUBMISSION_STATS.getName())
-                .start(estimateSubmissionByCategory())
-                .start(estimateSubmissionByYear())
-                .next(estimateSubmissionByCategory())
-                .next(estimateSubmissionByMonth())
-                .next(estimateInstrumentsCount())
-                .next(estimateOrganismCount())
-                .next(estimateModificationCount())
-                .next(estimateOrganismPartCount())
-                .next(estimateDiseasesCount())
-                .next(estimateCountryCount())
+                .start(estimateSubmissionByCategoryStep())
+                .start(estimateSubmissionByYearStep())
+                .next(estimateSubmissionByCategoryStep())
+                .next(estimateSubmissionByMonthStep())
+                .next(estimateInstrumentsCountStep())
+                .next(estimateOrganismCountStep())
+                .next(estimateModificationCountStep())
+                .next(estimateOrganismPartCountStep())
+                .next(estimateDiseasesCountStep())
+                .next(estimateCountryCountStep())
                 .build();
     }
 

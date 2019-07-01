@@ -52,8 +52,8 @@
         <!-- pride utils for cleaning protein accessions -->
         <dependency>
             <groupId>uk.ac.ebi.pride.tools</groupId>
-            <artifactId>accession-resolver</artifactId>
-            <version>${accession.resolver.version}</version>
+            <artifactId>protein-details-fetcher</artifactId>
+            <version>1.0.11-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>log4j</groupId>
@@ -200,6 +200,7 @@
             <scope>provided</scope>
         </dependency>
 
+
         <!-- mzTab conversion -->
         <dependency>
             <groupId>uk.ac.ebi.pride</groupId>
@@ -309,5 +310,13 @@
             <id>nexus-ebi-snapshot-repo</id>
             <url>http://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-snapshots/</url>
         </repository>
+        <!-- UGent Genesis repository -->
+        <repository>
+            <id>genesis-maven2-repository</id>
+            <name>Genesis maven2 repository</name>
+            <url>http://genesis.ugent.be/maven2</url>
+            <layout>default</layout>
+        </repository>
+
     </repositories>
 </project>
