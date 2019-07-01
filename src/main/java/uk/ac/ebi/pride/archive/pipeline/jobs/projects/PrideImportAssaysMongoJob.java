@@ -3,6 +3,7 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +49,7 @@ import java.util.Optional;
  * Created by ypriverol (ypriverol@gmail.com) on 13/06/2018.
  */
 @Configuration
+@EnableBatchProcessing
 @Slf4j
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
