@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -112,10 +114,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return piaModellerService;
     }
 
-    @Value("${projectAccession:#{null}}")
+    //@Value("#{jobParameters['project']}")
     private String projectAccession;
 
-    @Value("${assayAccession:#{null}}")
+    //@Value("#{jobParameters['assay']}")
     private String assayAccession;
 
     @Value("${qValueThreshold:#{0.01}}")
@@ -136,6 +138,59 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     DecimalFormat df = new DecimalFormat("###.#####");
 
+    @Bean
+    @StepScope
+    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession, @Value("#{jobParameters['assay']}") String assayAccession){
+        return (stepContribution, chunkContext) ->
+        {
+            this.projectAccession = projectAccession;
+            this.assayAccession = assayAccession;
+            System.out.println(String.format("==================>>>>>>> Run the job for Project %s Assay %s", projectAccession, assayAccession));
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    @Bean
+    public Step analyzeAssayInformationStep() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    log.info("Analyzing project -- " + projectAccession + " and Assay -- " + assayAccession);
+                    Optional<MongoPrideProject> project = prideProjectMongoService.findByAccession(projectAccession);
+                    Optional<MongoPrideAssay> assay = prideProjectMongoService.findAssayByAccession(assayAccession);
+                    if(assay.isPresent() && project.isPresent()){
+                        Optional<MongoAssayFile> assayResultFile = assay.get().getAssayFiles()
+                                .stream().filter(x -> x.getFileCategory()
+                                        .getValue().equalsIgnoreCase("RESULT"))
+                                .findFirst();
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
+                        String allDate = dateFormat.format(project.get().getPublicationDate());
+                        String[] allDateString = allDate.split("-");
+                        String year = null, month = null;
+
+                        SubmissionPipelineConstants.FileType fileType = SubmissionPipelineConstants.FileType.getFileTypeFromPRIDEFileName(assayResultFile.get().getFileName());
+
+                        if(allDateString.length == 2){
+                            year = allDateString[0];
+                            month = allDateString[1];
+                        }
+                        if(year != null && month != null){
+                            buildPath = SubmissionPipelineConstants.buildInternalPath(productionPath,
+                                    projectAccession, year, month);
+                            modeller = piaModellerService.performProteinInference(assayAccession,
+                                    SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
+                                    fileType, qValueThershold, qValueThershold);
+                            this.assay = assay.get();
+                        }else{
+                            String errorMessage = "The Year and Month for Project Accession can't be found -- " + project.get().getAccession();
+                            log.error(errorMessage);
+                            throw new IOException(errorMessage);
+                        }
+                    }
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
 
     /**
      * Defines the job to Sync all the projects from OracleDB into MongoDB database.
@@ -146,7 +201,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     public Job analyzeAssayInformationJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
-                .start(analyzeAssayInformationStep())
+                .start(stepBuilderFactory
+                        .get("init")
+                        .tasklet(initJob(null, null))
+                        .build())
+                .next(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
                 .next(indexSpectraStep())
                 .next(proteinPeptideIndexStep())
@@ -162,7 +221,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     Set<String> proteinIds = new HashSet<>();
                     Set<String> peptideSequences = new HashSet<>();
 
-                    List<String> proteinMaps = proteins.stream().map(x -> x.getRepresentative().getAccession()).collect(Collectors.toList());
+                    List<String> proteinMaps = proteins
+                            .stream().map(x -> x.getRepresentative().getAccession())
+                            .collect(Collectors.toList());
+
                     ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
                     Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
 
@@ -698,45 +760,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return param;
     }
 
-    @Bean
-    Step analyzeAssayInformationStep() {
-        return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.name())
-                .tasklet((stepContribution, chunkContext) -> {
-                    log.info("Analyzing project -- " + projectAccession + " and Assay -- " + assayAccession);
-                    Optional<MongoPrideProject> project = prideProjectMongoService.findByAccession(projectAccession);
-                    Optional<MongoPrideAssay> assay = prideProjectMongoService.findAssayByAccession(assayAccession);
-                    if(assay.isPresent() && project.isPresent()){
-                        Optional<MongoAssayFile> assayResultFile = assay.get().getAssayFiles()
-                                .stream().filter(x -> x.getFileCategory()
-                                        .getValue().equalsIgnoreCase("RESULT"))
-                                .findFirst();
-                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM");
-                        String allDate = dateFormat.format(project.get().getPublicationDate());
-                        String[] allDateString = allDate.split("-");
-                        String year = null, month = null;
 
-                        SubmissionPipelineConstants.FileType fileType = SubmissionPipelineConstants.FileType.getFileTypeFromPRIDEFileName(assayResultFile.get().getFileName());
-
-                        if(allDateString.length == 2){
-                            year = allDateString[0];
-                            month = allDateString[1];
-                        }
-                        if(year != null && month != null){
-                            buildPath = SubmissionPipelineConstants.buildInternalPath(productionPath,
-                                    projectAccession, year, month);
-                            modeller = piaModellerService.performProteinInference(assayAccession,
-                                    SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()),
-                                    fileType, qValueThershold, qValueThershold);
-                            this.assay = assay.get();
-                        }else{
-                            String errorMessage = "The Year and Month for Project Accession can't be found -- " + project.get().getAccession();
-                            log.error(errorMessage);
-                            throw new IOException(errorMessage);
-                        }
-                    }
-                    return RepeatStatus.FINISHED;
-                }).build();
-    }
 
 }
