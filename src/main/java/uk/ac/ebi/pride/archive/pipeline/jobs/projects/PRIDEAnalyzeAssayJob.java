@@ -158,8 +158,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    System.out.println("############# job param projectAccession: " + projectAccession);
-                    System.out.println("############# job param accession:" + assayAccession);
 
                     Set<String> proteinIds = new HashSet<>();
                     Set<String> peptideSequences = new HashSet<>();
