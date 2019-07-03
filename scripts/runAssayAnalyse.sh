@@ -57,7 +57,6 @@ while [ "$1" != "" ]; do
 done
 
 JOB_NAME="${JOB_NAME}-${ACCESSION}-${ASSAY_ACCESSION}"
-JOB_PARAMETERS="--accession=${ACCESSION},--assay_accession=${ASSAY_ACCESSION}"
 
 ##### CHECK the provided arguments
 if [ -z ${ACCESSION} ]; then
@@ -83,4 +82,4 @@ bsub -M ${MEMORY_LIMIT} \
      -J ${JOB_NAME} \
      -o ${LOG_PATH}/assay_analyse/${OUT_LOG_FILE_NAME} \
      -e ${LOG_PATH}/assay_analyse/${ERR_LOG_FILE_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=PrideAnalysisAssayInformation -Dspring-boot.run.arguments=${JOB_PARAMETERS}
+     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=PrideAnalysisAssayInformation accession=${ACCESSION} assay_accession=${ASSAY_ACCESSION}
