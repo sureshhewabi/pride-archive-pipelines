@@ -1,7 +1,9 @@
 package uk.ac.ebi.pride.archive.pipeline.configuration;
 
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -27,11 +29,21 @@ import javax.sql.DataSource;
 @Slf4j
 public class ArchiveOracleConfig {
 
+    @Value("${spring.datasource.maxPoolSize}")
+    private int poolSize = 2;
+
+    @Value("${spring.datasource.idleTimeOut}")
+    private int idleTimeout = 60000;
 
     @Bean(name = "dataSourceOracle")
     @ConfigurationProperties(prefix = "spring.datasource.oracle")
     public DataSource archiveDataSource() {
-        return DataSourceBuilder.create().build();
+        DataSource dataSource = DataSourceBuilder.
+                create().
+                build();
+        ((HikariDataSource) dataSource).setMaximumPoolSize(poolSize);
+        ((HikariDataSource) dataSource).setIdleTimeout(idleTimeout);
+        return dataSource;
     }
 
     @Bean(name = "oracleEntityManagerFactory")

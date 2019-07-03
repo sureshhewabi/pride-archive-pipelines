@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
+package uk.ac.ebi.pride.archive.pipeline.jobs.molecules;
 
 
 import de.mpc.pia.intermediate.Accession;

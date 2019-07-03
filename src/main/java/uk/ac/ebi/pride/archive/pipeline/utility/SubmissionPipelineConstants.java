@@ -20,7 +20,7 @@ public class SubmissionPipelineConstants {
 
 
     /** Supported id format used in the spectrum file. */
-    public static enum SpecIdFormat {
+    public enum SpecIdFormat {
         MASCOT_QUERY_NUM,
         MULTI_PEAK_LIST_NATIVE_ID,
         SINGLE_PEAK_LIST_NATIVE_ID,

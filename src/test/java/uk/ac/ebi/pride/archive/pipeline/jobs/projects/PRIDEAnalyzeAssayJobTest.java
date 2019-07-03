@@ -15,10 +15,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-
-import java.util.stream.IntStream;
-
-import static org.junit.Assert.*;
+import uk.ac.ebi.pride.archive.pipeline.jobs.molecules.PRIDEAnalyzeAssayJob;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {PRIDEAnalyzeAssayJob.class, JobRunnerTestConfiguration.class})
