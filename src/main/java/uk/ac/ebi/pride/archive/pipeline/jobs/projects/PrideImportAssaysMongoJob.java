@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveRedisConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
@@ -23,6 +25,7 @@ import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.Project;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
@@ -52,7 +55,7 @@ import java.util.Optional;
 @Configuration
 @EnableBatchProcessing
 @Slf4j
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
 
@@ -70,6 +73,12 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
     @Autowired
     ProjectFileRepository fileOracleRepository;
+
+    @Autowired
+    RedisConnectionFactory connectionFactory;
+
+    @Autowired
+    uk.ac.ebi.pride.archive.pipeline.services.redis.RedisMessageNotifier messageNotifier;
 
     @Value("${accession:#{null}}")
     @StepScope
@@ -125,5 +134,18 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
         List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
         doProjectAssaySync(assays, files, project);
+        notifyToMessagingQueue(project, assays);
+    }
+
+    private void notifyToMessagingQueue(Project project, List<Assay> assays){
+
+    assays.forEach(
+        assay -> {
+          messageNotifier.sendNotification(
+              "archive.incoming.assay.annotation.queue",
+              new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
+              AssayDataGenerationPayload.class);
+              System.out.println("Notified to redis: " + project.getAccession() + " - " +  assay.getAccession());
+        });
     }
 }

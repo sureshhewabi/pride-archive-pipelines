@@ -27,24 +27,10 @@ public class RedisClusterSimpleJob extends AbstractArchiveJob {
   @Autowired
   RedisMessageNotifier messageNotifier;
 
-  /** Creates a new Jedis pool if one has yet to be created yet. */
-  @Bean
-  public Step readJedisCluster() {
-    return stepBuilderFactory
-        .get("createJedisCluster")
-        .tasklet(
-            (stepContribution, chunkContext) -> {
-                Long clusterSize = connectionFactory.getClusterConnection().clusterGetClusterInfo().getClusterSize();
-                log.info("The cluster size is: " + clusterSize);
-              return RepeatStatus.FINISHED;
-            })
-        .build();
-  }
-
     /**
-     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
+     * Create a connection to redis channel and send the message to the queue
      *
-     * @return the calculatePrideArchiveDataUsage job
+     * @return job
      */
     @Bean
     public Job checkRedisConfiguration() {
@@ -55,6 +41,21 @@ public class RedisClusterSimpleJob extends AbstractArchiveJob {
                 .build();
     }
 
+    /** Creates a new Jedis pool if one has yet to be created yet. */
+    @Bean
+    public Step readJedisCluster() {
+        return stepBuilderFactory
+                .get("createJedisCluster")
+                .tasklet(
+                        (stepContribution, chunkContext) -> {
+                            Long clusterSize = connectionFactory.getClusterConnection().clusterGetClusterInfo().getClusterSize();
+                            log.info("The cluster size is: " + clusterSize);
+                            return RepeatStatus.FINISHED;
+                        })
+                .build();
+    }
+
+
     @Bean
     public Step sendMessage() {
         return stepBuilderFactory
@@ -63,7 +64,7 @@ public class RedisClusterSimpleJob extends AbstractArchiveJob {
                         (stepContribution, chunkContext) -> {
 
                             messageNotifier.sendNotification("archive.incoming.assay.annotation.queue",
-                                    new AssayDataGenerationPayload("PXD000000", "1234455678"), AssayDataGenerationPayload.class);
+                                    new AssayDataGenerationPayload("PXD011181", "99258"), AssayDataGenerationPayload.class);
 
 
                             return RepeatStatus.FINISHED;
