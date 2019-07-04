@@ -65,8 +65,8 @@ public class PRIDEAnalyzeAssayJobTest {
     @Test
     public void simpleFileImport() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                    .addString("projectAccession", "PXD011181")
-                    .addString("assayAccession", "99258")
+                    .addString("project", "PXD011181")
+                    .addString("assay", "99258")
                     .toJobParameters();
             ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD011181");
             ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "99258");
