@@ -34,7 +34,7 @@ public class PrideImportAssaysMongoJobTest {
     @Test
     public void syncAssayInformationToMongo() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                .addString("project_accession", "PXD000779")
+                .addString("project", "PXD000779")
                 .toJobParameters();
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());

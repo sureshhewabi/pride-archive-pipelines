@@ -85,7 +85,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project_accession']}") String projectAccession){
+    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
