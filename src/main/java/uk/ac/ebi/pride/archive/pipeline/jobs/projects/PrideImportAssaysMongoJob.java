@@ -5,6 +5,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,20 +81,17 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     @Autowired
     uk.ac.ebi.pride.archive.pipeline.services.redis.RedisMessageNotifier messageNotifier;
 
-    @Value("${accession:#{null}}")
+    private String projectAccession;
+
+    @Bean
     @StepScope
-    private String accession;
-
-
-    private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project){
-        Optional<MongoPrideProject> projectMongo = prideProjectMongoService.findByAccession(project.getAccession());
-        List<MongoPrideFile> mongoFiles = prideFileMongoRepository.findByProjectAccessions(Collections.singletonList(project.getAccession()));
-        if(projectMongo.isPresent() && mongoFiles != null && mongoFiles.size() > 0){
-            List<MongoPrideAssay> mongoAssays = PrideProjectTransformer.transformOracleAssayToMongo(assays, files, mongoFiles, project);
-            prideProjectMongoService.saveAssays(mongoAssays);
-            log.info("The assays for project -- " + project.getAccession() + " have been inserted in Mongo");
-        }else
-            log.error("The project is not present in the Mongo database, please add first the project -- " + project.getAccession());
+    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
+        return (stepContribution, chunkContext) ->
+        {
+            this.projectAccession = projectAccession;
+            System.out.println(String.format("==================>>>>>>> Run the PrideImportAssaysMongoJob job for Project %s", projectAccession));
+            return RepeatStatus.FINISHED;
+        };
     }
 
     /**
@@ -105,8 +103,11 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     public Job importProjectAssaysInformationJob() {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
-                .start(importProjectAssayInformationStep())
-                //TODO: @SURESH ADD THE TASK THAT NOTFIEID TO REDIS THAT THE ASSAY IS READY TO BE ANNOTATED.
+                .start(stepBuilderFactory
+                        .get("initJob")
+                        .tasklet(initJob(null))
+                        .build())
+                .next(importProjectAssayInformationStep())
                 .build();
     }
 
@@ -115,14 +116,14 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    if(accession != null){
-                        Project project = projectRepository.findByAccession(accession);
+                    if(projectAccession != null){
+                        Project project = projectRepository.findByAccession(projectAccession);
                         if(project.getSubmissionType() != SubmissionType.PRIDE.name())
                             syncProject(project);
                     }else{
-                        projectRepository.findAll().forEach(x -> {
-                            if(x.getSubmissionType() != SubmissionType.PRIDE.name()){
-                              syncProject(x);
+                        projectRepository.findAll().forEach(project -> {
+                            if(project.getSubmissionType() != SubmissionType.PRIDE.name()){
+                              syncProject(project);
                             }
                         });
                     }
@@ -137,15 +138,32 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         notifyToMessagingQueue(project, assays);
     }
 
+
+    private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project){
+        Optional<MongoPrideProject> projectMongo = prideProjectMongoService.findByAccession(project.getAccession());
+        List<MongoPrideFile> mongoFiles = prideFileMongoRepository.findByProjectAccessions(Collections.singletonList(project.getAccession()));
+        if(projectMongo.isPresent() && mongoFiles != null && mongoFiles.size() > 0){
+            List<MongoPrideAssay> mongoAssays = PrideProjectTransformer.transformOracleAssayToMongo(assays, files, mongoFiles, project);
+            prideProjectMongoService.saveAssays(mongoAssays);
+            log.info("The assays for project -- " + project.getAccession() + " have been inserted in Mongo");
+        }else
+            log.error("The project is not present in the Mongo database, please add first the project -- " + project.getAccession());
+    }
+
+    /**
+     * Notify project accession and assay accession to the redis queue to run the next job which is AssayAnalysisJob
+     * @param project Project
+     * @param assays Assay
+     */
     private void notifyToMessagingQueue(Project project, List<Assay> assays){
 
-    assays.forEach(
-        assay -> {
-          messageNotifier.sendNotification(
-              "archive.incoming.assay.annotation.queue",
-              new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
-              AssayDataGenerationPayload.class);
-              System.out.println("Notified to redis: " + project.getAccession() + " - " +  assay.getAccession());
-        });
+        assays.forEach(
+            assay -> {
+              messageNotifier.sendNotification(
+                  "archive.incoming.assay.annotation.queue",
+                  new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
+                  AssayDataGenerationPayload.class);
+                  System.out.println("Notified to redis: " + project.getAccession() + " - " +  assay.getAccession());
+            });
     }
 }
