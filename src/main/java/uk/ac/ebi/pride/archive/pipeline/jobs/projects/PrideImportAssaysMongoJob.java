@@ -85,7 +85,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
+    public Tasklet importAssayInitJob(@Value("#{jobParameters['project']}") String projectAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
@@ -104,8 +104,8 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
                 .start(stepBuilderFactory
-                        .get("initJob")
-                        .tasklet(initJob(null))
+                        .get("importAssayInitJob")
+                        .tasklet(importAssayInitJob(null))
                         .build())
                 .next(importProjectAssayInformationStep())
                 .build();
