@@ -13,9 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {PrideImportAssaysMongoJob.class, JobRunnerTestConfiguration.class})
@@ -36,9 +34,8 @@ public class PrideImportAssaysMongoJobTest {
     @Test
     public void syncAssayInformationToMongo() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                .addString("accession", "PXD000779")
+                .addString("project_accession", "PXD000779")
                 .toJobParameters();
-        //ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD000779");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
