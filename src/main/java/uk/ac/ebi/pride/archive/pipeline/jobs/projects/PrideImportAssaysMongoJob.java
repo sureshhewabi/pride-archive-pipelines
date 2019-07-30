@@ -3,14 +3,19 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveRedisConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
@@ -21,6 +26,7 @@ import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
 import uk.ac.ebi.pride.archive.repo.repos.project.Project;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
@@ -48,8 +54,9 @@ import java.util.Optional;
  * Created by ypriverol (ypriverol@gmail.com) on 13/06/2018.
  */
 @Configuration
+@EnableBatchProcessing
 @Slf4j
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
 
@@ -68,8 +75,68 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     @Autowired
     ProjectFileRepository fileOracleRepository;
 
-    @Value("${accession:#{null}}")
-    private String accession;
+    @Autowired
+    RedisConnectionFactory connectionFactory;
+
+    @Autowired
+    uk.ac.ebi.pride.archive.pipeline.services.redis.RedisMessageNotifier messageNotifier;
+
+    private String projectAccession;
+
+    @Bean
+    @StepScope
+    public Tasklet importAssayInitJob(@Value("#{jobParameters['project']}") String projectAccession){
+        return (stepContribution, chunkContext) ->
+        {
+            this.projectAccession = projectAccession;
+            System.out.println(String.format("==================>>>>>>> Run the PrideImportAssaysMongoJob job for Project %s", projectAccession));
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    /**
+     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
+     *
+     * @return the calculatePrideArchiveDataUsage job
+     */
+    @Bean
+    public Job importProjectAssaysInformationJob() {
+        return jobBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
+                .start(stepBuilderFactory
+                        .get("importAssayInitJob")
+                        .tasklet(importAssayInitJob(null))
+                        .build())
+                .next(importProjectAssayInformationStep())
+                .build();
+    }
+
+    @Bean
+    Step importProjectAssayInformationStep() {
+        return stepBuilderFactory
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO.name())
+                .tasklet((stepContribution, chunkContext) -> {
+                    if(projectAccession != null){
+                        Project project = projectRepository.findByAccession(projectAccession);
+                        if(project.getSubmissionType() != SubmissionType.PRIDE.name())
+                            syncProject(project);
+                    }else{
+                        projectRepository.findAll().forEach(project -> {
+                            if(project.getSubmissionType() != SubmissionType.PRIDE.name()){
+                              syncProject(project);
+                            }
+                        });
+                    }
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
+
+    private void syncProject( Project  project){
+        List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
+        List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
+        doProjectAssaySync(assays, files, project);
+        notifyToMessagingQueue(project, assays);
+    }
 
 
     private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project){
@@ -84,42 +151,19 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     }
 
     /**
-     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
-     *
-     * @return the calculatePrideArchiveDataUsage job
+     * Notify project accession and assay accession to the redis queue to run the next job which is AssayAnalysisJob
+     * @param project Project
+     * @param assays Assay
      */
-    @Bean
-    public Job importProjectAssaysInformationJob() {
-        return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_SYNC.getName())
-                .start(importProjectAssayInformationStep())
-                //TODO: @SURESH ADD THE TASK THAT NOTFIEID TO REDIS THAT THE ASSAY IS READY TO BE ANNOTATED.
-                .build();
-    }
+    private void notifyToMessagingQueue(Project project, List<Assay> assays){
 
-    @Bean
-    Step importProjectAssayInformationStep() {
-        return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO.name())
-                .tasklet((stepContribution, chunkContext) -> {
-                    if(accession != null){
-                        Project project = projectRepository.findByAccession(accession);
-                        if(project.getSubmissionType() != SubmissionType.PRIDE.name())
-                            syncProject(project);
-                    }else{
-                        projectRepository.findAll().forEach(x -> {
-                            if(x.getSubmissionType() != SubmissionType.PRIDE.name()){
-                              syncProject(x);
-                            }
-                        });
-                    }
-                    return RepeatStatus.FINISHED;
-                }).build();
-    }
-
-    private void syncProject( Project  project){
-        List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
-        List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
-        doProjectAssaySync(assays, files, project);
+        assays.forEach(
+            assay -> {
+              messageNotifier.sendNotification(
+                  "archive.incoming.assay.annotation.queue",
+                  new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
+                  AssayDataGenerationPayload.class);
+                  System.out.println("Notified to redis: " + project.getAccession() + " - " +  assay.getAccession());
+            });
     }
 }

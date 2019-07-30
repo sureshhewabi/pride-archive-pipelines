@@ -53,7 +53,7 @@ public class SyncProjectsOracleToMongoJobTest {
                 .addString("submissionType", SubmissionPipelineConstants.SubmissionsType.PUBLIC.name())
           //      .addString("accession", "PXD004588")
                 .toJobParameters();
-       // ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD004588");
+        ReflectionTestUtils.setField(prideOracleToMongo, "accession", "PXD004588");
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }

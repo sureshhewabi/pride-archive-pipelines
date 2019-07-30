@@ -8,6 +8,19 @@
     <artifactId>revised-archive-submission-pipeline</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <!-- This project requires several maven profiles to build and run correctly.
+
+        Maven profiles to use:
+        mongodb-pridedb-localhost-machine
+        oracle-pridedb-prod-machine
+        oracle-pridedb-prod-ro-user
+        pride-aap-explore-env
+        pride-archive-integration-production
+        pride-prod-pipeline-variables
+        pride-spectra-archive-s3
+        solr-cloud-localhost-machine
+  -->
+
     <parent>
         <groupId>org.uk.ac.ebi.pride.architectural</groupId>
         <artifactId>pride-spring</artifactId>
@@ -26,6 +39,7 @@
         <uk.ac.ebi.pride.archive.data-provider.version>1.0.0-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
+        <!--<revised.archive.integration.version>0.0.1-SNAPSHOT</revised.archive.integration.version>-->
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
         <pia.version>1.3.11</pia.version>
@@ -141,6 +155,7 @@
         <dependency>
             <groupId>uk.ac.ebi.pride.archive</groupId>
             <artifactId>archive-integration</artifactId>
+            <!--<artifactId>revised-archive-integration</artifactId>-->
             <version>${archive.integration.version}</version>
         </dependency>
 
@@ -173,6 +188,12 @@
             <version>2.9.0</version>
             <type>jar</type>
             <scope>compile</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
