@@ -34,9 +34,11 @@
         <jmztab.version>3.0.8</jmztab.version>
         <px.submission.core.version>2.0.18</px.submission.core.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
-        <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
-        <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.2-springboot-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
-        <uk.ac.ebi.pride.archive.data-provider.version>1.0.0-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
+        <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.3-springboot-SNAPSHOT
+        </uk.ac.ebi.pride.archive.mongodb.repo.version>
+        <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.3-springboot-SNAPSHOT
+        </uk.ac.ebi.pride.archive.solr.indexes.version>
+        <uk.ac.ebi.pride.archive.data-provider.version>1.0.1-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <!--<revised.archive.integration.version>0.0.1-SNAPSHOT</revised.archive.integration.version>-->
@@ -242,9 +244,9 @@
         </dependency>
         <!--&lt;!&ndash; mongo-psm-index-searc &ndash;&gt;-->
         <!--<dependency>-->
-            <!--<groupId>uk.ac.ebi.pride</groupId>-->
-            <!--<artifactId>mongo-psm-index-search</artifactId>-->
-            <!--<version>${mongo.psm.index.search.version}</version>-->
+        <!--<groupId>uk.ac.ebi.pride</groupId>-->
+        <!--<artifactId>mongo-psm-index-search</artifactId>-->
+        <!--<version>${mongo.psm.index.search.version}</version>-->
         <!--</dependency>-->
         <!-- archive-repo -->
 
@@ -324,5 +326,32 @@
             <layout>default</layout>
         </repository>
 
+        <repository>
+            <id>pst-release</id>
+            <name>EBI Nexus Repository</name>
+            <url>http://www.ebi.ac.uk/Tools/maven/repos/content/repositories/pst-release</url>
+        </repository>
+        <repository>
+            <id>pst-snapshots</id>
+            <name>EBI Nexus Snapshots Repository</name>
+            <url>http://www.ebi.ac.uk/Tools/maven/repos/content/repositories/pst-snapshots</url>
+        </repository>
     </repositories>
+
+    <distributionManagement>
+        <!-- Deployment to EBI's release repository -->
+        <repository>
+            <id>pst-release</id>
+            <name>EBI Nexus Repository</name>
+            <url>http://www.ebi.ac.uk/Tools/maven/repos/content/repositories/pst-release</url>
+        </repository>
+        <!-- Deployment to EBI's snapshot repository -->
+        <snapshotRepository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>pst-snapshots</id>
+            <name>EBI Nexus Snapshots Repository</name>
+            <url>http://www.ebi.ac.uk/Tools/maven/repos/content/repositories/pst-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 </project>
