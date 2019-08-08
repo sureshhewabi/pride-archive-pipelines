@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
@@ -56,6 +57,7 @@ import java.util.Optional;
 @Configuration
 @EnableBatchProcessing
 @Slf4j
+@PropertySource("classpath:application.properties")
 @Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
@@ -80,6 +82,9 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
     @Autowired
     uk.ac.ebi.pride.archive.pipeline.services.redis.RedisMessageNotifier messageNotifier;
+
+    @Value("${redis.assay.analyse.queue}")
+    private String redisQueueName;
 
     private String projectAccession;
 
@@ -159,11 +164,10 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
         assays.forEach(
             assay -> {
-              messageNotifier.sendNotification(
-                  "archive.incoming.assay.annotation.queue",
+              messageNotifier.sendNotification(redisQueueName,
                   new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
                   AssayDataGenerationPayload.class);
-                  System.out.println("Notified to redis: " + project.getAccession() + " - " +  assay.getAccession());
+                  log.info("Notified to redis queue {} : {} - {} ", redisQueueName ,project.getAccession(), assay.getAccession());
             });
     }
 }
