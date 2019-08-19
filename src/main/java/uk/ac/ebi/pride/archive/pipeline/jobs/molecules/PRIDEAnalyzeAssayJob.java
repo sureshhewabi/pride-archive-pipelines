@@ -286,6 +286,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .assayAccession(assay.getAccession())
                                 .isValid(isValid)
                                 .qualityEstimationMethods(validationMethods)
+                                .numberPeptides(protein.getPeptides().size())
+                                .numberPSMs(protein.getNrPSMs())
+                                .sequenceCoverage(protein.getCoverage(protein.getRepresentative().getAccession()))
                                 .build();
 
                         moleculesService.saveProteinEvidences(proteinEvidence);
@@ -352,8 +355,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                 int startPosition = 0;
                 int endPosition = 0;
-
-
 
                 Optional<AccessionOccurrence> occurrence = firstPeptide.get().getPeptide().getAccessionOccurrences().stream()
                         .filter(x -> x.getAccession().getAccession().equalsIgnoreCase(protein.getRepresentative().getAccession()))
