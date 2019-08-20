@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DuplicateKeyException;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
@@ -99,6 +100,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     @Autowired
     SolrProjectService solrProjectService;
 
+    Map<String, Long> taskTimeMap = new HashMap<>();
+
     @Value("${pride.data.prod.directory}")
     String productionPath;
 
@@ -155,6 +158,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.name())
                 .tasklet((stepContribution, chunkContext) -> {
+
+                    long initAnalysisAssay = System.currentTimeMillis();
+
                     log.info("Analyzing project -- " + projectAccession + " and Assay -- " + assayAccession);
                     Optional<MongoPrideProject> project = prideProjectMongoService.findByAccession(projectAccession);
                     Optional<MongoPrideAssay> assay = prideProjectMongoService.findAssayByAccession(assayAccession);
@@ -187,6 +193,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             throw new IOException(errorMessage);
                         }
                     }
+
+                    taskTimeMap.put(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.getName(),
+                            System.currentTimeMillis() - initAnalysisAssay);
+
                     return RepeatStatus.FINISHED;
                 }).build();
     }
@@ -209,7 +219,20 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .next(updateAssayInformationStep())
                 .next(indexSpectraStep())
                 .next(proteinPeptideIndexStep())
+                .next(printTraceStep())
                 .build();
+    }
+
+    @Bean
+    public Step printTraceStep(){
+        return stepBuilderFactory
+                .get("printTraceStep")
+                .tasklet((stepContribution, chunkContext) -> {
+                    taskTimeMap.entrySet().stream().forEach( x -> {
+                        log.info("Task: " + x.getKey() + " Time: " + x.getValue());
+                    });
+                    return RepeatStatus.FINISHED;
+                }).build();
     }
 
     @Bean
@@ -217,6 +240,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
+
+                    long initInsertPeptides = System.currentTimeMillis();
 
                     Set<String> proteinIds = new HashSet<>();
                     Set<String> peptideSequences = new HashSet<>();
@@ -291,18 +316,26 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .sequenceCoverage(protein.getCoverage(protein.getRepresentative().getAccession()))
                                 .build();
 
-                        moleculesService.saveProteinEvidences(proteinEvidence);
+                        try {
+                            moleculesService.insertProteinEvidences(proteinEvidence);
+                        } catch (DuplicateKeyException ex){
+                            moleculesService.saveProteinEvidences(proteinEvidence);
+                            log.debug("The protein was already in the database -- " + proteinEvidence.getReportedAccession());
+                        }
 
                         indexPeptideByProtein(protein, peptides);
 
                     });
+
+                    taskTimeMap.put("InsertPeptidesProteinsIntoMongoDB", System.currentTimeMillis() - initInsertPeptides);
+                    initInsertPeptides = System.currentTimeMillis();
 
                     PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
                     solrProject.addProteinIdentifications(proteinIds);
                     solrProject.addPeptideSequences(peptideSequences);
                     solrProjectService.update(solrProject);
 
-
+                    taskTimeMap.put("InsertPeptidesProteinsIntoSolr", System.currentTimeMillis() - initInsertPeptides);
 
                     return RepeatStatus.FINISHED;
                 }).build();
@@ -384,7 +417,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .isValid(isValid)
                         .qualityEstimationMethods(validationMethods)
                         .build();
-                moleculesService.savePeptideEvidence(peptideEvidence);
+                try {
+                    moleculesService.insertPeptideEvidence(peptideEvidence);
+                } catch (DuplicateKeyException ex){
+                    moleculesService.savePeptideEvidence(peptideEvidence);
+                    log.debug("The peptide evidence was already in the database -- " + peptideEvidence.getPeptideAccession());
+                }
+
             }
 
 
@@ -526,6 +565,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.name())
                 .tasklet((stepContribution, chunkContext) -> {
+                    long initSpectraStep = System.currentTimeMillis();
                     if(modeller != null && assay != null && peptides.size() > 0){
                         Optional<MongoAssayFile> assayResultFile = assay.getAssayFiles()
                                 .stream().filter(x -> x.getFileCategory()
@@ -667,6 +707,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         }
                         log.info("Delta Mass Rate -- " + (errorDeltaPSM.get() / totalPSM.get()));
                     }
+
+                    taskTimeMap.put(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.getName(),
+                            System.currentTimeMillis() - initSpectraStep);
+
                     return RepeatStatus.FINISHED;
                 }).build();
     }
