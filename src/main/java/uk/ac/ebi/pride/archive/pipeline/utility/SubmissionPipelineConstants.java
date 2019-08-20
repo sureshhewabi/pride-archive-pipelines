@@ -18,7 +18,6 @@ import java.util.*;
  */
 public class SubmissionPipelineConstants {
 
-
     /** Supported id format used in the spectrum file. */
     public enum SpecIdFormat {
         MASCOT_QUERY_NUM,
