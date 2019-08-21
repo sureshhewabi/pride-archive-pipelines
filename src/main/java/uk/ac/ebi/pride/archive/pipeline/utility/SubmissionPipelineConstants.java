@@ -97,8 +97,13 @@ public class SubmissionPipelineConstants {
         ALL, PUBLIC, PRIVATE
    }
 
-   public enum PrideArchiveJobNames{
-
+  /**
+   * NOTE: there are some external scripts calling individual jobs. If you are changing job
+   * names, please change the those scripts as well
+   * Eg:
+   *    /nfs/pride/work/archive/revised-archive-submission-scripts/
+   */
+  public enum PrideArchiveJobNames {
        PRIDE_ARCHIVE_SOLR_MASTER_INIT("createPrideArchiveSolrCloudCollectionJob",
                "This command will create a new Collection of PRIDE Archive in SolrCloud Production."),
 
