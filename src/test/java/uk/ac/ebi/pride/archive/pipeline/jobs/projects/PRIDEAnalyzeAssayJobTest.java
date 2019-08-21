@@ -36,13 +36,13 @@ public class PRIDEAnalyzeAssayJobTest {
     public void analyzeAssayInformationToMongo() {
 //        IntStream.range(51876, 51940).forEach( x -> {
             JobParameters param = new JobParametersBuilder()
-//                    .addString("projectAccession", "PXD002089")
-//                    .addString("assayAccession", String.valueOf(x))
+                    .addString("project", "PXD002086")
+                    .addString("assay", "51455")
                     .toJobParameters();
 //        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD000001");
 //        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "22134");
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002089");
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "51925");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002086");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "51455");
 //                 ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD001072");
 //         ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "37786");
 
