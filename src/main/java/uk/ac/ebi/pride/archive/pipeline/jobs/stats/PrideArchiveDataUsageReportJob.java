@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
+import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 
 import java.io.File;
 import java.io.IOException;
@@ -321,7 +322,7 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
   @Bean
   public Job calculatePrideArchiveDataUsage() {
     return jobBuilderFactory
-        .get("calculatePrideArchiveDataUsage")
+        .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_DATA_USAGE.getName())
         .start(calculateAllDataUsage())
         .next(collateAndOutputDataUsage())
         .build();
