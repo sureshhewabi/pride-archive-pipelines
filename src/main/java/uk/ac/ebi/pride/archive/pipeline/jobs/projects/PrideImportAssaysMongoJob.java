@@ -123,11 +123,16 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
                 .tasklet((stepContribution, chunkContext) -> {
                     if(projectAccession != null){
                         Project project = projectRepository.findByAccession(projectAccession);
-                        if(project.getSubmissionType() != SubmissionType.PRIDE.name())
-                            syncProject(project);
+                        if(project.getSubmissionType() != SubmissionType.PRIDE.name()){
+                            if(project.isPublicProject()){
+                                syncProject(project);
+                            }else{
+                                log.warn("This is a private submission, therefore Sync will not happen!");
+                            }
+                        }
                     }else{
                         projectRepository.findAll().forEach(project -> {
-                            if(project.getSubmissionType() != SubmissionType.PRIDE.name()){
+                            if(project.getSubmissionType() != SubmissionType.PRIDE.name() && project.isPublicProject()){
                               syncProject(project);
                             }
                         });
