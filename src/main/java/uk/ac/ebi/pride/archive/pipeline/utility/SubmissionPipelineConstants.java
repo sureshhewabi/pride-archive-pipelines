@@ -133,7 +133,9 @@ public class SubmissionPipelineConstants {
 
        PRIDE_USERS_AAP_SYNC("PrideUsersAAPSync", "This job will sync the users from PRIDE to AAP"),
 
-       PRIDE_ARCHIVE_DATA_USAGE("calculatePrideArchiveDataUsage", "This job will calculate and collate PRIDE Archive data usage");
+       PRIDE_ARCHIVE_DATA_USAGE("calculatePrideArchiveDataUsage", "This job will calculate and collate PRIDE Archive data usage"),
+
+      PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_MONGODB("syncMissingProjectsOracleToMongoJob", "This job will sync missing projects from Oracle into MongoDB");
 
        String name;
        String message;
@@ -208,6 +210,9 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("syncProjectMongoDBToSolrCloudStep",
                 "This Step will sync the Oracle Database data into MongoDB data"),
+
+        PRIDE_ARCHIVE_MISSING_PROJ_ORACLE_TO_MONGO_SYNC("syncMissingProjectOracleToMongoDB",
+                "This Step will sync missing projects from Oracle into MongoDB"),
 
         PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("cleanSolrCloudStep",
                 "Clean all the documents in SolrCloud Master"),
