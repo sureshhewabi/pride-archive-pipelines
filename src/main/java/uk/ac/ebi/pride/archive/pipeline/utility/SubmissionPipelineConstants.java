@@ -131,6 +131,9 @@ public class SubmissionPipelineConstants {
        PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS("analyzeAssayInformationJob",
                "This command analyze the information of an assay"),
 
+      PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexPeptideProteinJob",
+              "This command indexes peptides & proteins to Solr"),
+
        PRIDE_USERS_AAP_SYNC("PrideUsersAAPSync", "This job will sync the users from PRIDE to AAP"),
 
        PRIDE_ARCHIVE_DATA_USAGE("calculatePrideArchiveDataUsage", "This job will calculate and collate PRIDE Archive data usage"),
