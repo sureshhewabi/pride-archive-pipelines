@@ -413,7 +413,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .startPosition(startPosition)
                         .endPosition(endPosition)
                         .missedCleavages(firstPeptide.get().getMissedCleavages())
-                        .ptmList(convertPeptideModifications(firstPeptide.get()))
+                        .ptmList(convertPeptideModifications(firstPeptide.get().getModifications()))
                         .isValid(isValid)
                         .qualityEstimationMethods(validationMethods)
                         .build();
@@ -433,14 +433,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     /**
      * Convert Peptide Modifications from PIA modeller to PeptideEvidence modifications
-     * @param peptide Peptide from PIA
+     * @param modifications Modifications Map
      * @return List if {@link IdentifiedModificationProvider}
      */
-    private Collection<? extends IdentifiedModificationProvider> convertPeptideModifications(ReportPeptide peptide) {
+    private Collection<? extends IdentifiedModificationProvider> convertPeptideModifications(Map<Integer, Modification> modifications) {
 
         List<DefaultIdentifiedModification> ptms = new ArrayList<>();
 
-        for (Map.Entry<Integer, Modification> ptmEntry : peptide.getModifications().entrySet()) {
+        for (Map.Entry<Integer, Modification> ptmEntry : modifications.entrySet()) {
             Modification ptm = ptmEntry.getValue();
             Integer position = ptmEntry.getKey();
             List<DefaultCvParam> probabilities = ptm.getProbability()
@@ -631,7 +631,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             }
                                         }
 
-//                                        properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
+//                                      properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
 //                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
 //                                                String.valueOf(psm.getQValue())));
 
@@ -674,6 +674,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .intensities(intensities)
                                                 .properties(properties)
                                                 .spectrumFile(spectrumFile)
+                                                .modifications(convertPeptideModifications(psm.getModifications()))
                                                 .precursorMz(fileSpectrum.getPrecursorMZ())
                                                 .usi(SubmissionPipelineConstants.buildUsi(
                                                         projectAccession,
@@ -685,7 +686,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         .collect(Collectors.toList()))
                                                 .build();
 
+                                        //spectralArchive.deletePSM(archivePSM.getUsi());
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
+
                                         List<PeptideSpectrumOverview> usis = new ArrayList<>();
                                         if(peptideUsi.containsKey(peptide.getPeptide().getID())){
                                             usis = peptideUsi.get(peptide.getPeptide().getID());
