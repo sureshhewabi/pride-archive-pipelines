@@ -258,18 +258,18 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     proteins.forEach(protein -> {
 
                         String proteinSequence = protein.getRepresentative().getDbSequence();
+                        String proteinAccession = protein.getRepresentative().getAccession();
                         if(proteinSequence == null || proteinSequence.isEmpty()){
-                            if(mappedProteins.containsKey(protein.getRepresentative().getAccession())){
-                                proteinSequence = mappedProteins.get(protein.getRepresentative().getAccession()).getSequenceString();
+                            if(mappedProteins.containsKey(proteinAccession)){
+                                proteinSequence = mappedProteins.get(proteinAccession).getSequenceString();
                             }
                         }
                         Set<String> proteinGroups = protein.getAccessions()
                                 .stream().map(Accession::getAccession)
                                 .collect(Collectors.toSet());
 
-                        List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>();
-                        proteinPTMs.addAll(convertProteinModifications(
-                                protein.getRepresentative().getAccession(), protein.getPeptides()));
+                        List<IdentifiedModificationProvider> proteinPTMs = new ArrayList<>(convertProteinModifications(
+                                proteinAccession, protein.getPeptides()));
 
                         log.info(String.valueOf(protein.getQValue()));
 
@@ -295,12 +295,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             attributes.add(scoreParam);
                         }
 
-                        proteinIds.add(protein.getRepresentative().getAccession());
-                        protein.getPeptides().stream().forEach(x -> peptideSequences.add(x.getSequence()));
+                        proteinIds.add(proteinAccession);
+                        protein.getPeptides().forEach(x -> peptideSequences.add(x.getSequence()));
 
                         PrideMongoProteinEvidence proteinEvidence = PrideMongoProteinEvidence
                                 .builder()
-                                .reportedAccession(protein.getRepresentative().getAccession())
+                                .reportedAccession(proteinAccession)
                                 .isDecoy(protein.getIsDecoy())
                                 .proteinGroupMembers(proteinGroups)
                                 .ptms(proteinPTMs)
@@ -313,7 +313,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .qualityEstimationMethods(validationMethods)
                                 .numberPeptides(protein.getPeptides().size())
                                 .numberPSMs(protein.getNrPSMs())
-                                .sequenceCoverage(protein.getCoverage(protein.getRepresentative().getAccession()))
+                                .sequenceCoverage(protein.getCoverage(proteinAccession))
                                 .build();
 
                         try {
@@ -328,14 +328,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     });
 
                     taskTimeMap.put("InsertPeptidesProteinsIntoMongoDB", System.currentTimeMillis() - initInsertPeptides);
-                    initInsertPeptides = System.currentTimeMillis();
-
-                    PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
-                    solrProject.addProteinIdentifications(proteinIds);
-                    solrProject.addPeptideSequences(peptideSequences);
-                    solrProjectService.update(solrProject);
-
-                    taskTimeMap.put("InsertPeptidesProteinsIntoSolr", System.currentTimeMillis() - initInsertPeptides);
 
                     return RepeatStatus.FINISHED;
                 }).build();
