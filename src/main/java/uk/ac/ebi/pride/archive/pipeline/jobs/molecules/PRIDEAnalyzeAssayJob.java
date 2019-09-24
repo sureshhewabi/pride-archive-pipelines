@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DuplicateKeyException;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
+import uk.ac.ebi.pride.archive.dataprovider.common.ITuple;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModification;
@@ -73,6 +74,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 @Slf4j
@@ -448,7 +450,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 continue;
             }
 
-
             Optional<DefaultIdentifiedModification> proteinExist = ptms.stream()
                     .filter(currentMod -> currentMod.getModificationCvTerm()
                             .getAccession().equalsIgnoreCase(ptm.getAccession()))
@@ -655,6 +656,53 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 String.valueOf(deltaMass))
                                         );
 
+                                        List<uk.ac.ebi.pride.archive.spectra.model.Modification> mods = new ArrayList<>();
+                                        if(psm.getModifications() != null && psm.getModifications().size() > 0)
+                                            mods = convertPeptideModifications(psm.getModifications()).stream().map( x -> {
+
+                                                CvParam neutralLoss = null;
+                                                if(x.getNeutralLoss() != null)
+                                                    neutralLoss = CvParam.builder()
+                                                            .accession(x.getNeutralLoss().getAccession())
+                                                            .cvLabel(x.getNeutralLoss().getCvLabel())
+                                                            .name(x.getNeutralLoss().getName())
+                                                            .value(x.getNeutralLoss().getValue())
+                                                            .build();
+
+
+                                                List<Tuple<Integer,List<CvParam>>> positionMap = new ArrayList<>();
+                                                if(x.getPositionMap() != null && x.getPositionMap().size() > 0 )
+                                                    positionMap = x.getPositionMap().stream()
+                                                        .map( y -> new Tuple<Integer, List<CvParam>>(y.getKey(), y.getValue().stream()
+                                                                .map( z -> {
+                                                                    return CvParam.builder()
+                                                                            .accession(z.getAccession())
+                                                                            .name(z.getName())
+                                                                            .cvLabel(z.getCvLabel())
+                                                                            .value(z.getValue())
+                                                                            .build();
+                                                                })
+                                                                .collect(Collectors.toList())))
+                                                        .collect(Collectors.toList());
+
+                                                CvParam modCv = null;
+                                                if(x.getModificationCvTerm() != null)
+                                                    modCv = CvParam.builder()
+                                                            .accession(x.getModificationCvTerm().getAccession())
+                                                            .cvLabel(x.getModificationCvTerm().getCvLabel())
+                                                            .value(x.getModificationCvTerm().getValue())
+                                                            .name(x.getModificationCvTerm().getName())
+                                                            .build();
+
+                                                List<CvParam> modProperties = new ArrayList<>();
+
+                                                return uk.ac.ebi.pride.archive.spectra.model.Modification.builder()
+                                                        .neutralLoss(neutralLoss)
+                                                        .positionMap(positionMap)
+                                                        .properties(modProperties)
+                                                        .modificationCvTerm(modCv)
+                                                        .build();
+                                            }).collect(Collectors.toList());
                                         PSMProvider archivePSM = ArchiveSpectrum
                                                 .builder()
                                                 .peptideSequence(psm.getSequence())
@@ -666,7 +714,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .intensities(intensities)
                                                 .properties(properties)
                                                 .spectrumFile(spectrumFile)
-                                                .modifications(convertPeptideModifications(psm.getModifications()))
+                                                .modifications(mods)
                                                 .precursorMz(fileSpectrum.getPrecursorMZ())
                                                 .usi(SubmissionPipelineConstants.buildUsi(
                                                         projectAccession,
