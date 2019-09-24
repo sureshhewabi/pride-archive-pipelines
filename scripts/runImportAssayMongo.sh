@@ -19,7 +19,7 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 DATE=$(date +"%Y%m%d")
 LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log
 OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
-ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_err.log"
+
 #JAR FILE PATH
 JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
 
@@ -40,8 +40,6 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         PROJECT_ACCESSION=$1
-        LOG_FILE_NAME="${PROJECT_ACCESSION}-${JOB_NAME}"
-        MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
     esac
     shift
@@ -59,10 +57,9 @@ fi
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
      -R "rusage[mem=${MEMORY_LIMIT}]" \
-     -q production-rh7 \
+     -q research-rh74 \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     -o ${LOG_PATH}/assay_analyse/${OUT_LOG_FILE_NAME} \
-     -e ${LOG_PATH}/assay_analyse/${ERR_LOG_FILE_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=importProjectAssaysInformationJob project=${PROJECT_ACCESSION}
+     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=importProjectAssaysInformationJob project=${PROJECT_ACCESSION} > ${LOG_PATH}/import_assay/${OUT_LOG_FILE_NAME} 2>&1 
+

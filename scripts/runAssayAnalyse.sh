@@ -19,9 +19,7 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 #JOB_EMAIL=${pride.report.email}
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log
-OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
-ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_err.log"
+LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log/assay_analyse
 #JAR FILE PATH
 JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
 
@@ -55,7 +53,8 @@ while [ "$1" != "" ]; do
 done
 
 JOB_NAME="${JOB_NAME}-${ACCESSION}-${ASSAY_ACCESSION}"
-JOB_PARAMETERS="--accession=${ACCESSION},--assay_accession=${ASSAY_ACCESSION}"
+OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_out.log"
+ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_err.log"
 
 ##### CHECK the provided arguments
 if [ -z ${ACCESSION} ]; then
@@ -69,14 +68,13 @@ if [ -z ${ASSAY_ACCESSION} ]; then
          exit 1
 fi
 
-
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
-     -R "rusage[mem=${MEMORY_LIMIT}]" \
-     -q production-rh7 \
+     -R \"rusage[mem=${MEMORY_LIMIT}]\" \
+     -q research-rh74 \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     -o ${LOG_PATH}/assay_analyse/${OUT_LOG_FILE_NAME} \
-     -e ${LOG_PATH}/assay_analyse/${ERR_LOG_FILE_NAME} \
+     -o ${LOG_PATH}/${OUT_LOG_FILE_NAME} \
+     -e ${LOG_PATH}/errors/${ERR_LOG_FILE_NAME} \
      java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=analyzeAssayInformationJob project=${ACCESSION} assay=${ASSAY_ACCESSION}
