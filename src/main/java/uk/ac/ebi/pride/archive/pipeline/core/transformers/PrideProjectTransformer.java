@@ -322,6 +322,7 @@ public class PrideProjectTransformer {
         //Add Dump date
         project.setPublicationDate(mongoPrideProject.getPublicationDate());
         project.setSubmissionDate(mongoPrideProject.getSubmissionDate());
+        project.setSubmissionType(mongoPrideProject.getSubmissionType());
         project.setUpdatedDate(mongoPrideProject.getUpdatedDate());
 
        //Instruments properties
