@@ -17,5 +17,5 @@ ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_err.log"
 #JAR FILE PATH
 JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
 
-bsub -M ${MEMORY_LIMIT} -R \"rusage[mem=${MEMORY_LIMIT}]\" -q production-rh7 -u ${JOB_EMAIL} -J ${JOB_NAME} -o ${LOG_PATH}/solrsync/${OUT_LOG_FILE_NAME} -e ${LOG_PATH}/solrsync/${ERR_LOG_FILE_NAME} java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob
+bsub -M ${MEMORY_LIMIT} -R \"rusage[mem=${MEMORY_LIMIT}]\" -q research-rh74 -u ${JOB_EMAIL} -J ${JOB_NAME} -o ${LOG_PATH}/solrsync/${OUT_LOG_FILE_NAME} -e ${LOG_PATH}/solrsync/${ERR_LOG_FILE_NAME} java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob
 
