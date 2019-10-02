@@ -19,9 +19,9 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 #JOB_EMAIL=${pride.report.email}
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log/assay_analyse
+LOG_PATH=./log/assay_analyse
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
 
 ##### FUNCTIONS
 printUsage() {

@@ -17,11 +17,11 @@ MEMORY_OVERHEAD=1000
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log
+LOG_PATH=./log
 OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
 
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
 
 ##### FUNCTIONS
 printUsage() {

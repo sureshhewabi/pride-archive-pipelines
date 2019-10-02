@@ -13,10 +13,10 @@ MEMORY_LIMIT=1024
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log
+LOG_PATH=./log
 OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
 ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_err.log"
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
 
 bsub -M ${MEMORY_LIMIT} -R \"rusage[mem=${MEMORY_LIMIT}]\" -q production-rh74 -u ${JOB_EMAIL} -J ${JOB_NAME} java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=resetSolrProjectsJob -Dspring-boot.run.arguments= --accession=${JOB_PARAMETERS} > ${LOG_PATH}/reset/${OUT_LOG_FILE_NAME} 2>&1

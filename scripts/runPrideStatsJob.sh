@@ -7,8 +7,8 @@
 JOB_NAME="pride-stats-data"
 DATE=$(date +"%Y%m%d%H%M")
 EMAIL="pride-report@ebi.ac.uk"
-LOG_PATH="/nfs/pride/work/archive/revised-archive-submission-scripts/log/pride-stats-data-${DATE}"
-JAR_PATH="/nfs/pride/work/archive/revised-archive-submission-pipeline/revised-archive-submission-pipeline.jar"
+LOG_PATH="./log/pride-stats-data-${DATE}"
+JAR_PATH="./revised-archive-submission-pipeline.jar"
 JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_144/bin/"
 
 # submit the job to LSF

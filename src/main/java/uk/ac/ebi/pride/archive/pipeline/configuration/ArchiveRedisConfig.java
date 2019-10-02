@@ -23,12 +23,6 @@ import java.util.Set;
 @EnableAutoConfiguration
 public class ArchiveRedisConfig extends RedisClusterConfiguration {
 
-    @Value("${redis.host}")
-    private String redisHost;
-
-    @Value("${redis.port}")
-    private String redisPort;
-
     @Value("${redis.host.one}")
     private String hostOne;
     @Value("${redis.port.one}")
@@ -64,7 +58,6 @@ public class ArchiveRedisConfig extends RedisClusterConfiguration {
 
         List<String> nodes = new ArrayList<>();
 
-        nodes = addNode(redisHost , redisPort, nodes);
         nodes = addNode(hostOne , portOne, nodes);
         nodes = addNode(hostTwo,portTwo, nodes);
         nodes = addNode(hostThree, portThree, nodes);

@@ -7,8 +7,8 @@
 JOB_NAME="pride-users-aap-sync"
 DATE=$(date +"%Y%m%d%H%M")
 EMAIL="pride-report@ebi.ac.uk"
-LOG_PATH="/nfs/pride/work/archive/revised-archive-submission-scripts/log/pride-users-aap-sync/pride-users-aap-sync-${DATE}"
-JAR_PATH="/nfs/pride/work/archive/revised-archive-submission-pipeline/revised-archive-submission-pipeline.jar"
+LOG_PATH="./log/pride-users-aap-sync/pride-users-aap-sync-${DATE}"
+JAR_PATH="./revised-archive-submission-pipeline.jar"
 JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_144/bin/"
 
 # submit the job to LSF
