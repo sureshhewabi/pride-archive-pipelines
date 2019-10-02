@@ -29,9 +29,10 @@ deploy_prod:
 #    - (envsubst < config/.application.yml > src/main/resources/application.yml) && (ls -al src/main/resources/)
     - mvn $MAVEN_CLI_OPTS clean package -DskipTests
     - cd target && jar_file=`ls *jar` && (ln -s $jar_file $JAR_FILE_LINK || true) && ls -al && cd ..
-    - BACKUP_DIR=backup_$(date +"%Y%m%d_%H%M%S")
-    - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && mkdir $BACKUP_DIR && (mv *.jar $BACKUP_DIR/ || true) && (mv config $BACKUP_DIR/ || true) && (mv *.sh $BACKUP_DIR/ || true)"
-    - rsync -a target/*.jar config scripts/*.sh $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH
+    - DEPLOY_DIR=$(date +"%Y%m%d_%H%M%S")
+    - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && mkdir $DEPLOY_DIR"
+    - rsync -a target/*.jar config scripts/*.sh $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/$DEPLOY_DIR/
+    - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && ln -snf $DEPLOY_DIR current"
     #  only:
     ##    - master
   when: manual
