@@ -8,6 +8,7 @@ logging:
       apache.solr: INFO
 
 spring:
+  main.web-application-type: none
   jmx.enabled: false
   jpa.database: default
   datasource:
