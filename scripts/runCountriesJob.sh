@@ -7,9 +7,14 @@
 JOB_NAME="pride-countries-data"
 DATE=$(date +"%Y%m%d%H%M")
 EMAIL="pride-report@ebi.ac.uk"
-LOG_PATH="./log/pride-countries-data/pride-countries-data-${DATE}"
+LOG_PATH="./log/${JOB_NAME}"
 JAR_PATH="./revised-archive-submission-pipeline.jar"
 JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_144/bin/"
 
+LOG_FILE="${JOB_NAME}-${DATE}.log"
+
+mkdir -p ${LOG_PATH}
+
 # submit the job to LSF
-bsub -M 3000 -R "rusage[mem=3000]" -q research-rh74 -u ${EMAIL} -J ${JOB_NAME} -o ${LOG_PATH}_OUT -e ${LOG_PATH}_ERR "${JAVA_DIR}java -Xmx2500m -jar ${JAR_PATH} --spring.batch.job.names=annotateProjectsWithCountryJob"
+bsub -M 3000 -R "rusage[mem=3000]" -q research-rh74 -u ${EMAIL} -J ${JOB_NAME}  ${JAVA_DIR}java -Xmx2500m \
+-jar ${JAR_PATH} --spring.batch.job.names=annotateProjectsWithCountryJob > ${LOG_PATH}/${LOG_FILE} 2>&1

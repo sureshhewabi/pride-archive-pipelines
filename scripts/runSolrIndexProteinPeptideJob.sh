@@ -17,8 +17,7 @@ MEMORY_OVERHEAD=1000
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=./log
-OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
+LOG_PATH="./log/${JOB_NAME}"
 
 #JAR FILE PATH
 JAR_FILE_PATH=.
@@ -49,6 +48,7 @@ while [ "$1" != "" ]; do
 done
 
 JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
+LOG_FILE="${JOB_NAME}-${DATE}.log"
 
 ##### CHECK the provided arguments
 if [ -z ${PROJECT_ACCESSION} ]; then
@@ -57,6 +57,8 @@ fi
 
 #echo ${JOB_ARGS}
 
+mkdir -p ${LOG_PATH}
+
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
      -R "rusage[mem=${MEMORY_LIMIT}]" \
@@ -64,5 +66,7 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=solrIndexPeptideProteinJob ${JOB_ARGS} > ${LOG_PATH}/import_assay/${OUT_LOG_FILE_NAME} 2>&1
+     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar \
+     --spring.batch.job.names=solrIndexPeptideProteinJob ${JOB_ARGS} \
+     > ${LOG_PATH}/${LOG_FILE} 2>&1
 
