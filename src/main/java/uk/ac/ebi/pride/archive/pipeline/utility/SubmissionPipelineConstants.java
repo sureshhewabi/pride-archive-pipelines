@@ -1,5 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.utility;
 
+import de.mpc.pia.intermediate.Modification;
 import de.mpc.pia.modeller.psm.ReportPSM;
 import uk.ac.ebi.jmzidml.model.mzidml.FileFormat;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
@@ -343,16 +344,45 @@ public class SubmissionPipelineConstants {
         if(fileIFormat == SpecIdFormat.MASCOT_QUERY_NUM || fileIFormat == SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID){
             scanType = Constants.ScanType.INDEX;
         }else if(fileIFormat == SpecIdFormat.MZML_ID || fileIFormat == SpecIdFormat.SPECTRUM_NATIVE_ID){
-            //Get the scan number for the id
             scanType = Constants.ScanType.SCAN;
             String[] scanStrings = spectrumID.split("scan=");
             spectrumID = scanStrings[1];
         }
         Path p = Paths.get(refeFile.getFirst());
         String fileName = p.getFileName().toString();
-        return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + spectrumID;
+        return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + spectrumID + ":" + encodePSM(psm.getSequence(), psm.getModifications(), psm.getCharge());
+    }
 
+    public static String encodePSM(String sequence, Map<Integer, Modification> ptms, Integer charge) {
+        return encodePeptide(sequence, ptms) + "/" + charge;
+    }
 
+    public static String encodePeptide(String sequence, Map<Integer, Modification> ptms){
+        StringBuilder stringBuilder = new StringBuilder();
+        String finalSequence = sequence;
+        if(ptms != null && ptms.size() > 0){
+            char[] sequenceList = sequence.toCharArray();
+            if(ptms.containsKey(0))
+                stringBuilder.append("[" + ptms.get(0).getAccession() + "]");
+            for(int i = 0; i < sequenceList.length; i++){
+                stringBuilder.append(sequenceList[i]);
+                if(ptms.containsKey(i+1)){
+                    stringBuilder.append("[" + ptms.get(i+1).getAccession() + "]");
+                }
+            }
+
+            // Add the CTerm modifications
+            for( Map.Entry entry: ptms.entrySet()){
+                Integer position = (Integer) entry.getKey();
+                Modification mod = (Modification) entry.getValue();
+                if(position > sequence.length()){
+                    stringBuilder.append("-").append("[").append(mod.getAccession()).append("]");
+                }
+            }
+            finalSequence = stringBuilder.toString();
+        }
+
+        return finalSequence;
 
     }
 

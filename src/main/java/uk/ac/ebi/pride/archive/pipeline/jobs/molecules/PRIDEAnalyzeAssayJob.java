@@ -56,7 +56,6 @@ import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
@@ -399,7 +398,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .assayAccession(assay.getAccession())
                         .proteinAccession(protein.getRepresentative().getAccession())
                         .isDecoy(firstPeptide.get().getIsDecoy())
-                        .peptideAccession(peptide.getStringID())
+                        .peptideAccession(SubmissionPipelineConstants.encodePeptide(peptide.getSequence(), peptide.getModifications()))
                         .peptideSequence(peptide.getSequence())
                         .additionalAttributes(peptideAttributes)
                         .projectAccession(projectAccession)
