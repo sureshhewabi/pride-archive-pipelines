@@ -14,7 +14,9 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 DATE=$(date +"%Y%m%d")
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
+
+LOG_PATH="./log/${JOB_NAME}"
 
 ##### FUNCTIONS
 printUsage() {
@@ -27,10 +29,10 @@ printUsage() {
     echo "     (optional) email             :  Email to send LSF notification"
 }
 
-LOG_FILE_NAME="${DATE}-${JOB_NAME}"
+LOG_FILE="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
-JOB_NAME="${JOB_NAME}"
 
+mkdir -p ${LOG_PATH}
 
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
@@ -39,4 +41,6 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=importProjectAssaysInformationJob
+     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar \
+     --spring.batch.job.names=importProjectAssaysInformationJob \
+     > ${LOG_PATH}/${LOG_FILE} 2>&1

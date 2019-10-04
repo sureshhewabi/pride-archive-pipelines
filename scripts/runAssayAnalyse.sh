@@ -9,7 +9,7 @@ ASSAY_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="assay_analise"
+JOB_NAME="assay_analyse"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -19,9 +19,9 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 #JOB_EMAIL=${pride.report.email}
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log/assay_analyse
+LOG_PATH="./log/${JOB_NAME}"
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
 
 ##### FUNCTIONS
 printUsage() {
@@ -41,7 +41,6 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         ACCESSION=$1
-        LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}"
         MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
       "-s" | "--assay_accession")
@@ -53,8 +52,7 @@ while [ "$1" != "" ]; do
 done
 
 JOB_NAME="${JOB_NAME}-${ACCESSION}-${ASSAY_ACCESSION}"
-OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_out.log"
-ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_err.log"
+LOG_FILE="${JOB_NAME}-${DATE}.log"
 
 ##### CHECK the provided arguments
 if [ -z ${ACCESSION} ]; then
@@ -68,6 +66,8 @@ if [ -z ${ASSAY_ACCESSION} ]; then
          exit 1
 fi
 
+mkdir -p ${LOG_PATH}
+
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
      -R \"rusage[mem=${MEMORY_LIMIT}]\" \
@@ -75,6 +75,6 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     -o ${LOG_PATH}/${OUT_LOG_FILE_NAME} \
-     -e ${LOG_PATH}/errors/${ERR_LOG_FILE_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=analyzeAssayInformationJob project=${ACCESSION} assay=${ASSAY_ACCESSION}
+     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar \
+     --spring.batch.job.names=analyzeAssayInformationJob project=${ACCESSION} assay=${ASSAY_ACCESSION} \
+     > ${LOG_PATH}/${LOG_FILE} 2>&1

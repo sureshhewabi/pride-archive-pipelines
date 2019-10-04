@@ -1,0 +1,136 @@
+# LOGGING Properties
+logging:
+  path: './logs_${HOSTNAME}/'
+  level:
+    root: INFO
+    org:
+      springframework.data.mongodb.core.MongoTemplate: INFO
+      apache.solr: INFO
+
+batch:
+  jdbc:
+    driver: org.h2.Driver
+    url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
+    user: sa
+    password: sa
+    testWhileIdle: false
+    pool.size: 6
+  drop.script: classpath:/org/springframework/batch/core/schema-drop-h2.sql
+  schema.script: classpath:/org/springframework/batch/core/schema-h2.sql
+  business.schema.script: classpath:/business-schema-h2.sql
+  database.incrementer:
+    class: org.springframework.jdbc.support.incrementer.H2SequenceMaxValueIncrementer
+    parent: sequenceIncrementerParent
+  lob.handler.class: org.springframework.jdbc.support.lob.DefaultLobHandler
+  grid.size: 2
+  verify.cursor.position: true
+  isolationlevel: ISOLATION_SERIALIZABLE
+  table.prefix: BATCH_
+
+spring:
+  main.web-application-type: none
+  jmx.enabled: false
+  jpa.database: default
+  datasource:
+# Spring Batch database
+    driver.class.name: org.h2.Driver
+    url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
+    username: sa
+    password: sa
+# Oracle Database
+    oracle:
+      jdbcUrl: $oracle_jdbc_url
+      username: $oracle_username
+      password: $oracle_password
+      driver-class-name: oracle.jdbc.OracleDriver
+    maxPoolSize: $oracle_maxPoolSize
+    idleTimeOut: $oracle_idleTimeOut
+
+# Redis messaging
+redis:
+  host:
+    one: $redis_server_host_one
+    two: $redis_server_host_two
+    three: $redis_server_host_three
+    four: $redis_server_host_four
+    five: $redis_server_host_five
+    six: $redis_server_host_six
+  port:
+    one: $redis_server_port_one
+    two: $redis_server_port_two
+    three: $redis_server_port_three
+    four: $redis_server_port_four
+    five: $redis_server_port_five
+    six: $redis_server_port_six
+  assay.analyse.queue: $redis_incoming_assay_analyse_queue
+archive.post.publication.completion.queue: $redis_post_publication_completion_queue
+
+# data usage details amd pipeline variables
+pride:
+  archive:
+    data.path: $pride_data_directory
+    usage:
+      path: $pride_usage_directory
+      resource: $pride_usage_resource
+      trackname: $pride_usage_trackname
+  data.prod.directory: $pride_data_directory
+
+ftp.protocol.url: $pride_ftp_protocol_url
+aspera.protocol.url: $pride_aspera_protocol_url
+
+##### Solr CLoud #####
+solr:
+  master:
+    hh.url: $solr_master_hh_url
+    hx.url: $solr_master_hx_url
+spring.data.solr.zk-host:
+  hh: $solr_zk_hh
+  hx: $solr_zk_hx
+spring.pridedb.solr:
+  hh.url: $solr_pridedb_hh_url
+  hx.url: $solr_pridedb_hx_url
+
+# Configuration for MongoDB
+mongodb:
+  project:
+    database: $mongodb_db
+    app:
+      user: $NOT_USED
+      password: $NOT_USED
+      authenticationDatabase: $NOT_USED
+      machine.port: $NOT_USED
+  projects:
+    replicate:
+      hosts: $NOT_USED
+      ports: $NOT_USED
+    single.machine.host: $NOT_USED
+    machine.uri: $mongodb_machine_uri
+  molecules:
+    database: $mongodb_molecules_db
+    machine.uri: $mongodb_molecules_machine_uri
+
+mongo.single.machine: $NOT_USED
+
+# S3 keys.
+spectra.archive.s3:
+  url: $s3_url
+  accesskey: $s3_accesskey
+  secretkey: $s3_secretkey
+  bucketname: $s3_bucketname
+  region: eu-west-2
+
+cloud.aws.region.static: eu-west-2
+
+#aap props
+aap:
+  auth:
+    url: $aap_auth_url
+    hash.url: $aap_auth_hash_url
+  user.search.url: $aap_user_search_url
+  domain:
+    management.url: $aap_domain_management_url
+    url: $aap_domain_url
+  pride.service:
+    uname: $aap_pride_user
+    pwd: $aap_pride_passwd
+

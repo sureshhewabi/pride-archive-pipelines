@@ -11,11 +11,14 @@ MEMORY_LIMIT=4096
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log
-OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_out.log"
-ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}"_err.log"
+LOG_PATH="./log/${JOB_NAME}"
+LOG_FILE="${JOB_NAME}-${DATE}.log"
 #JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+JAR_FILE_PATH=.
 
-bsub -M ${MEMORY_LIMIT} -R \"rusage[mem=${MEMORY_LIMIT}]\" -q research-rh74 -u ${JOB_EMAIL} -J ${JOB_NAME} -o ${LOG_PATH}/solrsync/${OUT_LOG_FILE_NAME} -e ${LOG_PATH}/solrsync/${ERR_LOG_FILE_NAME} java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob
+mkdir -p ${LOG_PATH}
+
+bsub -M ${MEMORY_LIMIT} -R \"rusage[mem=${MEMORY_LIMIT}]\" -q research-rh74 -u ${JOB_EMAIL} -J ${JOB_NAME} \
+    java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob \
+    > ${LOG_PATH}/${LOG_FILE} 2>&1
 
