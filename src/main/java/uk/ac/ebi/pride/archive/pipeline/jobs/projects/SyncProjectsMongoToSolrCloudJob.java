@@ -123,12 +123,15 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                         if(prideSolrProject != null) {
                             String id = (String) prideSolrProject.getId();
                             solrProjectService.deleteProjectById(id);
-                            log.info("Document with id: " + id + " has been deleted from the SolrCloud Master");
+                            log.info("Document with id-accession: " + id + " - " + prideSolrProject.getAccession() + " has been deleted from the SolrCloud Master");
                         }
                     }else{
                         //solrProjectService.deleteAll();
-                        solrProjectService.findAll().forEach(x-> {
-                            solrProjectService.deleteProjectById(x.getAccession());
+                        final Iterable<PrideSolrProject> solrProjects = solrProjectService.findAll();
+                        solrProjects.forEach(x-> {
+                            String id = (String) x.getId();
+                            solrProjectService.deleteProjectById(id);
+                            log.info("Document with id-accession: " + id + " - " + x.getAccession() + " has been deleted from the SolrCloud Master");
                         });
                         log.info("All Documents has been deleted from the SolrCloud Master");
                     }
