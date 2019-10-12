@@ -13,22 +13,22 @@ JOB_NAME="import_assay_mongo"
 MEMORY_LIMIT=6000
 # memory overhead
 MEMORY_OVERHEAD=1000
+# java memory limit
+MEMORY_LIMIT_JAVA=0
 # LSF email notification
 JOB_EMAIL="pride-report@ebi.ac.uk"
+# Log file path
+LOG_PATH="./log/${JOB_NAME}/"
 # Log file name
-DATE=$(date +"%Y%m%d")
-LOG_PATH="./log/${JOB_NAME}"
-
-#JAR FILE PATH
-JAR_FILE_PATH=.
+LOG_FILE_NAME=""
 
 ##### FUNCTIONS
 printUsage() {
-    echo "Description: In the revised archive pipeline, this will import one or multiple assay information to mongoDB"
+    echo "Description: In the revised archive pipeline, this will import one assay information to mongoDB"
     echo "$ ./scripts/runImportAssayMongo.sh"
     echo ""
     echo "Usage: ./runImportAssayMongo.sh -a|--accession [-e|--email]"
-    echo "     Example: ./runAssayAnalyse.sh -a PXD011181 -s 99258"
+    echo "     Example: ./runAssayAnalyse.sh -a PXD011181"
     echo "     (required) accession         : the project accession"
     echo "     (optional) email             :  Email to send LSF notification"
 }
@@ -44,8 +44,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
-
 ##### CHECK the provided arguments
 if [ -z ${PROJECT_ACCESSION} ]; then
          echo "Need to enter a project accession"
@@ -53,8 +51,14 @@ if [ -z ${PROJECT_ACCESSION} ]; then
          exit 1
 fi
 
-mkdir -p ${LOG_PATH}
-LOG_FILE="${JOB_NAME}-${DATE}.log"
+##### Set variables
+JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
+DATE=$(date +"%Y%m%d%H%M")
+LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
+MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
+
+##### Change directory to where the script locate
+cd ${0%/*}
 
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
@@ -63,7 +67,9 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar \
-     --spring.batch.job.names=importProjectAssaysInformationJob project=${PROJECT_ACCESSION} \
-     > ${LOG_PATH}/${LOG_FILE} 2>&1
-
+     ./runPipelineInJava.sh \
+     ${LOG_PATH} \
+     ${LOG_FILE_NAME} \
+     ${MEMORY_LIMIT_JAVA}m \
+     -jar $revised-archive-submission-pipeline.jar \
+     --spring.batch.job.names=importProjectAssaysInformationJob project=${PROJECT_ACCESSION}

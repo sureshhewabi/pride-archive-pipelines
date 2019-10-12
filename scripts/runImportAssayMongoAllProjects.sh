@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-#This job import all the assay information into mongodb
-
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
 JOB_NAME="import_assay_mongo"
@@ -11,36 +9,29 @@ MEMORY_LIMIT=6000
 MEMORY_OVERHEAD=1000
 # LSF email notification
 JOB_EMAIL="pride-report@ebi.ac.uk"
+# Log file path
+LOG_PATH="./log/${JOB_NAME}/"
 # Log file name
-DATE=$(date +"%Y%m%d")
-#JAR FILE PATH
-JAR_FILE_PATH=.
+LOG_FILE_NAME=""
 
-LOG_PATH="./log/${JOB_NAME}"
-
-##### FUNCTIONS
-printUsage() {
-    echo "Description: In the revised archive pipeline, this will import all assay information to mongoDB"
-    echo "$ ./scripts/runImportAssayMongoAllProjects.sh"
-    echo ""
-    echo "Usage: ./runImportAssayMongoAllProjects.sh [-e|--email]"
-    echo "     Example: ./runAssayAnalyse.sh"
-    echo "     (required) accession         : the project accession"
-    echo "     (optional) email             :  Email to send LSF notification"
-}
-
+##### Set variables
+DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
 
-mkdir -p ${LOG_PATH}
+##### Change directory to where the script locate
+cd ${0%/*}
 
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
-     -R "rusage[mem=${MEMORY_LIMIT}]" \
+     -R \"rusage[mem=${MEMORY_LIMIT}]\" \
      -q research-rh74 \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar \
-     --spring.batch.job.names=importProjectAssaysInformationJob \
-     > ${LOG_PATH}/${LOG_FILE} 2>&1
+     ./runPipelineInJava.sh \
+     ${LOG_PATH} \
+     ${LOG_FILE_NAME} \
+     ${MEMORY_LIMIT_JAVA}m \
+     -jar revised-archive-submission-pipeline.jar \
+     --spring.batch.job.names=importProjectAssaysInformationJob
