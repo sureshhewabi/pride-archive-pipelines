@@ -149,7 +149,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         {
             this.projectAccession = projectAccession;
             this.assayAccession = assayAccession;
-            System.out.println(String.format("==================>>>>>>> Run the job for Project %s Assay %s", projectAccession, assayAccession));
+            System.out.println(String.format("==================>>>>>>> PRIDEAnalyzeAssayJob - Run the job for Project %s Assay %s", projectAccession, assayAccession));
             return RepeatStatus.FINISHED;
         };
     }

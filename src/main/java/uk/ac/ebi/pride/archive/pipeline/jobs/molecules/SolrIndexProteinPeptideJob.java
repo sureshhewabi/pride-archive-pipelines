@@ -50,7 +50,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
-            System.out.println(String.format("==================>>>>>>> Run the job for Project %s :", projectAccession));
+            System.out.println(String.format("==================>>>>>>> SolrIndexProteinPeptideJob - Run the job for Project %s", projectAccession));
             return RepeatStatus.FINISHED;
         };
     }
