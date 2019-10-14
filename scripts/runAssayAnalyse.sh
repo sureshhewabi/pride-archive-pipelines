@@ -63,7 +63,7 @@ fi
 ##### Set variables
 JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"
 DATE=$(date +"%Y%m%d%H%M")
-LOG_FILE="${JOB_NAME}-${DATE}.log"
+LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
 
 ##### Change directory to where the script locate
@@ -76,9 +76,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh \
-     ${LOG_PATH} \
-     ${LOG_FILE_NAME} \
-     ${MEMORY_LIMIT_JAVA}m \
-     -jar revised-archive-submission-pipeline.jar \
-     --spring.batch.job.names=analyzeAssayInformationJob project=${PROJECT_ACCESSION} assay=${ASSAY_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=analyzeAssayInformationJob project=${PROJECT_ACCESSION} assay=${ASSAY_ACCESSION}
