@@ -1,6 +1,7 @@
 # LOGGING Properties
 logging:
-  path: './logs_${HOSTNAME}/'
+#  path: './logs_${HOSTNAME}/'
+  config: config/logback-spring.xml
   level:
     root: INFO
     org:
