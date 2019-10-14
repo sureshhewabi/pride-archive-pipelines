@@ -67,4 +67,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar $revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMongoProjectToSolrCloudJob -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION}
