@@ -23,7 +23,7 @@ deploy_prod:
   script:
     - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
     - envsubst < config/.application.yml > config/application.yml
-    - chmod -R 700 config
+    - chmod -R 700 config && chmod 700 scripts/*.sh
     - (rm src/main/resources/*.properties || true)
     - export HOSTNAME=$HOSTNAME_BCKUP
 #    - (envsubst < config/.application.yml > src/main/resources/application.yml) && (ls -al src/main/resources/)

@@ -240,7 +240,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
                         }
                     }*/
 
-                    userRepository.findFilteredLocalUsers().parallelStream().forEach(localUser -> {
+                    userRepository.findFilteredLocalUsers().forEach(localUser -> {
                         if(localUser.getEmail() == null || localUser.getEmail().trim().length()==0){
                             log.error("User email null for id:"+localUser.getId());
                             return;
