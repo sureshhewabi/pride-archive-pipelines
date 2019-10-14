@@ -144,7 +144,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession, @Value("#{jobParameters['assay']}") String assayAccession){
+    public Tasklet initJobPRIDEAnalyzeAssayJob(@Value("#{jobParameters['project']}") String projectAccession, @Value("#{jobParameters['assay']}") String assayAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
@@ -213,8 +213,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
                 .start(stepBuilderFactory
-                        .get("initJob")
-                        .tasklet(initJob(null, null))
+                        .get("initJobPRIDEAnalyzeAssayJob")
+                        .tasklet(initJobPRIDEAnalyzeAssayJob(null, null))
                         .build())
                 .next(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())

@@ -46,7 +46,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
+    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
@@ -65,8 +65,8 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.getName())
                 .start(stepBuilderFactory
-                        .get("initJob")
-                        .tasklet(initJob(null))
+                        .get("initJobSolrIndexProteinPeptideJob")
+                        .tasklet(initJobSolrIndexProteinPeptideJob(null))
                         .build())
                 .next(proteinPeptideIndexStep())
                 .next(printTraceStep())
