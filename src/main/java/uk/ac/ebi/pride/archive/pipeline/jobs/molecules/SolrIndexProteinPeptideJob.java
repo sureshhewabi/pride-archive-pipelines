@@ -68,17 +68,17 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
                         .get("initJobSolrIndexProteinPeptideJob")
                         .tasklet(initJobSolrIndexProteinPeptideJob(null))
                         .build())
-                .next(proteinPeptideIndexStep())
-                .next(printTraceStep())
+                .next(solrIndexProteinPeptideIndexStep())
+                .next(solrIndexPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step printTraceStep(){
+    public Step solrIndexPrintTraceStep(){
         return stepBuilderFactory
-                .get("printTraceStep")
+                .get("solrIndexPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
-                    taskTimeMap.entrySet().stream().forEach( x -> {
+                    taskTimeMap.entrySet().forEach(x -> {
                         log.info("Task: " + x.getKey() + " Time: " + x.getValue());
                     });
                     return RepeatStatus.FINISHED;
@@ -86,9 +86,9 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step proteinPeptideIndexStep(){
+    public Step solrIndexProteinPeptideIndexStep(){
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
                     long initInsertPeptides = System.currentTimeMillis();

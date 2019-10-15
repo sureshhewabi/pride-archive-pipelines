@@ -220,16 +220,16 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 .next(updateAssayInformationStep())
                 .next(indexSpectraStep())
                 .next(proteinPeptideIndexStep())
-                .next(printTraceStep())
+                .next(analyzeAssayPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step printTraceStep(){
+    public Step analyzeAssayPrintTraceStep(){
         return stepBuilderFactory
-                .get("printTraceStep")
+                .get("analyzeAssayPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
-                    taskTimeMap.entrySet().stream().forEach( x -> {
+                    taskTimeMap.entrySet().forEach(x -> {
                         log.info("Task: " + x.getKey() + " Time: " + x.getValue());
                     });
                     return RepeatStatus.FINISHED;

@@ -10,7 +10,7 @@ cache:
     - target/
 
 before_script:
-  - which ssh-agent || (apk add --update openssh-client bash openssl rsync gettext)
+  - which ssh-agent || (apk add --update openssh-client bash openssl rsync gettext tzdata)
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - mkdir ~/.ssh
