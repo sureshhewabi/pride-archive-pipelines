@@ -25,7 +25,7 @@ LOG_FILE_NAME=""
 ##### FUNCTIONS
 printUsage() {
     echo "Description: In the revised archive pipeline, this will remove one assay information from mongoDB"
-    echo "$ ./scripts/runImportAssayMongo.sh"
+    echo "$ ./scripts/spring_batch_solr_sync_add_one_project.sh"
     echo ""
     echo "Usage: ./spring_batch_solr_sync_add_one_project.sh -a|--accession [-e|--email]"
     echo "     Example: ./spring_batch_solr_sync_add_one_project.sh -a PXD011181"
