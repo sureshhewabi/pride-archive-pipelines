@@ -8,8 +8,8 @@ LOG_FILE_NAME=$2
 MEMORY_LIMIT=$3
 shift 3
 PIPELINE_JOB_PARAMETERS=$*
-#JAVA_DIR="${java.bin.directory}"
-JAVA_DIR=""
+
+JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_65/bin/"
 
 mkdir -p ${LOG_PATH}
 

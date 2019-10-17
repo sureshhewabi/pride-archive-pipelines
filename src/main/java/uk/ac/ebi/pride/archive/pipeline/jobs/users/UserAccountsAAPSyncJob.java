@@ -112,7 +112,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
             return;
         }
         JSONArray domainsJsonArray = new JSONArray(responseEntity.getBody());
-        prideAAPDomainsMap = new HashMap<String,String>();
+        prideAAPDomainsMap = new HashMap<>();
         for(int i=0;i<domainsJsonArray.length();i++){
             JSONObject domainJsonObj = domainsJsonArray.getJSONObject(i);
             prideAAPDomainsMap.put(domainJsonObj.getString(AAPConstants.DOMAIN_NAME),domainJsonObj.getString(AAPConstants.DOMAIN_REF));
@@ -121,7 +121,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
     }
 
     //check if user exists in AAP with same pride email<==>AAP username and filter the list
-    public Tuple<Boolean,String> checkUserInAAP(String email, Long id){
+    private Tuple<Boolean,String> checkUserInAAP(String email, Long id){
         ResponseEntity<String> responseEntity;
         try{
             responseEntity = restTemplate.exchange(aapUserSearchURL+"?value="+email, HttpMethod.GET,new HttpEntity(createAAPTokenAuthHeaders()),String.class);
@@ -142,7 +142,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
         return new Tuple(false,null);
     }
 
-    public void createUserInAAP(User user) {
+    private void createUserInAAP(User user) {
         UserAAP userAAP = ObjectMapper.mapUsertoUserAAP(user);
 
         //create json for syncing account on hashed endpoint
@@ -176,7 +176,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
 
     }
 
-    public void updateAAPDomainMembership(User user){
+    private void updateAAPDomainMembership(User user){
         //get user's authorities from PRIDE
         for(RoleConstants userAuthority : user.getUserAuthorities()){
             switch (userAuthority){
@@ -214,42 +214,15 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
 
                     initializeParameters();
 
-                    /*List<User> localUsersList = userRepository.findFilteredLocalUsers();
-                    System.out.println("Local filtered users size =>"+localUsersList.size());
-                    if(localUsersList.size()>0){
-                        int index=0,size=localUsersList.size();
-                        for(User localUser : localUsersList){
-                            log.info("Processing record:"+(++index)+"/"+size);
-                            if(localUser.getEmail() == null || localUser.getEmail().trim().length()==0){
-                                log.error("User email null for id:"+localUser.getId());
-                                continue;
-                            }
-                            Tuple<Boolean,String> resultTuple = checkUserInAAP(localUser.getEmail(),localUser.getId());
-                            if(resultTuple.getKey()){
-                                *//*if user already exists
-                                  save user ref in DB
-                                 *//*
-                                localUser.setUserRef(resultTuple.getValue());
-                                userRepository.save(localUser);
-                            }else {
-                                //create a new user in AAP
-                                createUserInAAP(localUser);
-                            }
-                            //update user domain memberships in AAP
-                            updateAAPDomainMembership(localUser);
-                        }
-                    }*/
-
-                    userRepository.findFilteredLocalUsers().forEach(localUser -> {
+                    List<User> filteredLocalUsers = userRepository.findFilteredLocalUsers();
+                    filteredLocalUsers.forEach(localUser -> {
                         if(localUser.getEmail() == null || localUser.getEmail().trim().length()==0){
                             log.error("User email null for id:"+localUser.getId());
                             return;
                         }
                         Tuple<Boolean,String> resultTuple = checkUserInAAP(localUser.getEmail(),localUser.getId());
                         if(resultTuple.getKey()){
-                                /*if user already exists
-                                  save user ref in DB
-                                 */
+                            //if user already exists, save user ref in DB
                             localUser.setUserRef(resultTuple.getValue());
                             userRepository.save(localUser);
                         }else {
