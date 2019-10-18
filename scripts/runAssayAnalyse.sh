@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Load environment (and make the bsub command available)
+. /etc/profile.d/lsf.sh
+
 ##### OPTIONS
 # (required) the project accession
 PROJECT_ACCESSION=""

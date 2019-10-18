@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Load environment (and make the bsub command available)
+. /etc/profile.d/lsf.sh
+
 #This job syncs one document(accession based) from oracle into mongodb
 
 ##### OPTIONS

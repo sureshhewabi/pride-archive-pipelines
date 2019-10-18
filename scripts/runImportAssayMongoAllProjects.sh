@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Load environment (and make the bsub command available)
+. /etc/profile.d/lsf.sh
+
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
 JOB_NAME="import_assay_mongo"
