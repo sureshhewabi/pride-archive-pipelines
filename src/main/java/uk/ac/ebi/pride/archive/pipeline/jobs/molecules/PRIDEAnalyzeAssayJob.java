@@ -8,6 +8,7 @@ import de.mpc.pia.intermediate.PeptideSpectrumMatch;
 import de.mpc.pia.modeller.PIAModeller;
 import de.mpc.pia.modeller.peptide.ReportPeptide;
 import de.mpc.pia.modeller.protein.ReportProtein;
+import de.mpc.pia.modeller.psm.PSMReportItem;
 import de.mpc.pia.modeller.psm.ReportPSM;
 import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
@@ -124,7 +125,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     //@Value("#{jobParameters['assay']}")
     private String assayAccession;
 
-    @Value("${qValueThreshold:#{0.01}}")
+    @Value("${qValueThreshold:#{0.05}}")
     private Double qValueThershold;
 
     /** List of reported Peptides **/
@@ -570,18 +571,31 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         AtomicInteger totalPSM = new AtomicInteger();
                         AtomicInteger errorDeltaPSM = new AtomicInteger();
 
-                        if(assayResultFile.isPresent() && spectrumFiles.size() > 0)
+                        if(assayResultFile.isPresent() && (spectrumFiles.size() > 0
+                                || assayResultFile.get().getFileCategory().getAccession().equalsIgnoreCase("PRIDE:1002848")))
                         {
 
-                            List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> mongoRelatedFiles = (assayResultFile.get().getRelatedFiles().size() == 0)?
-                                    SubmissionPipelineConstants.combineSpectraControllers(buildPath,
-                                            Collections.singletonList(SubmissionPipelineConstants
-                                            .returnUnCompressPath(assayResultFile.get().getFileName())), spectrumFiles):
-                                    SubmissionPipelineConstants.combineSpectraControllers(buildPath, assayResultFile.get()
-                                            .getRelatedFiles().stream().map( x -> SubmissionPipelineConstants.returnUnCompressPath(x.getFileName()))
-                                            .collect(Collectors.toList()), spectrumFiles);
+                            JmzReaderSpectrumService service = null;
+                            List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> mongoRelatedFiles = null;
 
-                            JmzReaderSpectrumService service = JmzReaderSpectrumService.getInstance(mongoRelatedFiles);
+                            if(spectrumFiles.size() > 0){
+                                mongoRelatedFiles = (assayResultFile.get().getRelatedFiles().size() == 0)?
+                                        SubmissionPipelineConstants.combineSpectraControllers(buildPath,
+                                                Collections.singletonList(SubmissionPipelineConstants
+                                                        .returnUnCompressPath(assayResultFile.get().getFileName())), spectrumFiles):
+                                        SubmissionPipelineConstants.combineSpectraControllers(buildPath, assayResultFile.get()
+                                                .getRelatedFiles().stream().map( x -> SubmissionPipelineConstants.returnUnCompressPath(x.getFileName()))
+                                                .collect(Collectors.toList()), spectrumFiles);
+
+                                service = JmzReaderSpectrumService.getInstance(mongoRelatedFiles);
+                            }else{
+                            Triple<String, SpectraData, SubmissionPipelineConstants.FileType> prideSpectraFile = new Triple<String, SpectraData, SubmissionPipelineConstants.FileType>(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()), null, SubmissionPipelineConstants.FileType.PRIDE);
+                                service = JmzReaderSpectrumService.getInstance(Collections.singletonList(prideSpectraFile));
+                            }
+
+                            JmzReaderSpectrumService finalService = service;
+                            List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> finalMongoRelatedFiles = mongoRelatedFiles;
+
                             peptides.parallelStream().forEach(peptide -> {
 
                                 peptide.getPSMs().parallelStream().forEach(psm -> {
@@ -593,14 +607,32 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         totalPSM.set(totalPSM.get() + 1);
 
                                         PeptideSpectrumMatch finalSpectrum = spectrum;
-                                        Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = mongoRelatedFiles.stream()
-                                                .filter(x -> x.getSecond().getId()
-                                                        .equalsIgnoreCase(finalSpectrum.getSpectrumIdentification()
-                                                                .getInputSpectra().get(0).getSpectraDataRef()))
-                                                .findFirst();
 
-                                        String spectrumFile = refeFile.get().getFirst();
-                                        Spectrum fileSpectrum = service.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), (ReportPSM) psm));
+                                        Spectrum fileSpectrum = null;
+                                        String spectrumFile = null;
+                                        Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = null;
+                                        String usi = null;
+                                        if(spectrumFiles.size() > 0){
+                                            refeFile = finalMongoRelatedFiles.stream()
+                                                    .filter(x -> x.getSecond().getId()
+                                                            .equalsIgnoreCase(finalSpectrum.getSpectrumIdentification()
+                                                                    .getInputSpectra().get(0).getSpectraDataRef()))
+                                                    .findFirst();
+                                            spectrumFile = refeFile.get().getFirst();
+                                            fileSpectrum = finalService.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), (ReportPSM) psm));
+                                            usi = SubmissionPipelineConstants.buildUsi(projectAccession, refeFile.get(), (ReportPSM) psm);
+                                        }else{
+                                            SpectraData spectraData = new SpectraData();
+                                            spectraData.setLocation(assayResultFile.get().getFileName());
+                                            refeFile = Optional.of(new Triple<String, SpectraData, SubmissionPipelineConstants.FileType>
+                                                    (buildPath + assayResultFile.get().getFileName(), spectraData, SubmissionPipelineConstants.FileType.PRIDE));
+                                            fileSpectrum = finalService.getSpectrum(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()), ((ReportPSM) psm).getSourceID());
+                                            usi = SubmissionPipelineConstants.buildUsi(projectAccession,
+                                                    SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName()) , (ReportPSM) psm);
+                                            spectrumFile = SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName());
+
+                                        }
+
                                         log.info(fileSpectrum.getId() + " " + (psm.getMassToCharge() - fileSpectrum.getPrecursorMZ()));
                                         Double[] masses = new Double[fileSpectrum.getPeakList().size()];
                                         Double[] intensities = new Double[fileSpectrum.getPeakList().size()];
@@ -704,21 +736,24 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             }).collect(Collectors.toList());
                                         PSMProvider archivePSM = ArchiveSpectrum
                                                 .builder()
+                                                .projectAccession(projectAccession)
+                                                .assayAccession(assayAccession)
                                                 .peptideSequence(psm.getSequence())
                                                 .isDecoy(psm.getIsDecoy())
                                                 .retentionTime(retentionTime)
                                                 .msLevel(fileSpectrum.getMsLevel())
                                                 .precursorCharge(fileSpectrum.getPrecursorCharge())
                                                 .masses(masses)
+                                                .numPeaks(intensities.length)
                                                 .intensities(intensities)
                                                 .properties(properties)
                                                 .spectrumFile(spectrumFile)
                                                 .modifications(mods)
                                                 .precursorMz(fileSpectrum.getPrecursorMZ())
-                                                .usi(SubmissionPipelineConstants.buildUsi(
-                                                        projectAccession,
-                                                        refeFile.get(), (ReportPSM) psm))
+                                                .usi(usi)
+                                                .spectrumFile(spectrumFile)
                                                 .isValid(isValid)
+                                                .missedCleavages(((ReportPSM)psm).getMissedCleavages())
                                                 .qualityEstimationMethods(validationMethods.stream()
                                                         .map( x-> new CvParam(x.getCvLabel(),
                                                                 x.getAccession(), x.getName(), x.getValue()))
@@ -733,9 +768,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             usis = peptideUsi.get(peptide.getPeptide().getID());
                                         }
                                         usis.add(PeptideSpectrumOverview.builder()
-                                                .usi(SubmissionPipelineConstants.buildUsi(
-                                                        projectAccession,
-                                                        refeFile.get(), (ReportPSM) psm))
+                                                .usi(usi)
                                                 .charge(psm.getCharge())
                                                 .precursorMass(psm.getMassToCharge())
                                                 .build());
@@ -747,7 +780,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 });
                             });
                         }
-                        log.info("Delta Mass Rate -- " + (errorDeltaPSM.get() / totalPSM.get()));
+                      log.info("Delta Mass Rate -- " + (errorDeltaPSM.get() / totalPSM.get()));
                     }
 
                     taskTimeMap.put(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_SPECTRUM_UPDATE.getName(),

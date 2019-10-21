@@ -353,6 +353,18 @@ public class SubmissionPipelineConstants {
         return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + spectrumID + ":" + encodePSM(psm.getSequence(), psm.getModifications(), psm.getCharge());
     }
 
+    /**
+     * build USI for PRIDE XML as spectra
+     * @param projectAccession project
+     * @param fileName filename with the spectra
+     * @param psm PSM
+     * @return
+     */
+    public static String buildUsi(String projectAccession, String fileName,  ReportPSM psm) {
+        Constants.ScanType scanType = Constants.ScanType.INDEX;
+        return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + psm.getSourceID() + ":" + encodePSM(psm.getSequence(), psm.getModifications(), psm.getCharge());
+    }
+
     public static String encodePSM(String sequence, Map<Integer, Modification> ptms, Integer charge) {
         return encodePeptide(sequence, ptms) + "/" + charge;
     }
