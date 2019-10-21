@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 
+# Load environment (and make the bsub command available)
+. /etc/profile.d/lsf.sh
+
 ##### OPTIONS
 # (required) the project accession
-ACCESSION=""
+PROJECT_ACCESSION=""
 
 # (required) the assay accession
 ASSAY_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="assay_analise"
+JOB_NAME="assay_analyse"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
 MEMORY_OVERHEAD=1000
 # LSF email notification
 JOB_EMAIL="pride-report@ebi.ac.uk"
-#JOB_EMAIL=${pride.report.email}
+# Log file path
+LOG_PATH="./log/${JOB_NAME}/"
 # Log file name
-DATE=$(date +"%Y%m%d")
-LOG_PATH=/nfs/pride/work/archive/revised-archive-submission-scripts/log/assay_analyse
-#JAR FILE PATH
-JAR_FILE_PATH=/nfs/pride/work/archive/revised-archive-submission-pipeline
+LOG_FILE_NAME=""
 
 ##### FUNCTIONS
 printUsage() {
@@ -40,9 +41,7 @@ while [ "$1" != "" ]; do
     case $1 in
       "-a" | "--accession")
         shift
-        ACCESSION=$1
-        LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}"
-        MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
+        PROJECT_ACCESSION=$1
         ;;
       "-s" | "--assay_accession")
         shift
@@ -52,12 +51,8 @@ while [ "$1" != "" ]; do
     shift
 done
 
-JOB_NAME="${JOB_NAME}-${ACCESSION}-${ASSAY_ACCESSION}"
-OUT_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_out.log"
-ERR_LOG_FILE_NAME=${JOB_NAME}-${DATE}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"_err.log"
-
 ##### CHECK the provided arguments
-if [ -z ${ACCESSION} ]; then
+if [ -z ${PROJECT_ACCESSION} ]; then
          echo "Need to enter a project accession"
          printUsage
          exit 1
@@ -68,6 +63,15 @@ if [ -z ${ASSAY_ACCESSION} ]; then
          exit 1
 fi
 
+##### Set variables
+JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}-${ASSAY_ACCESSION}"
+DATE=$(date +"%Y%m%d%H%M")
+LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
+MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
+
+##### Change directory to where the script locate
+cd ${0%/*}
+
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
      -R \"rusage[mem=${MEMORY_LIMIT}]\" \
@@ -75,6 +79,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     -o ${LOG_PATH}/${OUT_LOG_FILE_NAME} \
-     -e ${LOG_PATH}/errors/${ERR_LOG_FILE_NAME} \
-     java -jar ${JAR_FILE_PATH}/revised-archive-submission-pipeline.jar --spring.batch.job.names=analyzeAssayInformationJob project=${ACCESSION} assay=${ASSAY_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=analyzeAssayInformationJob project=${PROJECT_ACCESSION} assay=${ASSAY_ACCESSION}

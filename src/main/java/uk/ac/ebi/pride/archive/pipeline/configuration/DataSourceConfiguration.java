@@ -31,7 +31,6 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
  */
 
 @Configuration
-@PropertySource("classpath:/batch-h2.properties")
 public class DataSourceConfiguration {
 
     @Autowired

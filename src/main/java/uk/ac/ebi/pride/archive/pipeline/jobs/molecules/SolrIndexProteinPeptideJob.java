@@ -46,11 +46,11 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession){
+    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
-            System.out.println(String.format("==================>>>>>>> Run the job for Project %s :", projectAccession));
+            System.out.println(String.format("==================>>>>>>> SolrIndexProteinPeptideJob - Run the job for Project %s", projectAccession));
             return RepeatStatus.FINISHED;
         };
     }
@@ -65,20 +65,20 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.getName())
                 .start(stepBuilderFactory
-                        .get("initJob")
-                        .tasklet(initJob(null))
+                        .get("initJobSolrIndexProteinPeptideJob")
+                        .tasklet(initJobSolrIndexProteinPeptideJob(null))
                         .build())
-                .next(proteinPeptideIndexStep())
-                .next(printTraceStep())
+                .next(solrIndexProteinPeptideIndexStep())
+                .next(solrIndexPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step printTraceStep(){
+    public Step solrIndexPrintTraceStep(){
         return stepBuilderFactory
-                .get("printTraceStep")
+                .get("solrIndexPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
-                    taskTimeMap.entrySet().stream().forEach( x -> {
+                    taskTimeMap.entrySet().forEach(x -> {
                         log.info("Task: " + x.getKey() + " Time: " + x.getValue());
                     });
                     return RepeatStatus.FINISHED;
@@ -86,9 +86,9 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step proteinPeptideIndexStep(){
+    public Step solrIndexProteinPeptideIndexStep(){
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
                     long initInsertPeptides = System.currentTimeMillis();

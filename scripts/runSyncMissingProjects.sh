@@ -5,7 +5,7 @@
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="import_assay_mongo"
+JOB_NAME="sync_missing_projects"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -16,6 +16,14 @@ JOB_EMAIL="pride-report@ebi.ac.uk"
 LOG_PATH="./log/${JOB_NAME}/"
 # Log file name
 LOG_FILE_NAME=""
+
+##### FUNCTIONS
+printUsage() {
+    echo "Description: In the revised archive pipeline, this will sync all the missing projects with mongodb"
+    echo "$ ./scripts/runSyncMissingProjects.sh"
+    echo ""
+    echo "Usage: ./runSyncMissingProjects.sh"
+}
 
 ##### Set variables
 DATE=$(date +"%Y%m%d%H%M")
@@ -32,4 +40,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=importProjectAssaysInformationJob
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=syncMissingProjectsOracleToMongoJob

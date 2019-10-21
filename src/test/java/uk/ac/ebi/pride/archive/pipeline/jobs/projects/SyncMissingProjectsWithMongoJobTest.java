@@ -43,5 +43,4 @@ public class SyncMissingProjectsWithMongoJobTest {
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(param);
         Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
     }
-
 }

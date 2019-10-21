@@ -95,6 +95,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
               // get list of accessions missing in in Oracle due to reset or mistakenly added to Mongo
               mongoDBProjectAccessionsCopy.removeAll(oracleProjectAccessions);
               System.out.println("List of accessions mistakenly added to MongoDB: " + mongoDBProjectAccessionsCopy.toString());
+              notifyToMessagingQueue(mongoDBProjectAccessionsCopy, false);
 
               return RepeatStatus.FINISHED;
             })
@@ -141,12 +142,11 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
      */
     private void notifyToMessagingQueue(Set<String> projects, boolean isInsert){
 
-        projects.forEach(
-                project -> {
-                    messageNotifier.sendNotification(redisQueueName,
-                            new PublicationCompletionPayload((isInsert)? project : project + "_ERROR"),
-                            PublicationCompletionPayload.class);
-                    log.info("Notified to redis queue {} : {}", redisQueueName ,project);
-                });
+        for (String project : projects) {
+            String message = (isInsert) ? project : project + "_ERROR";
+            messageNotifier.sendNotification(redisQueueName,
+                    new PublicationCompletionPayload(message),PublicationCompletionPayload.class);
+            System.out.println("Notified to redis queue " + redisQueueName + " : " + message);
+        }
     }
 }

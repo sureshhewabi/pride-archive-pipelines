@@ -1,0 +1,49 @@
+image: maven:3.3.9-jdk-8-alpine
+
+variables:
+  MAVEN_CLI_OPTS: "-s .m2/settings.xml --batch-mode"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository/
+    - target/
+
+before_script:
+  - which ssh-agent || (apk add --update openssh-client bash openssl rsync gettext tzdata)
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - mkdir ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  - chmod 600 ~/.ssh/known_hosts
+
+.deploy_script:
+  stage: deploy
+  script:
+    - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
+    - envsubst < config/.application.yml > config/application.yml
+    - chmod -R 700 config && chmod 700 scripts/*.sh
+    - (rm src/main/resources/*.properties || true)
+    - export HOSTNAME=$HOSTNAME_BCKUP
+    #    - (envsubst < config/.application.yml > src/main/resources/application.yml) && (ls -al src/main/resources/)
+    - mvn $MAVEN_CLI_OPTS clean package -DskipTests
+    - cd target && jar_file=`ls *jar` && (ln -s $jar_file $JAR_FILE_LINK || true) && ls -al && cd ..
+    - DEPLOY_DIR=$(date +"%Y%m%d_%H%M%S")
+    - ssh $SERVER_USER@$DEPLOY_SERVER "bash && mkdir -p $DEPLOY_PATH/$DEPLOY_DIR"
+    - rsync -a target/*.jar config scripts/*.sh $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/$DEPLOY_DIR/
+    - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && ln -snf $DEPLOY_DIR current"
+
+deploy_prod:
+  environment: prod
+  extends: .deploy_script
+#  only:
+#    - master
+  when: manual
+
+deploy_dev:
+  environment: dev
+  extends: .deploy_script
+  #  only:
+  #    - master
+  when: manual

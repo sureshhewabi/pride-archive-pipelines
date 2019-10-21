@@ -249,7 +249,11 @@ public class SubmissionPipelineConstants {
                 "This step read the spectrum information from the file and insert it into mongoDB and S3"),
 
         PRIDE_ARCHIVE_MONGODB_PROTEIN_UPDATE("proteinPeptideIndexStep",
-                "This step update the protein and peptide information");
+                "This step update the protein and peptide information"),
+
+        PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexProteinPeptideIndexStep",
+                                                     "This step update the protein and peptide information");
+
         String name;
         String message;
 

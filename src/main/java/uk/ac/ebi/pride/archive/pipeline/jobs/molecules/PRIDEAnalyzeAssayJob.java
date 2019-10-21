@@ -145,12 +145,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJob(@Value("#{jobParameters['project']}") String projectAccession, @Value("#{jobParameters['assay']}") String assayAccession){
+    public Tasklet initJobPRIDEAnalyzeAssayJob(@Value("#{jobParameters['project']}") String projectAccession, @Value("#{jobParameters['assay']}") String assayAccession){
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
             this.assayAccession = assayAccession;
-            System.out.println(String.format("==================>>>>>>> Run the job for Project %s Assay %s", projectAccession, assayAccession));
+            System.out.println(String.format("==================>>>>>>> PRIDEAnalyzeAssayJob - Run the job for Project %s Assay %s", projectAccession, assayAccession));
             return RepeatStatus.FINISHED;
         };
     }
@@ -214,23 +214,23 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         return jobBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_ASSAY_ANALYSIS.getName())
                 .start(stepBuilderFactory
-                        .get("initJob")
-                        .tasklet(initJob(null, null))
+                        .get("initJobPRIDEAnalyzeAssayJob")
+                        .tasklet(initJobPRIDEAnalyzeAssayJob(null, null))
                         .build())
                 .next(analyzeAssayInformationStep())
                 .next(updateAssayInformationStep())
                 .next(indexSpectraStep())
                 .next(proteinPeptideIndexStep())
-                .next(printTraceStep())
+                .next(analyzeAssayPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step printTraceStep(){
+    public Step analyzeAssayPrintTraceStep(){
         return stepBuilderFactory
-                .get("printTraceStep")
+                .get("analyzeAssayPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
-                    taskTimeMap.entrySet().stream().forEach( x -> {
+                    taskTimeMap.entrySet().forEach(x -> {
                         log.info("Task: " + x.getKey() + " Time: " + x.getValue());
                     });
                     return RepeatStatus.FINISHED;
