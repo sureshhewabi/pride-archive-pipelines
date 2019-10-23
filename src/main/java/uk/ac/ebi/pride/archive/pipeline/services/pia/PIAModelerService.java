@@ -46,10 +46,15 @@ public class PIAModelerService {
      */
     public PIAModeller performProteinInference(String assayId,
                                                String filePath, SubmissionPipelineConstants.FileType fileType,
-                                               double psmQThreshold, double proteinQThreshold)
-            throws IOException {
+                                               double psmQThreshold, double proteinQThreshold) throws IOException {
 
         PIAModeller piaModeller = computeFDRPSMLevel(assayId, filePath, fileType);
+        return performFilteringInference(piaModeller, psmQThreshold, proteinQThreshold);
+
+
+    }
+
+    public PIAModeller performFilteringInference(PIAModeller piaModeller, double psmQThreshold, double proteinQThreshold){
 
         if (piaModeller != null){
 
@@ -87,8 +92,6 @@ public class PIAModelerService {
         }
 
         return piaModeller;
-
-
     }
 
     /**

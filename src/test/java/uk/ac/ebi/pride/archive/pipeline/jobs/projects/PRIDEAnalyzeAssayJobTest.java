@@ -65,11 +65,11 @@ public class PRIDEAnalyzeAssayJobTest {
     @Test
     public void simpleFileImport() throws Exception {
         JobParameters param = new JobParametersBuilder()
-                    .addString("project", "PXD003226")
-                    .addString("assay", "59607")
+                    .addString("project", "PXD010142")
+                    .addString("assay", "93466")
                     .toJobParameters();
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD003226");
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "59607");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD010142");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "93466");
             JobExecution jobExecution = null;
             try {
                 jobExecution = jobLauncherTestUtils.launchJob(param);
