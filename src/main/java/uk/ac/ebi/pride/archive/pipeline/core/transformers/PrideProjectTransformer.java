@@ -340,6 +340,7 @@ public class PrideProjectTransformer {
                                 .collect(Collectors.toList())))
         );
         project.setSampleAttributes(sampleAttributes);
+        project.setReferences(new HashSet<>(mongoPrideProject.getReferences()));
 
         return project;
     }
