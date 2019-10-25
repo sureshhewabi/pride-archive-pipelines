@@ -54,6 +54,7 @@ import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
@@ -65,6 +66,8 @@ import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
 import uk.ac.ebi.pride.utilities.util.Triple;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -452,13 +455,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     log.info("Position of the corresponding peptide is not present -- " + protein.getRepresentative().getAccession());
                 }
 
-
                 PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
                         .builder()
                         .assayAccession(assay.getAccession())
                         .proteinAccession(protein.getRepresentative().getAccession())
                         .isDecoy(firstPeptide.get().getIsDecoy())
-                        .peptideAccession(SubmissionPipelineConstants.encodePeptide(peptide.getSequence(), peptide.getModifications()))
+                        .peptideAccession(SubmissionPipelineConstants
+                                .encodePeptide(peptide.getSequence(), peptide.getModifications()))
                         .peptideSequence(peptide.getSequence())
                         .additionalAttributes(peptideAttributes)
                         .projectAccession(projectAccession)
@@ -674,8 +677,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                                         Spectrum fileSpectrum = null;
                                         String spectrumFile = null;
+                                        String fileName = null;
                                         Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = null;
                                         String usi = null;
+
                                         if(spectrumFiles.size() > 0){
                                             refeFile = finalMongoRelatedFiles.stream()
                                                     .filter(x -> x.getSecond().getId()
@@ -685,6 +690,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             spectrumFile = refeFile.get().getFirst();
                                             fileSpectrum = finalService.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), (ReportPSM) psm));
                                             usi = SubmissionPipelineConstants.buildUsi(projectAccession, refeFile.get(), (ReportPSM) psm);
+                                            Path p = Paths.get(refeFile.get().getFirst());
+                                            fileName = p.getFileName().toString();
                                         }else{
                                             SpectraData spectraData = new SpectraData();
                                             spectraData.setLocation(assayResultFile.get().getFileName());
@@ -694,6 +701,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             usi = SubmissionPipelineConstants.buildUsi(projectAccession,
                                                     SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName()) , (ReportPSM) psm);
                                             spectrumFile = SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName());
+                                            fileName = SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName());
 
                                         }
 
@@ -708,13 +716,19 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         }
 
                                         List<CvParam> properties = new ArrayList<>();
+                                        CvParam bestSearchEngine = null;
 
                                         for(ScoreModelEnum scoreModel: ScoreModelEnum.values()){
                                             Double scoreValue = psm.getScore(scoreModel.getShortName());
                                             if(scoreValue != null && !scoreValue.isNaN()){
                                                 for(CvTermReference ref: CvTermReference.values()){
-                                                    if (ref.getAccession().equalsIgnoreCase(scoreModel.getCvAccession()))
-                                                        properties.add(new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue)));
+                                                    if (ref.getAccession().equalsIgnoreCase(scoreModel.getCvAccession())){
+                                                        CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue));
+                                                        properties.add(cv);
+                                                        if(ref.getAccession().equalsIgnoreCase("MS:1002355"))
+                                                            bestSearchEngine = cv;
+                                                    }
+
                                                 }
                                             }
                                         }
@@ -798,6 +812,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         .modificationCvTerm(modCv)
                                                         .build();
                                             }).collect(Collectors.toList());
+
                                         PSMProvider archivePSM = ArchiveSpectrum
                                                 .builder()
                                                 .projectAccession(projectAccession)
@@ -824,7 +839,31 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         .collect(Collectors.toList()))
                                                 .build();
 
+                                        PrideMongoPsmSummaryEvidence psmMongo = PrideMongoPsmSummaryEvidence
+                                                .builder()
+                                                .usi(usi)
+                                                .peptideSequence(psm.getSequence())
+                                                .assayAccession(assayAccession)
+                                                .isDecoy(psm.getIsDecoy())
+                                                .charge(psm.getCharge())
+                                                .isValid(isValid)
+                                                .projectAccession(projectAccession)
+                                                .fileName(fileName)
+                                                .bestPSMScore(bestSearchEngine)
+                                                .precursorMass(psm.getMassToCharge())
+                                                .modifiedPeptideSequence(SubmissionPipelineConstants
+                                                        .encodePeptide(psm.getSequence(), psm.getModifications()))
+                                                .build();
+
+                                        try {
+                                            moleculesService.insertPsmSummaryEvidence(psmMongo);
+                                        } catch (DuplicateKeyException ex){
+                                            moleculesService.savePsmSummaryEvidence(psmMongo);
+                                            log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
+                                        }
+
                                         //spectralArchive.deletePSM(archivePSM.getUsi());
+
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
 
                                         List<PeptideSpectrumOverview> usis = new ArrayList<>();
