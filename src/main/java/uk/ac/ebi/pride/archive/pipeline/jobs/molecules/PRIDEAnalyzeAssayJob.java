@@ -318,7 +318,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                     proteins.forEach(protein -> {
 
-
                         String proteinSequence = protein.getRepresentative().getDbSequence();
                         String proteinAccession = protein.getRepresentative().getAccession();
                         if(proteinSequence == null || proteinSequence.isEmpty()){
@@ -335,15 +334,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         log.info(String.valueOf(protein.getQValue()));
 
-                        DefaultCvParam scoreParam = null;
-                        List<CvParamProvider> attributes = new ArrayList<>();
-
+                        MongoCvParam scoreParam = null;
+                        List<MongoCvParam> attributes = new ArrayList<>();
 
                         if(!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())){
 
                             String value = df.format(protein.getQValue());
 
-                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
+                            scoreParam = new MongoCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getName(), value);
                             attributes.add(scoreParam);
@@ -351,7 +349,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         if(protein.getScore() != null && !protein.getScore().isNaN()){
                             String value = df.format(protein.getScore());
-                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
+                            scoreParam = new MongoCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getName(), value);
                             attributes.add(scoreParam);
@@ -412,12 +410,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
             if(firstPeptide.isPresent()){
 
-                List<CvParamProvider> peptideAttributes = new ArrayList<>();
+                List<MongoCvParam> peptideAttributes = new ArrayList<>();
                 if(!Double.isInfinite(firstPeptide.get().getQValue()) && !Double.isNaN(firstPeptide.get().getQValue())){
 
                     String value = df.format(firstPeptide.get().getQValue());
 
-                    CvParamProvider peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
+                    MongoCvParam peptideScore = new MongoCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), value);
@@ -430,7 +428,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                     String value = df.format(firstPeptide.get().getScore("peptide_fdr_score"));
 
-                    CvParamProvider peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
+                    MongoCvParam peptideScore = new MongoCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getName(), value);
@@ -716,7 +714,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         }
 
                                         List<CvParam> properties = new ArrayList<>();
-                                        CvParam bestSearchEngine = null;
+                                        List<MongoCvParam> psmAttributes = new ArrayList<>();
 
                                         for(ScoreModelEnum scoreModel: ScoreModelEnum.values()){
                                             Double scoreValue = psm.getScore(scoreModel.getShortName());
@@ -725,8 +723,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                     if (ref.getAccession().equalsIgnoreCase(scoreModel.getCvAccession())){
                                                         CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue));
                                                         properties.add(cv);
-                                                        if(ref.getAccession().equalsIgnoreCase("MS:1002355"))
-                                                            bestSearchEngine = cv;
+                                                        if(ref.getAccession().equalsIgnoreCase("MS:1002355")){
+                                                            MongoCvParam bestSearchEngine = new MongoCvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
+                                                            psmAttributes.add(bestSearchEngine);
+                                                        }
+
                                                     }
 
                                                 }
@@ -849,7 +850,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 .isValid(isValid)
                                                 .projectAccession(projectAccession)
                                                 .fileName(fileName)
-                                                .bestPSMScore(bestSearchEngine)
+                                                .additionalAttributes(psmAttributes)
                                                 .precursorMass(psm.getMassToCharge())
                                                 .modifiedPeptideSequence(SubmissionPipelineConstants
                                                         .encodePeptide(psm.getSequence(), psm.getModifications()))
