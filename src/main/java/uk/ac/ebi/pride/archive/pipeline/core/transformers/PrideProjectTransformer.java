@@ -10,7 +10,9 @@ import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileSource;
 import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileType;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
+import uk.ac.ebi.pride.archive.dataprovider.reference.DefaultReference;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
+import uk.ac.ebi.pride.archive.dataprovider.user.DefaultContact;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
@@ -24,11 +26,8 @@ import uk.ac.ebi.pride.archive.repo.repos.project.*;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
-import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
-import uk.ac.ebi.pride.mongodb.archive.model.reference.MongoReference;
-import uk.ac.ebi.pride.mongodb.archive.model.user.MongoContact;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
@@ -72,39 +71,40 @@ public class PrideProjectTransformer {
         // Before creating the project some complex data structures should be created
 
         // Get the Lab Heads
-        List<MongoContact> labHead = oracleProject.getLabHeads()
+        List<DefaultContact> labHead = oracleProject.getLabHeads()
                 .stream()
-                .map(contactX -> new MongoContact(TitleConstants.fromString(contactX.getTitle().getTitle()),
+                .map(contactX -> new DefaultContact(TitleConstants.fromString(contactX.getTitle().getTitle()),
                         contactX.getFirstName(), contactX.getLastName(), contactX.getId().toString(), contactX.getAffiliation(),
                         contactX.getEmail(),  StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING))
                 .collect(Collectors.toList());
 
 
         // Get the Submitters data
-        List<MongoContact> submitters = Collections.singletonList(new MongoContact(TitleConstants.fromString(oracleProject.getSubmitter().getTitle().getTitle()),
+        List<DefaultContact> submitters = Collections.singletonList(new DefaultContact(TitleConstants.fromString(oracleProject.getSubmitter().getTitle().getTitle()),
                 oracleProject.getSubmitter().getFirstName(), oracleProject.getSubmitter().getLastName(), oracleProject.getSubmitter().getId().toString(),
                 oracleProject.getSubmitter().getAffiliation(),oracleProject.getSubmitter().getEmail(), StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING));
 
         // Get Instruments information
-        List<MongoCvParam> instruments =  oracleProject.getInstruments().stream()
-                .map(instrumet -> new MongoCvParam(instrumet.getCvLabel(), instrumet.getAccession(), instrumet.getName(), instrumet.getValue()))
+        List<DefaultCvParam> instruments =  oracleProject.getInstruments().stream()
+                .map(instrumet -> new DefaultCvParam(instrumet.getCvLabel(), instrumet.getAccession(), instrumet.getName(), instrumet.getValue()))
                 .collect(Collectors.toList());
 
         //References
-        List<MongoReference> references = oracleProject.getReferences().stream()
-                .map( reference -> new MongoReference(reference.getReferenceLine(), reference.getPubmedId(), reference.getDoi()))
+        List<DefaultReference> references = oracleProject.getReferences().stream()
+                .map( reference -> new DefaultReference(reference.getReferenceLine(), reference.getPubmedId(), reference.getDoi()))
                 .collect(Collectors.toList());
 
         //Modifications
-        List<MongoCvParam> ptms = oracleProject.getPtms().stream().map(ptm -> new MongoCvParam(ptm.getCvLabel(), ptm.getAccession(), ptm.getName(), ptm.getValue()))
+        List<DefaultCvParam> ptms = oracleProject.getPtms().stream()
+                .map(ptm -> new DefaultCvParam(ptm.getCvLabel(), ptm.getAccession(), ptm.getName(), ptm.getValue()))
                 .collect(Collectors.toList());
 
 
         //Get software information
-        List<MongoCvParam> softwareList = oracleProject.getSoftware()
+        List<DefaultCvParam> softwareList = oracleProject.getSoftware()
                 .stream()
                 .filter(software -> software.getCvParam() != null )
-                .map(software -> new MongoCvParam(software.getCvParam().getCvLabel(), software.getCvParam().getAccession(),
+                .map(software -> new DefaultCvParam(software.getCvParam().getCvLabel(), software.getCvParam().getAccession(),
                         software.getCvParam().getName(), software.getCvParam().getValue()))
                 .collect(Collectors.toList());
 
@@ -119,9 +119,9 @@ public class PrideProjectTransformer {
                 .map(StringUtils::convertSentenceStyle).collect(Collectors.toList());
 
         //Project Quant Methods
-        List<MongoCvParam> quantMethods = oracleProject.getQuantificationMethods().stream()
+        List<DefaultCvParam> quantMethods = oracleProject.getQuantificationMethods().stream()
                 .filter(quant -> quant.getCvParam() != null)
-                .map(quant -> new MongoCvParam(quant.getCvParam().getCvLabel(), quant.getCvParam().getAccession(),
+                .map(quant -> new DefaultCvParam(quant.getCvParam().getCvLabel(), quant.getCvParam().getAccession(),
                         quant.getCvParam().getName(), quant.getCvParam().getValue()))
                 .collect(Collectors.toList());
 
@@ -185,7 +185,7 @@ public class PrideProjectTransformer {
         //Accession should be common if a same file goes into file and msrun collection
         String accession = "PXF" + formatter.format(finalNumber);
 
-        List<MongoCvParam> publicURLs = oracleProject.isPublicProject()?createPublicFileLocations(oracleFileProject.getFileName(),
+        List<DefaultCvParam> publicURLs = oracleProject.isPublicProject()?createPublicFileLocations(oracleFileProject.getFileName(),
                 folderName, oracleProject.getPublicationDate(),oracleProject.getAccession(), ftpURL, asperaURL):Collections.emptyList();
 
         //check for MSRun files as they need to be stored in file collection and ms run collection
@@ -201,7 +201,7 @@ public class PrideProjectTransformer {
         return MongoPrideFile.builder()
                 .accession(accession)
                 .fileName(oracleFileProject.getFileName())
-                .fileCategory(new MongoCvParam(fileType.getFileType().getCv().getCvLabel(), fileType.getFileType().getCv().getAccession(),
+                .fileCategory(new DefaultCvParam(fileType.getFileType().getCv().getCvLabel(), fileType.getFileType().getCv().getAccession(),
                         fileType.getFileType().getCv().getName(), fileType.getFileType().getCv().getValue()))
                 .fileSourceFolder(oracleFileProject.getFileSource().name())
                 .projectAccessions(Collections.singleton(oracleProject.getAccession()))
@@ -226,13 +226,13 @@ public class PrideProjectTransformer {
      * @param asperaFTP aspera prefix
      * @return
      */
-    private static List<MongoCvParam> createPublicFileLocations(String fileName, String fileFolder, Date date, String projectAccession, String ftpURL, String asperaFTP) {
-        List<MongoCvParam> cvsPublicURLs = new ArrayList<>();
+    private static List<DefaultCvParam> createPublicFileLocations(String fileName, String fileFolder, Date date, String projectAccession, String ftpURL, String asperaFTP) {
+        List<DefaultCvParam> cvsPublicURLs = new ArrayList<>();
         if(ftpURL != null && !ftpURL.isEmpty()){
-            cvsPublicURLs.add(new MongoCvParam(CvTermReference.PRIDE_FTP_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getName(), buildURL(ftpURL, date, projectAccession, fileName, fileFolder)));
+            cvsPublicURLs.add(new DefaultCvParam(CvTermReference.PRIDE_FTP_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getName(), buildURL(ftpURL, date, projectAccession, fileName, fileFolder)));
         }
         if(asperaFTP != null && !asperaFTP.isEmpty()){
-            cvsPublicURLs.add(new MongoCvParam(CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getName(), buildURL(asperaFTP, date, projectAccession, fileName, fileFolder)));
+            cvsPublicURLs.add(new DefaultCvParam(CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_ASPERA_PROTOCOL_URL.getName(), buildURL(asperaFTP, date, projectAccession, fileName, fileFolder)));
         }
         return cvsPublicURLs;
     }
@@ -350,31 +350,31 @@ public class PrideProjectTransformer {
      * @param oracleProject Oracle Project
      * @return Mapping of new Sample Data
      */
-    public static List<Tuple<MongoCvParam, List<MongoCvParam>>> projectSampleDescription(Project oracleProject){
-        Map<MongoCvParam, List<MongoCvParam>> projectSampleProcessing = new HashMap<>();
+    public static List<Tuple<DefaultCvParam, List<DefaultCvParam>>> projectSampleDescription(Project oracleProject){
+        Map<DefaultCvParam, List<DefaultCvParam>> projectSampleProcessing = new HashMap<>();
         oracleProject.getSamples().forEach(projectSampleCvParam -> {
             if(projectSampleCvParam != null){
-                MongoCvParam key = null;
-                MongoCvParam value = new MongoCvParam(projectSampleCvParam.getCvLabel(),
+                DefaultCvParam key = null;
+                DefaultCvParam value = new DefaultCvParam(projectSampleCvParam.getCvLabel(),
                         projectSampleCvParam.getAccession(), projectSampleCvParam.getName(),
                         projectSampleCvParam.getValue());
                 if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_ORGANISM)){
-                    key = new MongoCvParam(CvTermReference.EFO_ORGANISM.getCvLabel(),
+                    key = new DefaultCvParam(CvTermReference.EFO_ORGANISM.getCvLabel(),
                            CvTermReference.EFO_ORGANISM.getAccession(),
                            CvTermReference.EFO_ORGANISM.getName(), null);
                 }else if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_CELL_COMPONENT) ||
                         projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_CELL_TISSUE)){
-                    key = new MongoCvParam(CvTermReference.EFO_ORGANISM_PART.getCvLabel(),
+                    key = new DefaultCvParam(CvTermReference.EFO_ORGANISM_PART.getCvLabel(),
                             CvTermReference.EFO_ORGANISM_PART.getAccession(),
                             CvTermReference.EFO_ORGANISM_PART.getName(), null);
                 }else if(projectSampleCvParam.getCvLabel().equalsIgnoreCase(StringUtils.CV_LABEL_DISEASE)){
-                    key = new MongoCvParam(CvTermReference.EFO_DISEASE.getCvLabel(),
+                    key = new DefaultCvParam(CvTermReference.EFO_DISEASE.getCvLabel(),
                             CvTermReference.EFO_DISEASE.getAccession(),
                             CvTermReference.EFO_DISEASE.getName(), null);
                 }
 
                 if(key != null){
-                    List<MongoCvParam> sampleValues = projectSampleProcessing.get(key);
+                    List<DefaultCvParam> sampleValues = projectSampleProcessing.get(key);
                     if(sampleValues == null)
                         sampleValues = new ArrayList<>();
                     sampleValues.add(value);
@@ -394,7 +394,7 @@ public class PrideProjectTransformer {
         List<MongoPrideAssay> mongoAssays = new ArrayList<>();
         for( Assay assay: assays){
             // Get the software information
-            Set<MongoCvParam> softwareMongo = new HashSet<>();
+            Set<DefaultCvParam> softwareMongo = new HashSet<>();
             if(assay.getSoftwares() != null && assay.getSoftwares().size() > 0) {
                 for (Software software : assay.getSoftwares()) {
                     if (software.getSoftwareCvParams() != null && software.getSoftwareCvParams().size() > 0) {
@@ -404,7 +404,7 @@ public class PrideProjectTransformer {
                                         .stream()
                                         .anyMatch(x -> x.getAccession().equalsIgnoreCase(cvParam.getCvParam().getAccession()));
                                 if(!presentTool){
-                                    MongoCvParam mongoTool = new MongoCvParam(cvParam.getCvParam().getCvLabel(),
+                                    DefaultCvParam mongoTool = new DefaultCvParam(cvParam.getCvParam().getCvLabel(),
                                             cvParam.getCvParam().getAccession(),
                                             cvParam.getCvParam().getName(), cvParam.getCvParam().getValue());
                                     softwareMongo.add(mongoTool);
@@ -416,11 +416,11 @@ public class PrideProjectTransformer {
             }
 
             //Get PTMs information
-            List<Tuple<MongoCvParam, Integer>> ptms = new ArrayList<>();
+            List<Tuple<DefaultCvParam, Integer>> ptms = new ArrayList<>();
             if(assay.getPtms() != null && assay.getPtms().size() > 0) {
                 for (AssayPTM ptm : assay.getPtms()) {
                     if (ptm.getCvParam() != null) {
-                        MongoCvParam ptmMongo = new MongoCvParam(ptm.getCvParam().getCvLabel(),
+                        DefaultCvParam ptmMongo = new DefaultCvParam(ptm.getCvParam().getCvLabel(),
                                 ptm.getCvParam().getAccession(),
                                 ptm.getCvParam().getName(), ptm.getCvParam().getValue());
                         ptms.add(new Tuple<>(ptmMongo, 0));
@@ -432,23 +432,23 @@ public class PrideProjectTransformer {
             }
 
             //Initiation of Summary parameters
-            List<MongoCvParam> summaryResults = new ArrayList<>();
-            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getCvLabel(),
+            List<DefaultCvParam> summaryResults = new ArrayList<>();
+            summaryResults.add(new DefaultCvParam(CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getCvLabel(),
                     CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getAccession(),
                     CvTermReference.PRIDE_NUMBER_ID_PROTEINS.getName(),
                     String.valueOf(assay.getProteinCount())));
 
-            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getCvLabel(),
+            summaryResults.add(new DefaultCvParam(CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getCvLabel(),
                     CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getAccession(),
                     CvTermReference.PRIDE_NUMBER_ID_PEPTIDES.getName(),
                     String.valueOf(assay.getPeptideCount())));
 
-            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_ID_PSMS.getCvLabel(),
+            summaryResults.add(new DefaultCvParam(CvTermReference.PRIDE_NUMBER_ID_PSMS.getCvLabel(),
                     CvTermReference.PRIDE_NUMBER_ID_PSMS.getAccession(),
                     CvTermReference.PRIDE_NUMBER_ID_PSMS.getName(),
                     String.valueOf(0)));
 
-            summaryResults.add(new MongoCvParam(CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getCvLabel(),
+            summaryResults.add(new DefaultCvParam(CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getCvLabel(),
                     CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getAccession(),
                     CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES.getName(),
                     String.valueOf(0)));
@@ -492,7 +492,7 @@ public class PrideProjectTransformer {
                 MongoAssayFile resultFile = MongoAssayFile.builder()
                         .fileName(oracleFile.getKey().getFileName())
                         .fileAccession(oracleFile.getValue().getAccession())
-                        .fileCategory((MongoCvParam) oracleFile.getValue().getFileCategory())
+                        .fileCategory((DefaultCvParam) oracleFile.getValue().getFileCategory())
                         .build();
                 List<MongoAssayFile> relatedFiles = new ArrayList<>();
                 for(int j = 0; j < filterFiles.size(); j++){
@@ -503,7 +503,7 @@ public class PrideProjectTransformer {
 
                         MongoAssayFile mgfFile = MongoAssayFile.builder()
                                 .fileAccession(peakFile.getValue().getAccession())
-                                .fileCategory((MongoCvParam) peakFile.getValue().getFileCategory())
+                                .fileCategory((DefaultCvParam) peakFile.getValue().getFileCategory())
                                 .fileName(peakFile.getKey().getFileName())
                                 .build();
                         relatedFiles.add(mgfFile);
@@ -513,7 +513,7 @@ public class PrideProjectTransformer {
 
                         MongoAssayFile mgfFile = MongoAssayFile.builder()
                                 .fileAccession(peakFile.getValue().getAccession())
-                                .fileCategory((MongoCvParam) peakFile.getValue().getFileCategory())
+                                .fileCategory((DefaultCvParam) peakFile.getValue().getFileCategory())
                                 .fileName(peakFile.getKey().getFileName())
                                 .build();
                         relatedFiles.add(mgfFile);

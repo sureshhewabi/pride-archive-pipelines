@@ -45,7 +45,6 @@ import uk.ac.ebi.pride.archive.spectra.model.CvParam;
 import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
-import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
@@ -111,7 +110,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     private MongoPrideAssay assay;
 
     private boolean isValid;
-    private List<MongoCvParam> validationMethods = new ArrayList<>();
+    private List<DefaultCvParam> validationMethods = new ArrayList<>();
 
 
 
@@ -334,14 +333,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         log.info(String.valueOf(protein.getQValue()));
 
-                        MongoCvParam scoreParam = null;
-                        List<MongoCvParam> attributes = new ArrayList<>();
+                        DefaultCvParam scoreParam = null;
+                        List<DefaultCvParam> attributes = new ArrayList<>();
 
                         if(!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())){
 
                             String value = df.format(protein.getQValue());
 
-                            scoreParam = new MongoCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
+                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getName(), value);
                             attributes.add(scoreParam);
@@ -349,7 +348,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         if(protein.getScore() != null && !protein.getScore().isNaN()){
                             String value = df.format(protein.getScore());
-                            scoreParam = new MongoCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
+                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getName(), value);
                             attributes.add(scoreParam);
@@ -410,12 +409,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
             if(firstPeptide.isPresent()){
 
-                List<MongoCvParam> peptideAttributes = new ArrayList<>();
+                List<DefaultCvParam> peptideAttributes = new ArrayList<>();
                 if(!Double.isInfinite(firstPeptide.get().getQValue()) && !Double.isNaN(firstPeptide.get().getQValue())){
 
                     String value = df.format(firstPeptide.get().getQValue());
 
-                    MongoCvParam peptideScore = new MongoCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
+                    DefaultCvParam peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), value);
@@ -428,7 +427,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                     String value = df.format(firstPeptide.get().getScore("peptide_fdr_score"));
 
-                    MongoCvParam peptideScore = new MongoCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
+                    DefaultCvParam peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getName(), value);
@@ -714,7 +713,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         }
 
                                         List<CvParam> properties = new ArrayList<>();
-                                        List<MongoCvParam> psmAttributes = new ArrayList<>();
+                                        List<DefaultCvParam> psmAttributes = new ArrayList<>();
 
                                         for(ScoreModelEnum scoreModel: ScoreModelEnum.values()){
                                             Double scoreValue = psm.getScore(scoreModel.getShortName());
@@ -724,7 +723,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue));
                                                         properties.add(cv);
                                                         if(ref.getAccession().equalsIgnoreCase("MS:1002355")){
-                                                            MongoCvParam bestSearchEngine = new MongoCvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
+                                                            DefaultCvParam bestSearchEngine = new DefaultCvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
                                                             psmAttributes.add(bestSearchEngine);
                                                         }
 
@@ -912,10 +911,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .collect(Collectors.toList());
 
                         //Update reported highQualityPeptides
-                        List<MongoCvParam> summaryResults = assay.getSummaryResults();
-                        List<MongoCvParam> newValues = new ArrayList<>(summaryResults.size());
+                        List<DefaultCvParam> summaryResults = assay.getSummaryResults();
+                        List<DefaultCvParam> newValues = new ArrayList<>(summaryResults.size());
 
-                        for(MongoCvParam param: summaryResults){
+                        for(DefaultCvParam param: summaryResults){
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, highQualityPeptides.size());
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PROTEINS, highQualityProteins.size());
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PSMS, highQualityPsms.size());
@@ -923,11 +922,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             newValues.add(param);
                         }
 
-                        List<Tuple<MongoCvParam, Integer>> modificationCount = modifiedPeptides.stream()
+                        List<Tuple<DefaultCvParam, Integer>> modificationCount = modifiedPeptides.stream()
                                 .flatMap(x -> x.getModifications().values().stream())
                                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                                 .entrySet().stream()
-                                .map( entry -> new Tuple<>(new MongoCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
+                                .map( entry -> new Tuple<>(new DefaultCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
                                 .collect(Collectors.toList());
 
 
@@ -937,10 +936,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             isValid = false;
 
                         if(isValid){
-                            validationMethods.add(new MongoCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
+                            validationMethods.add(new DefaultCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
                                     CvTermReference.MS_DECOY_VALIDATION_METHOD.getAccession(), CvTermReference.MS_DECOY_VALIDATION_METHOD.getName(), String.valueOf(true)));
                         }else
-                            validationMethods.add(new MongoCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
+                            validationMethods.add(new DefaultCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
                                     CvTermReference.MS_DECOY_VALIDATION_METHOD.getAccession(), CvTermReference.MS_DECOY_VALIDATION_METHOD.getName(), String.valueOf(false)));
 
 
@@ -956,7 +955,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 }).build();
     }
 
-    private MongoCvParam updateValueOfMongoParamter(MongoCvParam param, CvTermReference cvTerm, Integer value){
+    private DefaultCvParam updateValueOfMongoParamter(DefaultCvParam param, CvTermReference cvTerm, Integer value){
         if(param.getAccession().equalsIgnoreCase(cvTerm.getAccession())){
             param.setValue(String.valueOf(value));
         }

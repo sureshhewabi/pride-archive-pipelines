@@ -10,12 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.dataprovider.param.ParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.model.param.MongoCvParam;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.model.stats.PrideStatsKeysConstants;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
@@ -215,7 +215,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                     List<Tuple<String, Integer>> submissionsByDate = prideProjectMongoService
                             .findAllStream()
                             .flatMap( x-> x.getPtmList().stream())
-                            .collect(Collectors.groupingBy(MongoCvParam::getName))
+                            .collect(Collectors.groupingBy(DefaultCvParam::getName))
                             .entrySet()
                             .stream()
                             .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
@@ -269,7 +269,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                         diseases.add(new Tuple<>(CvTermReference.PRIDE_NO_DISEASES.getName(), 0));
 
                     List<Tuple<String, Integer>> modifications = submissions.stream().flatMap( x-> x.getPtmList().stream())
-                            .collect(Collectors.groupingBy(MongoCvParam::getName))
+                            .collect(Collectors.groupingBy(DefaultCvParam::getName))
                             .entrySet()
                             .stream()
                             .map( x -> new Tuple<>(x.getKey(), x.getValue().size()))
@@ -322,13 +322,13 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
             resultSubmissions.addAll(filterProjectsByEmptyValue(submissions, term));
         }
         resultSubmissions.addAll(submissions.stream().filter(a -> {
-            List<Tuple<MongoCvParam, List<MongoCvParam>>> descriptionValues = a.getSamplesDescription().stream()
+            List<Tuple<DefaultCvParam, List<DefaultCvParam>>> descriptionValues = a.getSamplesDescription().stream()
                     .filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
                     .collect(Collectors.toList());
             boolean found = false;
-            Iterator<Tuple<MongoCvParam, List<MongoCvParam>>> it = descriptionValues.iterator();
+            Iterator<Tuple<DefaultCvParam, List<DefaultCvParam>>> it = descriptionValues.iterator();
             while(it.hasNext() && !found){
-                Tuple<MongoCvParam, List<MongoCvParam>> terms = it.next();
+                Tuple<DefaultCvParam, List<DefaultCvParam>> terms = it.next();
                 found = terms.getValue().stream().anyMatch(value -> value.getName().equalsIgnoreCase(key));
             }
             return found;
@@ -433,7 +433,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .collect(Collectors.toList())
                 .stream()
                 .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(MongoCvParam::getName))
+                .collect(Collectors.groupingBy(DefaultCvParam::getName))
                 .entrySet()
                 .stream()
                 .map(f -> new Tuple<>(f.getKey(), f.getValue().size()))
