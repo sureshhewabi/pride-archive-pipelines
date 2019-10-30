@@ -308,10 +308,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             .stream().map(x -> x.getRepresentative().getAccession())
                             .collect(Collectors.toList());
 
-                    ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
-                    Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
+//                    ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
+//                    Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
 
-                    log.info(String.valueOf(mappedProteins.size()));
+//                    log.info(String.valueOf(mappedProteins.size()));
 
                     List<ReportPeptide> finalPeptides = peptides;
 
@@ -319,11 +319,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         String proteinSequence = protein.getRepresentative().getDbSequence();
                         String proteinAccession = protein.getRepresentative().getAccession();
-                        if(proteinSequence == null || proteinSequence.isEmpty()){
-                            if(mappedProteins.containsKey(proteinAccession)){
-                                proteinSequence = mappedProteins.get(proteinAccession).getSequenceString();
-                            }
-                        }
+//                        if(proteinSequence == null || proteinSequence.isEmpty()){
+//                            if(mappedProteins.containsKey(proteinAccession)){
+//                                proteinSequence = mappedProteins.get(proteinAccession).getSequenceString();
+//                            }
+//                        }
                         Set<String> proteinGroups = protein.getAccessions()
                                 .stream().map(Accession::getAccession)
                                 .collect(Collectors.toSet());
