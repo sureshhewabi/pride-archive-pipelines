@@ -18,6 +18,7 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.repos.project.Project;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
 import uk.ac.ebi.pride.integration.message.model.impl.PublicationCompletionPayload;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 
@@ -128,7 +129,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
     private Set<String> getMongoProjectAccessions(){
 
         Set<String> mongoProjectAccessions =  prideProjectMongoService.findAllStream()
-                .map(mongoPrideProject -> mongoPrideProject.getAccession())
+                .map(MongoPrideProject::getAccession)
                 .collect(Collectors.toSet());
         System.out.println( "Number of MongoDB projects: "+ mongoProjectAccessions.size());
         return mongoProjectAccessions;

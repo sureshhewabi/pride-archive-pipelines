@@ -94,9 +94,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             doProjectSync(mongoPrideProject);
                         }
                     }else{
-                        prideProjectMongoService.findAllStream().forEach( mongoPrideProject ->{
-                            doProjectSync(mongoPrideProject);
-                        });
+                        prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
                         /*Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findAllStream().findFirst();
                         if(mongoPrideProjectOptional.isPresent()) {
                             MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();

@@ -34,18 +34,12 @@ public class PRIDEAnalyzeAssayJobTest {
      */
     @Test
     public void analyzeAssayInformationToMongo() {
-//        IntStream.range(51876, 51940).forEach( x -> {
             JobParameters param = new JobParametersBuilder()
                     .addString("project", "PXD002086")
                     .addString("assay", "51455")
                     .toJobParameters();
-//        ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD000001");
-//        ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "22134");
             ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002086");
             ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "51455");
-//                 ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD001072");
-//         ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "37786");
-
             JobExecution jobExecution = null;
             try {
                 jobExecution = jobLauncherTestUtils.launchJob(param);
@@ -53,8 +47,6 @@ public class PRIDEAnalyzeAssayJobTest {
                 e.printStackTrace();
             }
             Assert.assertEquals(BatchStatus.COMPLETED.name(), jobExecution.getExitStatus().getExitCode());
-//        });
-
     }
 
 

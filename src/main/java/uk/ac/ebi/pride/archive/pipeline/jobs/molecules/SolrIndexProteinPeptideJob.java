@@ -78,9 +78,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get("solrIndexPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
-                    taskTimeMap.entrySet().forEach(x -> {
-                        log.info("Task: " + x.getKey() + " Time: " + x.getValue());
-                    });
+                    taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     return RepeatStatus.FINISHED;
                 }).build();
     }
