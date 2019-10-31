@@ -43,7 +43,7 @@
         <!--<revised.archive.integration.version>0.0.1-SNAPSHOT</revised.archive.integration.version>-->
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
-        <pia.version>1.3.13</pia.version>
+        <pia.version>1.3.14</pia.version>
         <aws.version>1.11.569</aws.version>
         <accession.resolver.version>1.0.1</accession.resolver.version>
     </properties>
