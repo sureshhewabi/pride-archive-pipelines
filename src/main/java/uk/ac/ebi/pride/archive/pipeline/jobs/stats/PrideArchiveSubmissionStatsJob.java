@@ -322,13 +322,13 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
             resultSubmissions.addAll(filterProjectsByEmptyValue(submissions, term));
         }
         resultSubmissions.addAll(submissions.stream().filter(a -> {
-            List<Tuple<CvParam, List<CvParam>>> descriptionValues = a.getSamplesDescription().stream()
+            List<Tuple<CvParam, Set<CvParam>>> descriptionValues = a.getSamplesDescription().stream()
                     .filter(keyDesc -> keyDesc.getKey().getAccession().equalsIgnoreCase(term.getAccession()))
                     .collect(Collectors.toList());
             boolean found = false;
-            Iterator<Tuple<CvParam, List<CvParam>>> it = descriptionValues.iterator();
+            Iterator<Tuple<CvParam, Set<CvParam>>> it = descriptionValues.iterator();
             while(it.hasNext() && !found){
-                Tuple<CvParam, List<CvParam>> terms = it.next();
+                Tuple<CvParam, Set<CvParam>> terms = it.next();
                 found = terms.getValue().stream().anyMatch(value -> value.getName().equalsIgnoreCase(key));
             }
             return found;

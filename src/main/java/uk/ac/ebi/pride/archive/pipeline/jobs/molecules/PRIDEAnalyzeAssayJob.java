@@ -120,7 +120,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     private MongoPrideAssay assay;
 
     private boolean isValid;
-    private List<CvParam> validationMethods = new ArrayList<>();
+    private Set<CvParam> validationMethods = new HashSet<>();
 
 
     @Bean
@@ -382,7 +382,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             log.info(String.valueOf(protein.getQValue()));
 
                             CvParam scoreParam = null;
-                            List<CvParam> attributes = new ArrayList<>();
+                            Set<CvParam> attributes = new HashSet<>();
 
                             if (!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())) {
 
@@ -426,9 +426,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                             try {
                                 BackupUtil.write(proteinEvidence, proteinEvidenceBufferedWriter);
-//                                moleculesService.insertProteinEvidences(proteinEvidence);
+                                moleculesService.insertProteinEvidences(proteinEvidence);
                             } catch (DuplicateKeyException ex) {
-//                                moleculesService.saveProteinEvidences(proteinEvidence);
+                                moleculesService.saveProteinEvidences(proteinEvidence);
                                 log.debug("The protein was already in the database -- " + proteinEvidence.getReportedAccession());
                             } catch (Exception e) {
                                 log.error(e.getMessage(), e);
@@ -460,7 +460,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
             if (firstPeptide.isPresent()) {
 
-                List<CvParam> peptideAttributes = new ArrayList<>();
+                Set<CvParam> peptideAttributes = new HashSet<>();
                 if (!Double.isInfinite(firstPeptide.get().getQValue()) && !Double.isNaN(firstPeptide.get().getQValue())) {
 
                     String value = df.format(firstPeptide.get().getQValue());
@@ -523,9 +523,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .build();
                 try {
                     BackupUtil.write(peptideEvidence, peptideEvidenceBufferedWriter);
-//                    moleculesService.insertPeptideEvidence(peptideEvidence);
+                    moleculesService.insertPeptideEvidence(peptideEvidence);
                 } catch (DuplicateKeyException ex) {
-//                    moleculesService.savePeptideEvidence(peptideEvidence);
+                    moleculesService.savePeptideEvidence(peptideEvidence);
                     log.debug("The peptide evidence was already in the database -- " + peptideEvidence.getPeptideAccession());
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
@@ -549,12 +549,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         for (Map.Entry<Integer, Modification> ptmEntry : modifications.entrySet()) {
             Modification ptm = ptmEntry.getValue();
             Integer position = ptmEntry.getKey();
-            List<CvParam> probabilities = ptm.getProbability()
+            Set<CvParam> probabilities = ptm.getProbability()
                     .stream().map(oldProbability -> new CvParam(oldProbability.getCvLabel(),
                             oldProbability.getAccession(),
                             oldProbability.getName(),
                             String.valueOf(oldProbability.getValue())))
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
             // ignore modifications that can't be processed correctly (can not be mapped to the protein)
             if (ptm.getAccession() == null) {
                 continue;
@@ -596,12 +596,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                 Modification ptm = ptmEntry.getValue();
                 Integer position = ptmEntry.getKey();
-                List<CvParam> probabilities = ptm.getProbability()
+                Set<CvParam> probabilities = ptm.getProbability()
                         .stream().map(oldProbability -> new CvParam(oldProbability.getCvLabel(),
                                 oldProbability.getAccession(),
                                 oldProbability.getName(),
                                 String.valueOf(oldProbability.getValue())))
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toSet());
                 // ignore modifications that can't be processed correctly (can not be mapped to the protein)
                 if (ptm.getAccession() == null) {
                     continue;
@@ -762,8 +762,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         count++;
                                     }
 
-                                    List<CvParam> properties = new ArrayList<>();
-                                    List<CvParam> psmAttributes = new ArrayList<>();
+                                    Set<CvParam> properties = new HashSet<>();
+                                    Set<CvParam> psmAttributes = new HashSet<>();
 
                                     for (ScoreModelEnum scoreModel : ScoreModelEnum.values()) {
                                         Double scoreValue = psm.getScore(scoreModel.getShortName());
@@ -823,19 +823,19 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             if (x.getNeutralLoss() != null)
                                                 neutralLoss = new CvParam(x.getNeutralLoss().getCvLabel(), x.getNeutralLoss().getAccession(), x.getNeutralLoss().getName(), x.getNeutralLoss().getValue());
 
-                                            List<Tuple<Integer, List<? extends CvParamProvider>>> positionMap = new ArrayList<>();
+                                            List<Tuple<Integer, Set<? extends  CvParamProvider>>> positionMap = new ArrayList<>();
                                             if (x.getPositionMap() != null && x.getPositionMap().size() > 0)
                                                 positionMap = x.getPositionMap().stream()
-                                                        .map(y -> new Tuple<Integer, List<? extends CvParamProvider>>(y.getKey(), y.getValue().stream()
+                                                        .map(y -> new Tuple<Integer, Set<? extends  CvParamProvider>>(y.getKey(), y.getValue().stream()
                                                                 .map(z -> new CvParam(z.getCvLabel(), z.getAccession(), z.getName(), z.getValue()))
-                                                                .collect(Collectors.toList())))
+                                                                .collect(Collectors.toSet())))
                                                         .collect(Collectors.toList());
 
                                             CvParam modCv = null;
                                             if (x.getModificationCvTerm() != null)
                                                 modCv = new CvParam(x.getModificationCvTerm().getCvLabel(), x.getModificationCvTerm().getAccession(), x.getModificationCvTerm().getName(), x.getModificationCvTerm().getValue());
 
-                                            List<CvParamProvider> modProperties = new ArrayList<>();
+                                            Set<CvParamProvider> modProperties = new HashSet<>();
 
                                             return new IdentifiedModification(neutralLoss, positionMap, modCv, modProperties);
                                         }).collect(Collectors.toList());
@@ -863,7 +863,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             .qualityEstimationMethods(validationMethods.stream()
                                                     .map(x -> new CvParam(x.getCvLabel(),
                                                             x.getAccession(), x.getName(), x.getValue()))
-                                                    .collect(Collectors.toList()))
+                                                    .collect(Collectors.toSet()))
                                             .build();
 
                                     PrideMongoPsmSummaryEvidence psmMongo = PrideMongoPsmSummaryEvidence
@@ -883,9 +883,9 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             .build();
 
                                     try {
-//                                        moleculesService.insertPsmSummaryEvidence(psmMongo);
+                                        moleculesService.insertPsmSummaryEvidence(psmMongo);
                                     } catch (DuplicateKeyException ex) {
-//                                        moleculesService.savePsmSummaryEvidence(psmMongo);
+                                        moleculesService.savePsmSummaryEvidence(psmMongo);
                                         log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
                                     }
 
@@ -933,8 +933,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .collect(Collectors.toList());
 
                         //Update reported highQualityPeptides
-                        List<CvParam> summaryResults = assay.getSummaryResults();
-                        List<CvParam> newValues = new ArrayList<>(summaryResults.size());
+                        Set<CvParam> summaryResults = assay.getSummaryResults();
+                        Set<CvParam> newValues = new HashSet<>(summaryResults.size());
 
                         for (CvParam param : summaryResults) {
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, highQualityPeptides.size());
