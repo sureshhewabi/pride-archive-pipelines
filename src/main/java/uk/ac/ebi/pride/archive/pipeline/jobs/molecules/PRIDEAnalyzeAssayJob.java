@@ -29,9 +29,10 @@ import org.springframework.dao.DuplicateKeyException;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
-import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModification;
+import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModification;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
-import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
+import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
+import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
@@ -40,7 +41,6 @@ import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.spectra.configs.AWS3Configuration;
 import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
-import uk.ac.ebi.pride.archive.spectra.model.CvParam;
 import uk.ac.ebi.pride.archive.spectra.services.S3SpectralArchive;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoAssayFile;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
@@ -107,7 +107,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
     private MongoPrideAssay assay;
 
     private boolean isValid;
-    private List<DefaultCvParam> validationMethods = new ArrayList<>();
+    private List<CvParam> validationMethods = new ArrayList<>();
 
 
 
@@ -314,14 +314,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         log.info(String.valueOf(protein.getQValue()));
 
-                        DefaultCvParam scoreParam = null;
-                        List<DefaultCvParam> attributes = new ArrayList<>();
+                        CvParam scoreParam = null;
+                        List<CvParam> attributes = new ArrayList<>();
 
                         if(!Double.isFinite(protein.getQValue()) && !Double.isNaN(protein.getQValue())){
 
                             String value = df.format(protein.getQValue());
 
-                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
+                            scoreParam = new CvParam(CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_GROUP_QVALUE.getName(), value);
                             attributes.add(scoreParam);
@@ -329,7 +329,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                         if(protein.getScore() != null && !protein.getScore().isNaN()){
                             String value = df.format(protein.getScore());
-                            scoreParam = new DefaultCvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
+                            scoreParam = new CvParam(CvTermReference.MS_PIA_PROTEIN_SCORE.getCvLabel(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getAccession(),
                                     CvTermReference.MS_PIA_PROTEIN_SCORE.getName(), value);
                             attributes.add(scoreParam);
@@ -390,12 +390,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
             if(firstPeptide.isPresent()){
 
-                List<DefaultCvParam> peptideAttributes = new ArrayList<>();
+                List<CvParam> peptideAttributes = new ArrayList<>();
                 if(!Double.isInfinite(firstPeptide.get().getQValue()) && !Double.isNaN(firstPeptide.get().getQValue())){
 
                     String value = df.format(firstPeptide.get().getQValue());
 
-                    DefaultCvParam peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
+                    CvParam peptideScore = new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(), value);
@@ -408,7 +408,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                     String value = df.format(firstPeptide.get().getScore("peptide_fdr_score"));
 
-                    DefaultCvParam peptideScore = new DefaultCvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
+                    CvParam peptideScore = new CvParam(CvTermReference.MS_PIA_PEPTIDE_FDR
                             .getCvLabel(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getAccession(),
                             CvTermReference.MS_PIA_PEPTIDE_FDR.getName(), value);
@@ -469,13 +469,13 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
      */
     private Collection<? extends IdentifiedModificationProvider> convertPeptideModifications(Map<Integer, Modification> modifications) {
 
-        List<DefaultIdentifiedModification> ptms = new ArrayList<>();
+        List<IdentifiedModification> ptms = new ArrayList<>();
 
         for (Map.Entry<Integer, Modification> ptmEntry : modifications.entrySet()) {
             Modification ptm = ptmEntry.getValue();
             Integer position = ptmEntry.getKey();
-            List<DefaultCvParam> probabilities = ptm.getProbability()
-                    .stream().map( oldProbability -> new DefaultCvParam(oldProbability.getCvLabel(),
+            List<CvParam> probabilities = ptm.getProbability()
+                    .stream().map( oldProbability -> new CvParam(oldProbability.getCvLabel(),
                             oldProbability.getAccession(),
                             oldProbability.getName(),
                             String.valueOf(oldProbability.getValue())))
@@ -485,17 +485,17 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 continue;
             }
 
-            Optional<DefaultIdentifiedModification> proteinExist = ptms.stream()
+            Optional<IdentifiedModification> proteinExist = ptms.stream()
                     .filter(currentMod -> currentMod.getModificationCvTerm()
                             .getAccession().equalsIgnoreCase(ptm.getAccession()))
                     .findAny();
             if(proteinExist.isPresent()){
                 proteinExist.get().addPosition(position, probabilities);
             }else{
-                DefaultCvParam ptmName = new DefaultCvParam(ptm.getCvLabel(),
+                CvParam ptmName = new CvParam(ptm.getCvLabel(),
                         ptm.getAccession(), ptm.getDescription(),
                         String.valueOf(ptm.getMass()));
-                DefaultIdentifiedModification newPTM = new DefaultIdentifiedModification(null, null, ptmName, null);
+                IdentifiedModification newPTM = new IdentifiedModification(null, null, ptmName, null);
                 newPTM.addPosition(position, probabilities);
                 ptms.add(newPTM);
             }
@@ -512,7 +512,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
      */
     private Collection<? extends IdentifiedModificationProvider> convertProteinModifications(String proteinAccession, List<ReportPeptide> peptides) {
 
-        List<DefaultIdentifiedModification> ptms = new ArrayList<>();
+        List<IdentifiedModification> ptms = new ArrayList<>();
 
         for (ReportPeptide item : peptides) {
 
@@ -520,8 +520,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                 Modification ptm = ptmEntry.getValue();
                 Integer position = ptmEntry.getKey();
-                List<DefaultCvParam> probabilities = ptm.getProbability()
-                        .stream().map( oldProbability -> new DefaultCvParam(oldProbability.getCvLabel(),
+                List<CvParam> probabilities = ptm.getProbability()
+                        .stream().map( oldProbability -> new CvParam(oldProbability.getCvLabel(),
                                 oldProbability.getAccession(),
                                 oldProbability.getName(),
                                 String.valueOf(oldProbability.getValue())))
@@ -544,17 +544,17 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             // position is 1 (beginning of the protein)
                             int proteinPosition = startPos + position - 1;
 
-                            Optional<DefaultIdentifiedModification> proteinExist = ptms.stream()
+                            Optional<IdentifiedModification> proteinExist = ptms.stream()
                                     .filter(currentMod -> currentMod.getModificationCvTerm()
                                             .getAccession().equalsIgnoreCase(ptm.getAccession()))
                                     .findAny();
                             if(proteinExist.isPresent()){
                                 proteinExist.get().addPosition(proteinPosition, probabilities);
                             }else{
-                                DefaultCvParam ptmName = new DefaultCvParam(ptm.getCvLabel(),
+                                CvParam ptmName = new CvParam(ptm.getCvLabel(),
                                         ptm.getAccession(), ptm.getDescription(),
                                         String.valueOf(ptm.getMass()));
-                                DefaultIdentifiedModification newPTM = new DefaultIdentifiedModification(null, null, ptmName, null);
+                                IdentifiedModification newPTM = new IdentifiedModification(null, null, ptmName, null);
                                 newPTM.addPosition(proteinPosition, probabilities);
                                 ptms.add(newPTM);
                             }
@@ -688,7 +688,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     }
 
                                     List<CvParam> properties = new ArrayList<>();
-                                    List<DefaultCvParam> psmAttributes = new ArrayList<>();
+                                    List<CvParam> psmAttributes = new ArrayList<>();
 
                                     for(ScoreModelEnum scoreModel: ScoreModelEnum.values()){
                                         Double scoreValue = psm.getScore(scoreModel.getShortName());
@@ -698,7 +698,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                     CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue));
                                                     properties.add(cv);
                                                     if(ref.getAccession().equalsIgnoreCase("MS:1002355")){
-                                                        DefaultCvParam bestSearchEngine = new DefaultCvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
+                                                        CvParam bestSearchEngine = new CvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
                                                         psmAttributes.add(bestSearchEngine);
                                                     }
 
@@ -736,50 +736,29 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             String.valueOf(deltaMass))
                                     );
 
-                                    List<uk.ac.ebi.pride.archive.spectra.model.Modification> mods = new ArrayList<>();
+                                    List<IdentifiedModification> mods = new ArrayList<>();
                                     if(psm.getModifications() != null && psm.getModifications().size() > 0)
                                         mods = convertPeptideModifications(psm.getModifications()).stream().map( x -> {
 
                                             CvParam neutralLoss = null;
                                             if(x.getNeutralLoss() != null)
-                                                neutralLoss = CvParam.builder()
-                                                        .accession(x.getNeutralLoss().getAccession())
-                                                        .cvLabel(x.getNeutralLoss().getCvLabel())
-                                                        .name(x.getNeutralLoss().getName())
-                                                        .value(x.getNeutralLoss().getValue())
-                                                        .build();
+                                                neutralLoss = new CvParam(x.getNeutralLoss().getCvLabel(), x.getNeutralLoss().getAccession(), x.getNeutralLoss().getName(), x.getNeutralLoss().getValue());
 
-
-                                            List<Tuple<Integer,List<CvParam>>> positionMap = new ArrayList<>();
+                                            List<Tuple<Integer, List<? extends CvParamProvider>>> positionMap = new ArrayList<>();
                                             if(x.getPositionMap() != null && x.getPositionMap().size() > 0 )
                                                 positionMap = x.getPositionMap().stream()
-                                                    .map( y -> new Tuple<>(y.getKey(), y.getValue().stream()
-                                                            .map(z -> CvParam.builder()
-                                                                    .accession(z.getAccession())
-                                                                    .name(z.getName())
-                                                                    .cvLabel(z.getCvLabel())
-                                                                    .value(z.getValue())
-                                                                    .build())
+                                                    .map( y -> new Tuple<Integer, List<? extends CvParamProvider>>(y.getKey(), y.getValue().stream()
+                                                            .map(z -> new CvParam(z.getCvLabel(), z.getAccession(), z.getName(), z.getValue()))
                                                             .collect(Collectors.toList())))
                                                     .collect(Collectors.toList());
 
                                             CvParam modCv = null;
                                             if(x.getModificationCvTerm() != null)
-                                                modCv = CvParam.builder()
-                                                        .accession(x.getModificationCvTerm().getAccession())
-                                                        .cvLabel(x.getModificationCvTerm().getCvLabel())
-                                                        .value(x.getModificationCvTerm().getValue())
-                                                        .name(x.getModificationCvTerm().getName())
-                                                        .build();
+                                                modCv = new CvParam(x.getModificationCvTerm().getCvLabel(),x.getModificationCvTerm().getAccession(),x.getModificationCvTerm().getName(),x.getModificationCvTerm().getValue());
 
-                                            List<CvParam> modProperties = new ArrayList<>();
+                                            List<CvParamProvider> modProperties = new ArrayList<>();
 
-                                            return uk.ac.ebi.pride.archive.spectra.model.Modification.builder()
-                                                    .neutralLoss(neutralLoss)
-                                                    .positionMap(positionMap)
-                                                    .properties(modProperties)
-                                                    .modificationCvTerm(modCv)
-                                                    .build();
+                                            return new IdentifiedModification(neutralLoss, positionMap, modCv, modProperties);
                                         }).collect(Collectors.toList());
 
                                     PSMProvider archivePSM = ArchiveSpectrum
@@ -876,10 +855,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .collect(Collectors.toList());
 
                         //Update reported highQualityPeptides
-                        List<DefaultCvParam> summaryResults = assay.getSummaryResults();
-                        List<DefaultCvParam> newValues = new ArrayList<>(summaryResults.size());
+                        List<CvParam> summaryResults = assay.getSummaryResults();
+                        List<CvParam> newValues = new ArrayList<>(summaryResults.size());
 
-                        for(DefaultCvParam param: summaryResults){
+                        for(CvParam param: summaryResults){
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, highQualityPeptides.size());
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PROTEINS, highQualityProteins.size());
                             param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PSMS, highQualityPsms.size());
@@ -887,11 +866,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             newValues.add(param);
                         }
 
-                        List<Tuple<DefaultCvParam, Integer>> modificationCount = modifiedPeptides.stream()
+                        List<Tuple<CvParam, Integer>> modificationCount = modifiedPeptides.stream()
                                 .flatMap(x -> x.getModifications().values().stream())
                                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                                 .entrySet().stream()
-                                .map( entry -> new Tuple<>(new DefaultCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(),
+                                .map( entry -> new Tuple<>(new CvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(),
                                         String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
                                 .collect(Collectors.toList());
 
@@ -902,10 +881,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             isValid = false;
 
                         if(isValid){
-                            validationMethods.add(new DefaultCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
+                            validationMethods.add(new CvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
                                     CvTermReference.MS_DECOY_VALIDATION_METHOD.getAccession(), CvTermReference.MS_DECOY_VALIDATION_METHOD.getName(), String.valueOf(true)));
                         }else
-                            validationMethods.add(new DefaultCvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
+                            validationMethods.add(new CvParam(CvTermReference.MS_DECOY_VALIDATION_METHOD.getCvLabel(),
                                     CvTermReference.MS_DECOY_VALIDATION_METHOD.getAccession(), CvTermReference.MS_DECOY_VALIDATION_METHOD.getName(), String.valueOf(false)));
 
 
@@ -921,7 +900,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 }).build();
     }
 
-    private DefaultCvParam updateValueOfMongoParamter(DefaultCvParam param, CvTermReference cvTerm, Integer value){
+    private CvParam updateValueOfMongoParamter(CvParam param, CvTermReference cvTerm, Integer value){
         if(param.getAccession().equalsIgnoreCase(cvTerm.getAccession())){
             param.setValue(String.valueOf(value));
         }
