@@ -31,7 +31,6 @@ import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.DefaultIdentifiedModification;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
-import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.param.DefaultCvParam;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
@@ -50,7 +49,7 @@ import uk.ac.ebi.pride.mongodb.archive.repo.files.PrideFileMongoRepository;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
-import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PeptideSpectrumOverview;
+import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
@@ -58,8 +57,6 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
-import uk.ac.ebi.pride.tools.protein_details_fetcher.ProteinDetailFetcher;
-import uk.ac.ebi.pride.tools.protein_details_fetcher.model.Protein;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
 import uk.ac.ebi.pride.utilities.util.Triple;
@@ -302,26 +299,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         psms = allPsms;
                     }
 
-                    List<String> proteinMaps = proteins
-                            .stream().map(x -> x.getRepresentative().getAccession())
-                            .collect(Collectors.toList());
-
-//                    ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
-//                    Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
-
-//                    log.info(String.valueOf(mappedProteins.size()));
-
                     List<ReportPeptide> finalPeptides = peptides;
 
                     proteins.forEach(protein -> {
 
                         String proteinSequence = protein.getRepresentative().getDbSequence();
                         String proteinAccession = protein.getRepresentative().getAccession();
-//                        if(proteinSequence == null || proteinSequence.isEmpty()){
-//                            if(mappedProteins.containsKey(proteinAccession)){
-//                                proteinSequence = mappedProteins.get(proteinAccession).getSequenceString();
-//                            }
-//                        }
                         Set<String> proteinGroups = protein.getAccessions()
                                 .stream().map(Accession::getAccession)
                                 .collect(Collectors.toSet());
@@ -725,10 +708,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         }
                                     }
 
-//                                      properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
-//                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
-//                                                String.valueOf(psm.getQValue())));
-
                                     properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(),
                                             CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
                                             String.valueOf(peptide.getQValue())));
@@ -860,11 +839,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     if(peptideUsi.containsKey(peptide.getPeptide().getID())){
                                         usis = peptideUsi.get(peptide.getPeptide().getID());
                                     }
-                                    usis.add(PeptideSpectrumOverview.builder()
-                                            .usi(usi)
-                                            .charge(psm.getCharge())
-                                            .precursorMass(psm.getMassToCharge())
-                                            .build());
+                                    PeptideSpectrumOverview peptideOverview = new PeptideSpectrumOverview(psm.getCharge(), psm.getMassToCharge(), usi);
+                                    usis.add(peptideOverview);
                                     peptideUsi.put(peptide.getPeptide().getID(), usis);
 
                                 } catch (JMzReaderException | IOException e) {
@@ -915,7 +891,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 .flatMap(x -> x.getModifications().values().stream())
                                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                                 .entrySet().stream()
-                                .map( entry -> new Tuple<>(new DefaultCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(), String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
+                                .map( entry -> new Tuple<>(new DefaultCvParam(entry.getKey().getCvLabel(), entry.getKey().getAccession(), entry.getKey().getDescription(),
+                                        String.valueOf(entry.getKey().getMass())), entry.getValue().intValue()))
                                 .collect(Collectors.toList());
 
 
