@@ -74,7 +74,9 @@ pride:
       path: $pride_usage_directory
       resource: $pride_usage_resource
       trackname: $pride_usage_trackname
-  data.prod.directory: $pride_data_directory
+  data:
+    prod.directory: $pride_data_directory
+    backup.path: $pride_data_backup_path
 
 ftp.protocol.url: $pride_ftp_protocol_url
 aspera.protocol.url: $pride_aspera_protocol_url
