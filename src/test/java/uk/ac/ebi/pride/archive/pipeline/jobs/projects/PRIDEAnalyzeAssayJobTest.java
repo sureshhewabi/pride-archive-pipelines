@@ -35,11 +35,11 @@ public class PRIDEAnalyzeAssayJobTest {
     @Test
     public void analyzeAssayInformationToMongo() {
             JobParameters param = new JobParametersBuilder()
-                    .addString("project", "PXD002086")
-                    .addString("assay", "51455")
+                    .addString("project", "PXD010142")
+                    .addString("assay", "93465")
                     .toJobParameters();
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD002086");
-            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "51455");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob, "projectAccession", "PXD010142");
+            ReflectionTestUtils.setField(prideAnalyzeAssayJob,"assayAccession", "93465");
             JobExecution jobExecution = null;
             try {
                 jobExecution = jobLauncherTestUtils.launchJob(param);
