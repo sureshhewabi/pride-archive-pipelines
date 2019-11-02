@@ -353,25 +353,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             psms = allPsms;
                         }
 
-                        List<String> proteinMaps = proteins
-                                .stream().map(x -> x.getRepresentative().getAccession())
-                                .collect(Collectors.toList());
-
-                        ProteinDetailFetcher fetcher = new ProteinDetailFetcher();
-                        Map<String, Protein> mappedProteins = fetcher.getProteinDetails(proteinMaps);
-
-                        log.info(String.valueOf(mappedProteins.size()));
-
                         List<ReportPeptide> finalPeptides = peptides;
 
                         for (ReportProtein protein : proteins) {
                             String proteinSequence = protein.getRepresentative().getDbSequence();
                             String proteinAccession = protein.getRepresentative().getAccession();
-                            if (proteinSequence == null || proteinSequence.isEmpty()) {
-                                if (mappedProteins.containsKey(proteinAccession)) {
-                                    proteinSequence = mappedProteins.get(proteinAccession).getSequenceString();
-                                }
-                            }
                             Set<String> proteinGroups = protein.getAccessions()
                                     .stream().map(Accession::getAccession)
                                     .collect(Collectors.toSet());
