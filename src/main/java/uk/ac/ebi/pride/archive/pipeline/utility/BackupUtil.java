@@ -2,6 +2,7 @@ package uk.ac.ebi.pride.archive.pipeline.utility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paranamer.ParanamerModule;
+import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 
@@ -31,6 +32,14 @@ public class BackupUtil {
         }
         return backupPath + projectAccession + File.separator + projectAccession + "_" + assayAccession +
                 "_" + PrideMongoProteinEvidence.class.getSimpleName() + JSON_EXT;
+    }
+
+    public static String getPrideMongoPSMEvidenceFile(String backupPath, String projectAccession, String assayAccession) {
+        if (!backupPath.endsWith(File.separator)) {
+            backupPath = backupPath + File.separator;
+        }
+        return backupPath + projectAccession + File.separator + projectAccession + "_" + assayAccession +
+                "_" + ArchiveSpectrum.class.getSimpleName() + JSON_EXT;
     }
 
     public static String getPrideMongoPeptideEvidenceFile(String backupPath, String projectAccession, String assayAccession) {

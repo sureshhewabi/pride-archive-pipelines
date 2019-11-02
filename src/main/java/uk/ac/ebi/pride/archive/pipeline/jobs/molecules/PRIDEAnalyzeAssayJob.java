@@ -169,6 +169,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private BufferedWriter proteinEvidenceBufferedWriter;
     private BufferedWriter peptideEvidenceBufferedWriter;
+    private BufferedWriter psmEvidenceBufferedWriter;
 
     @Bean
     @StepScope
@@ -191,6 +192,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
         final String proteinEvidenceFileName = BackupUtil.getPrideMongoProteinEvidenceFile(backupPath, projectAccession, assayAccession);
         FileWriter proteinEvidenceFw = new FileWriter(proteinEvidenceFileName, false);
         proteinEvidenceBufferedWriter = new BufferedWriter(proteinEvidenceFw);
+
+        final String psmEvidenceFileName = BackupUtil.getPrideMongoPSMEvidenceFile(backupPath, projectAccession, assayAccession);
+        FileWriter psmEvidenceFw = new FileWriter(psmEvidenceFileName, false);
+        psmEvidenceBufferedWriter = new BufferedWriter(psmEvidenceFw);
     }
 
     private void createBackupDir() throws AccessDeniedException {
@@ -322,6 +327,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     proteinEvidenceBufferedWriter.close();
                     peptideEvidenceBufferedWriter.close();
+                    psmEvidenceBufferedWriter.close();
                     return RepeatStatus.FINISHED;
                 }).build();
     }
@@ -870,12 +876,16 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                                     try {
                                         moleculesService.insertPsmSummaryEvidence(psmMongo);
+                                        BackupUtil.write(archivePSM, psmEvidenceBufferedWriter);
                                     } catch (DuplicateKeyException ex) {
                                         moleculesService.savePsmSummaryEvidence(psmMongo);
                                         log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
                                     }
 
                                     //spectralArchive.deletePSM(archivePSM.getUsi());
+
 
                                     spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
 
