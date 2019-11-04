@@ -493,8 +493,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     peptideAttributes.add(peptideScore);
                 }
 
-
-
                 List<PeptideSpectrumOverview> usiList = peptideUsi.get(firstPeptide.get().getPeptide().getID());
 
                 int startPosition = 0;
@@ -929,9 +927,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             moleculesService.savePsmSummaryEvidence(psmMongo);
                                             log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
                                         }
-
-                                        //spectralArchive.deletePSM(archivePSM.getUsi());
-
 
                                         spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
 
