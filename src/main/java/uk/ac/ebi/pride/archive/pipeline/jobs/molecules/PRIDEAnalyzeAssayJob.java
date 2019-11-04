@@ -13,6 +13,7 @@ import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
+import de.mpc.pia.tools.pride.PRIDETools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -28,13 +29,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DuplicateKeyException;
+import uk.ac.ebi.jmzidml.model.mzidml.AbstractParam;
 import uk.ac.ebi.jmzidml.model.mzidml.SpectraData;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PSMProvider;
 import uk.ac.ebi.pride.archive.dataprovider.data.peptide.PeptideSpectrumOverview;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModification;
 import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvider;
-import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
@@ -61,8 +62,6 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
-import uk.ac.ebi.pride.tools.protein_details_fetcher.ProteinDetailFetcher;
-import uk.ac.ebi.pride.tools.protein_details_fetcher.model.Protein;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
 import uk.ac.ebi.pride.utilities.util.Triple;
@@ -79,6 +78,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -394,7 +394,22 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 attributes.add(scoreParam);
                             }
 
+                            AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(false)));
 
+                            protein.getPeptides().stream().forEach( x -> {
+                                x.getPeptide().getSpectra().stream().forEach( y-> {
+                                    for (AbstractParam abstractParam: y.getParams()){
+                                        uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                        if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
+                                            param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                        }
+                                    }
+                                });
+                            });
+
+                            attributes.add(param.get());
                             proteinIds.add(proteinAccession);
                             protein.getPeptides().forEach(x -> peptideSequences.add(x.getSequence()));
 
@@ -477,8 +492,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     peptideAttributes.add(peptideScore);
                 }
 
-                if (protein.getRepresentative().getAccession().equalsIgnoreCase("DECOY_ECA0723"))
-                    System.out.println(protein.getRepresentative().getAccession());
+
 
                 List<PeptideSpectrumOverview> usiList = peptideUsi.get(firstPeptide.get().getPeptide().getID());
 
@@ -494,6 +508,23 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 } else {
                     log.info("Position of the corresponding peptide is not present -- " + protein.getRepresentative().getAccession());
                 }
+
+                AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(false)));
+
+                peptides.stream().forEach( x -> {
+                    x.getPeptide().getSpectra().stream().forEach(y -> {
+                    for (AbstractParam abstractParam: y.getParams()){
+                            uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                            if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
+                                param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                            }
+                        }
+                    });
+                });
+
+                peptideAttributes.add(param.get());
 
                 PrideMongoPeptideEvidence peptideEvidence = PrideMongoPeptideEvidence
                         .builder()
@@ -771,6 +802,19 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
                                                 }
 
+                                            }
+                                        }
+                                    }
+
+                                    // Capturing additional parameters provided by the user.
+                                    for(AbstractParam abstractParam: spectrum.getParams()){
+                                        if(abstractParam != null){
+                                            uk.ac.ebi.jmzidml.model.mzidml.CvParam cvParam = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                            if(cvParam.getAccession() != null){
+                                                CvParam cv = new CvParam(cvParam.getCvRef(), cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
+                                                if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
+                                                    psmAttributes.add(cv);
+                                                properties.add(cv);
                                             }
                                         }
                                     }
