@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.paranamer.ParanamerModule;
 import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ public class BackupUtil {
                 "_" + PrideMongoProteinEvidence.class.getSimpleName() + JSON_EXT;
     }
 
-    public static String getPrideMongoPSMEvidenceFile(String backupPath, String projectAccession, String assayAccession) {
+    public static String getArchiveSpectrumFile(String backupPath, String projectAccession, String assayAccession) {
         if (!backupPath.endsWith(File.separator)) {
             backupPath = backupPath + File.separator;
         }
@@ -48,6 +49,14 @@ public class BackupUtil {
         }
         return backupPath + projectAccession + File.separator + projectAccession + "_" + assayAccession +
                 "_" + PrideMongoPeptideEvidence.class.getSimpleName() + JSON_EXT;
+    }
+
+    public static String getPrideMongoPsmSummaryEvidenceFile(String backupPath, String projectAccession, String assayAccession) {
+        if (!backupPath.endsWith(File.separator)) {
+            backupPath = backupPath + File.separator;
+        }
+        return backupPath + projectAccession + File.separator + projectAccession + "_" + assayAccession +
+                "_" + PrideMongoPsmSummaryEvidence.class.getSimpleName() + JSON_EXT;
     }
 
     public static List<PrideMongoProteinEvidence> getPrideMongoProteinEvidenceFromBackup(String backupPath, String projectAccession, String assayAccession) throws IOException {
@@ -76,5 +85,33 @@ public class BackupUtil {
         reader.close();
 
         return prideMongoPeptideEvidences;
+    }
+
+    public static List<PrideMongoPsmSummaryEvidence> getPrideMongoPsmSummaryEvidenceFromBackup(String backupPath, String projectAccession, String assayAccession) throws IOException {
+        List<PrideMongoPsmSummaryEvidence> list = new ArrayList<>();
+        BufferedReader reader;
+        reader = new BufferedReader(new FileReader(getPrideMongoPsmSummaryEvidenceFile(backupPath, projectAccession, assayAccession)));
+        String line = reader.readLine();
+        while (line != null) {
+            list.add(objectMapper.readValue(line, PrideMongoPsmSummaryEvidence.class));
+            line = reader.readLine();
+        }
+        reader.close();
+
+        return list;
+    }
+
+    public static List<ArchiveSpectrum> getArchiveSpectrumFromBackup(String backupPath, String projectAccession, String assayAccession) throws IOException {
+        List<ArchiveSpectrum> list = new ArrayList<>();
+        BufferedReader reader;
+        reader = new BufferedReader(new FileReader(getArchiveSpectrumFile(backupPath, projectAccession, assayAccession)));
+        String line = reader.readLine();
+        while (line != null) {
+            list.add(objectMapper.readValue(line, ArchiveSpectrum.class));
+            line = reader.readLine();
+        }
+        reader.close();
+
+        return list;
     }
 }
