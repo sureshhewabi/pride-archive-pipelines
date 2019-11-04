@@ -1,20 +1,23 @@
 package uk.ac.ebi.pride.archive.pipeline.utility;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paranamer.ParanamerModule;
+import javafx.util.Pair;
 import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BackupUtil {
 
     private static final ObjectMapper objectMapper;
-    private static final String JSON_EXT = ".json";
+    public static final String JSON_EXT = ".json";
 
     static {
         objectMapper = new ObjectMapper();
@@ -62,13 +65,13 @@ public class BackupUtil {
     public static List<PrideMongoProteinEvidence> getPrideMongoProteinEvidenceFromBackup(String backupPath, String projectAccession, String assayAccession) throws IOException {
         List<PrideMongoProteinEvidence> prideMongoProteinEvidences = new ArrayList<>();
         BufferedReader reader;
-            reader = new BufferedReader(new FileReader(getPrideMongoProteinEvidenceFile(backupPath, projectAccession, assayAccession)));
-            String line = reader.readLine();
-            while (line != null) {
-                prideMongoProteinEvidences.add(objectMapper.readValue(line, PrideMongoProteinEvidence.class));
-                line = reader.readLine();
-            }
-            reader.close();
+        reader = new BufferedReader(new FileReader(getPrideMongoProteinEvidenceFile(backupPath, projectAccession, assayAccession)));
+        String line = reader.readLine();
+        while (line != null) {
+            prideMongoProteinEvidences.add(objectMapper.readValue(line, PrideMongoProteinEvidence.class));
+            line = reader.readLine();
+        }
+        reader.close();
 
         return prideMongoProteinEvidences;
     }
@@ -113,5 +116,25 @@ public class BackupUtil {
         reader.close();
 
         return list;
+    }
+
+    public static <T> List<T> getObjectsFromFile(Path file, Class classType) throws Exception {
+        List<T> list = new ArrayList<>();
+        JavaType javaType = objectMapper.getTypeFactory().constructType(classType);
+        BufferedReader reader;
+        reader = new BufferedReader(new FileReader(file.toFile()));
+        String line = reader.readLine();
+        while (line != null) {
+            list.add(objectMapper.readValue(line, javaType));
+            line = reader.readLine();
+        }
+        reader.close();
+
+        return list;
+    }
+
+    public static Pair<String, String> getProjectAccessionAssayAccessionFromFilename(String filename) {
+        String[] s = filename.split("_");
+        return new Pair<>(s[0], s[1]);
     }
 }

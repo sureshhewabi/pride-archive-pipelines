@@ -55,11 +55,6 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
         };
     }
 
-    /**
-     * Defines the job to Sync all the projects from OracleDB into MongoDB database.
-     *
-     * @return the calculatePrideArchiveDataUsage job
-     */
     @Bean
     public Job solrIndexPeptideProteinJob() {
         return jobBuilderFactory
