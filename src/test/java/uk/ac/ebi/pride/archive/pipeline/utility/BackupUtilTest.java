@@ -12,6 +12,7 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration
 import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveSubmissionStatsJob;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
+import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 
 import java.io.IOException;
@@ -44,12 +45,18 @@ public class BackupUtilTest {
         List<PrideMongoPeptideEvidence> prideMongoPeptideEvidences = BackupUtil.getPrideMongoPeptideEvidenceFromBackup(backupPath, projectAccession, assayAccession);
         prideMongoPeptideEvidences.forEach(p -> moleculesService.savePeptideEvidence(p));
 
+        List<PrideMongoPsmSummaryEvidence> prideMongoPsmSummaryEvidences = BackupUtil.getPrideMongoPsmSummaryEvidenceFromBackup(backupPath, projectAccession, assayAccession);
+        prideMongoPsmSummaryEvidences.forEach(p -> moleculesService.savePsmSummaryEvidence(p));
+
         assayAccession = "93466";
         prideMongoProteinEvidences = BackupUtil.getPrideMongoProteinEvidenceFromBackup(backupPath, projectAccession, assayAccession);
         prideMongoProteinEvidences.forEach(p -> moleculesService.saveProteinEvidences(p));
 
         prideMongoPeptideEvidences = BackupUtil.getPrideMongoPeptideEvidenceFromBackup(backupPath, projectAccession, assayAccession);
         prideMongoPeptideEvidences.forEach(p -> moleculesService.savePeptideEvidence(p));
+
+        prideMongoPsmSummaryEvidences = BackupUtil.getPrideMongoPsmSummaryEvidenceFromBackup(backupPath, projectAccession, assayAccession);
+        prideMongoPsmSummaryEvidences.forEach(p -> moleculesService.savePsmSummaryEvidence(p));
 
     }
 
