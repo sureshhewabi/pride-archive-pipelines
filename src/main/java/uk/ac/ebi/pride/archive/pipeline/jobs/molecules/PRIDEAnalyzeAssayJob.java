@@ -810,12 +810,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     // Capturing additional parameters provided by the user.
                                     for(AbstractParam abstractParam: spectrum.getParams()){
                                         if(abstractParam != null){
-                                            uk.ac.ebi.jmzidml.model.mzidml.CvParam cvParam = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
-                                            if(cvParam.getAccession() != null){
-                                                CvParam cv = new CvParam(cvParam.getCvRef(), cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
-                                                if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
-                                                    psmAttributes.add(cv);
-                                                properties.add(cv);
+                                            if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
+                                                uk.ac.ebi.jmzidml.model.mzidml.CvParam cvParam = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                                if(cvParam.getAccession() != null){
+                                                    CvParam cv = new CvParam(cvParam.getCvRef(), cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
+                                                    if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
+                                                        psmAttributes.add(cv);
+                                                    properties.add(cv);
+                                                }
                                             }
                                         }
                                     }
