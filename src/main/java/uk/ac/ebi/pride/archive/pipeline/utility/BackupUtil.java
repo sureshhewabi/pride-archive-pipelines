@@ -3,7 +3,6 @@ package uk.ac.ebi.pride.archive.pipeline.utility;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paranamer.ParanamerModule;
-import javafx.util.Pair;
 import uk.ac.ebi.pride.archive.spectra.model.ArchiveSpectrum;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
@@ -131,10 +130,5 @@ public class BackupUtil {
         reader.close();
 
         return list;
-    }
-
-    public static Pair<String, String> getProjectAccessionAssayAccessionFromFilename(String filename) {
-        String[] s = filename.split("_");
-        return new Pair<>(s[0], s[1]);
     }
 }
