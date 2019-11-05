@@ -514,12 +514,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                 peptides.stream().forEach( x -> {
                     x.getPeptide().getSpectra().stream().forEach(y -> {
                     for (AbstractParam abstractParam: y.getParams()){
+                        if( abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
                             uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
                             if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
                                 param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
                                         PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
                             }
                         }
+                    }
                     });
                 });
 
