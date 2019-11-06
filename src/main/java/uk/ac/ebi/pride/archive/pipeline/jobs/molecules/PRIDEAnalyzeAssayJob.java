@@ -401,10 +401,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             protein.getPeptides().stream().forEach( x -> {
                                 x.getPeptide().getSpectra().stream().forEach( y-> {
                                     for (AbstractParam abstractParam: y.getParams()){
-                                        uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
-                                        if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
-                                            param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                        if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
+                                            uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                            if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
+                                                param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                            }
                                         }
                                     }
                                 });
@@ -515,10 +517,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     x.getPeptide().getSpectra().stream().forEach(y -> {
                     for (AbstractParam abstractParam: y.getParams()){
                         if( abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
-                            uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
-                            if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
-                                param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                            if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
+                                uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
+                                    param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                            PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                }
                             }
                         }
                     }
@@ -813,18 +817,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     for(AbstractParam abstractParam: spectrum.getParams()){
                                         if(abstractParam != null){
                                             if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
-
-                                                if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
-                                                    uk.ac.ebi.jmzidml.model.mzidml.CvParam cvParam = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
-                                                    if(cvParam.getAccession() != null){
-                                                        CvParam cv = new CvParam(cvParam.getCvRef(),
-                                                                cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
-                                                        if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
-                                                            psmAttributes.add(cv);
-                                                        properties.add(cv);
-                                                    }
+                                                uk.ac.ebi.jmzidml.model.mzidml.CvParam cvParam = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
+                                                if(cvParam.getAccession() != null){
+                                                    CvParam cv = new CvParam(cvParam.getCvRef(),
+                                                            cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
+                                                    if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
+                                                        psmAttributes.add(cv);
+                                                    properties.add(cv);
                                                 }
-
                                             }
                                         }
                                     }
