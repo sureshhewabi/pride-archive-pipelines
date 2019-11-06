@@ -76,6 +76,7 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -395,17 +396,26 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 attributes.add(scoreParam);
                             }
 
-                            AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(false)));
+                            AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants
+                                    .PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(),
+                                    PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(),
+                                    Boolean.toString(false)));
 
+                            AtomicBoolean submitterValid = new AtomicBoolean(false);
                             protein.getPeptides().stream().forEach( x -> {
                                 x.getPeptide().getSpectra().stream().forEach( y-> {
                                     for (AbstractParam abstractParam: y.getParams()){
                                         if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
                                             uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
-                                            if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
-                                                param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                            if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") &&
+                                                    cv.getValue().equalsIgnoreCase("true")){
+                                                param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD
+                                                        .getCvLabel(),
+                                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(),
+                                                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(),
+                                                        Boolean.toString(true)));
+                                                submitterValid.set(true);
                                             }
                                         }
                                     }
@@ -434,18 +444,19 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     .sequenceCoverage(protein.getCoverage(proteinAccession))
                                     .build();
 
-                            try {
-                                BackupUtil.write(proteinEvidence, proteinEvidenceBufferedWriter);
-                                moleculesService.insertProteinEvidences(proteinEvidence);
-                            } catch (DuplicateKeyException ex) {
-                                moleculesService.saveProteinEvidences(proteinEvidence);
-                                log.debug("The protein was already in the database -- " + proteinEvidence.getReportedAccession());
-                            } catch (Exception e) {
-                                log.error(e.getMessage(), e);
-                                throw new Exception(e);
+                            if(isValid || submitterValid.get()){
+                                try {
+                                    BackupUtil.write(proteinEvidence, proteinEvidenceBufferedWriter);
+                                    moleculesService.insertProteinEvidences(proteinEvidence);
+                                } catch (DuplicateKeyException ex) {
+                                    moleculesService.saveProteinEvidences(proteinEvidence);
+                                    log.debug("The protein was already in the database -- " + proteinEvidence.getReportedAccession());
+                                } catch (Exception e) {
+                                    log.error(e.getMessage(), e);
+                                    throw new Exception(e);
+                                }
+                                indexPeptideByProtein(protein, finalPeptides);
                             }
-                            indexPeptideByProtein(protein, finalPeptides);
-
                         }
 
                         taskTimeMap.put("InsertPeptidesProteinsIntoMongoDB", System.currentTimeMillis() - initInsertPeptides);
@@ -510,9 +521,12 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                     log.info("Position of the corresponding peptide is not present -- " + protein.getRepresentative().getAccession());
                 }
 
-                AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(false)));
+                AtomicReference<CvParam> param = new AtomicReference<>(new CvParam(PRIDETools.PrideOntologyConstants
+                        .PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
+                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(),
+                        PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(false)));
 
+                AtomicBoolean submitterValid = new AtomicBoolean(false);
                 peptides.stream().forEach( x -> {
                     x.getPeptide().getSpectra().stream().forEach(y -> {
                     for (AbstractParam abstractParam: y.getParams()){
@@ -521,7 +535,10 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                 uk.ac.ebi.jmzidml.model.mzidml.CvParam cv = (uk.ac.ebi.jmzidml.model.mzidml.CvParam) abstractParam;
                                 if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511") && cv.getValue().equalsIgnoreCase("true")){
                                     param.set(new CvParam(PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getCvLabel(),
-                                            PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(), PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(), Boolean.toString(true)));
+                                            PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getAccession(),
+                                            PRIDETools.PrideOntologyConstants.PRIDE_SUBMITTERS_THERSHOLD.getName(),
+                                            Boolean.toString(true)));
+                                    submitterValid.set(true);
                                 }
                             }
                         }
@@ -549,15 +566,18 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         .isValid(isValid)
                         .qualityEstimationMethods(validationMethods)
                         .build();
-                try {
-                    BackupUtil.write(peptideEvidence, peptideEvidenceBufferedWriter);
-                    moleculesService.insertPeptideEvidence(peptideEvidence);
-                } catch (DuplicateKeyException ex) {
-                    moleculesService.savePeptideEvidence(peptideEvidence);
-                    log.debug("The peptide evidence was already in the database -- " + peptideEvidence.getPeptideAccession());
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                    throw new Exception(e);
+
+                if(isValid || submitterValid.get()){
+                    try {
+                        BackupUtil.write(peptideEvidence, peptideEvidenceBufferedWriter);
+                        moleculesService.insertPeptideEvidence(peptideEvidence);
+                    } catch (DuplicateKeyException ex) {
+                        moleculesService.savePeptideEvidence(peptideEvidence);
+                        log.debug("The peptide evidence was already in the database -- " + peptideEvidence.getPeptideAccession());
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                        throw new Exception(e);
+                    }
                 }
             }
         }
@@ -800,7 +820,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             if (scoreValue != null && !scoreValue.isNaN()) {
                                                 for (CvTermReference ref : CvTermReference.values()) {
                                                     if (ref.getAccession().equalsIgnoreCase(scoreModel.getCvAccession())) {
-                                                        CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(), ref.getName(), String.valueOf(scoreValue));
+                                                        CvParam cv = new CvParam(ref.getCvLabel(), ref.getAccession(),
+                                                                ref.getName(), String.valueOf(scoreValue));
                                                         properties.add(cv);
                                                         if (ref.getAccession().equalsIgnoreCase("MS:1002355")) {
                                                             CvParam bestSearchEngine = new CvParam(cv.getCvLabel(), cv.getAccession(), cv.getName(), cv.getValue());
@@ -814,6 +835,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         }
 
                                     // Capturing additional parameters provided by the user.
+                                    boolean submitterValid = false;
                                     for(AbstractParam abstractParam: spectrum.getParams()){
                                         if(abstractParam != null){
                                             if(abstractParam instanceof uk.ac.ebi.jmzidml.model.mzidml.CvParam){
@@ -821,65 +843,70 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 if(cvParam.getAccession() != null){
                                                     CvParam cv = new CvParam(cvParam.getCvRef(),
                                                             cvParam.getAccession(), cvParam.getName(), cvParam.getValue());
-                                                    if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511"))
+                                                    if(cv.getAccession().equalsIgnoreCase("PRIDE:0000511")){
                                                         psmAttributes.add(cv);
+                                                        if(cv.getValue().equalsIgnoreCase("true"))
+                                                            submitterValid = true;
+                                                    }
                                                     properties.add(cv);
                                                 }
                                             }
                                         }
                                     }
+                                    properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(),
+                                            CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(),
+                                            CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
+                                            String.valueOf(peptide.getQValue())));
 
-//                                      properties.add(new CvParam(CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getCvLabel(),
-//                                                CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getAccession(), CvTermReference.MS_PIA_PSM_LEVEL_QVALUE.getName(),
-//                                                String.valueOf(psm.getQValue())));
+                                    double retentionTime = Double.NaN;
+                                    if (psm.getRetentionTime() != null)
+                                        retentionTime = psm.getRetentionTime();
 
-                                        properties.add(new CvParam(CvTermReference.MS_PIA_PEPTIDE_QVALUE.getCvLabel(),
-                                                CvTermReference.MS_PIA_PEPTIDE_QVALUE.getAccession(), CvTermReference.MS_PIA_PEPTIDE_QVALUE.getName(),
-                                                String.valueOf(peptide.getQValue())));
+                                    List<Double> ptmMasses = peptide.getModifications().entrySet()
+                                            .stream().map(x -> x.getValue().getMass()).collect(Collectors.toList());
+                                    double deltaMass = MoleculeUtilities
+                                            .calculateDeltaMz(peptide.getSequence(),
+                                                    spectrum.getMassToCharge(),
+                                                    spectrum.getCharge(),
+                                                    ptmMasses);
 
-                                        double retentionTime = Double.NaN;
-                                        if (psm.getRetentionTime() != null)
-                                            retentionTime = psm.getRetentionTime();
+                                    log.info("Delta Mass -- " + deltaMass);
 
-                                        List<Double> ptmMasses = peptide.getModifications().entrySet()
-                                                .stream().map(x -> x.getValue().getMass()).collect(Collectors.toList());
-                                        double deltaMass = MoleculeUtilities
-                                                .calculateDeltaMz(peptide.getSequence(),
-                                                        spectrum.getMassToCharge(),
-                                                        spectrum.getCharge(),
-                                                        ptmMasses);
+                                    if (deltaMass > 0.9) {
+                                        errorDeltaPSM.set(errorDeltaPSM.get() + 1);
+                                    }
+                                    properties.add(new CvParam(CvTermReference.MS_DELTA_MASS.getCvLabel(),
+                                            CvTermReference.MS_DELTA_MASS.getAccession(),
+                                            CvTermReference.MS_DELTA_MASS.getName(),
+                                            String.valueOf(deltaMass))
+                                    );
 
-                                        log.info("Delta Mass -- " + deltaMass);
-
-                                        if (deltaMass > 0.9) {
-                                            errorDeltaPSM.set(errorDeltaPSM.get() + 1);
-                                        }
-
-                                        properties.add(new CvParam(CvTermReference.MS_DELTA_MASS.getCvLabel(),
-                                                CvTermReference.MS_DELTA_MASS.getAccession(),
-                                                CvTermReference.MS_DELTA_MASS.getName(),
-                                                String.valueOf(deltaMass))
-                                        );
-
-                                        List<IdentifiedModification> mods = new ArrayList<>();
-                                        if (psm.getModifications() != null && psm.getModifications().size() > 0)
-                                            mods = PRIDEAnalyzeAssayJob.this.convertPeptideModifications(psm.getModifications()).stream().map(x -> {
+                                    List<IdentifiedModification> mods = new ArrayList<>();
+                                    if (psm.getModifications() != null && psm.getModifications().size() > 0)
+                                        mods = PRIDEAnalyzeAssayJob.this.convertPeptideModifications(psm.getModifications()).stream().map(x -> {
 
                                                 CvParam neutralLoss = null;
                                                 if (x.getNeutralLoss() != null)
-                                                    neutralLoss = new CvParam(x.getNeutralLoss().getCvLabel(), x.getNeutralLoss().getAccession(), x.getNeutralLoss().getName(), x.getNeutralLoss().getValue());
+                                                    neutralLoss = new CvParam(x.getNeutralLoss().getCvLabel(),
+                                                            x.getNeutralLoss().getAccession(),
+                                                            x.getNeutralLoss().getName(), x.getNeutralLoss().getValue());
 
                                                 List<Tuple<Integer, Set<? extends CvParamProvider>>> positionMap = new ArrayList<>();
                                                 if (x.getPositionMap() != null && x.getPositionMap().size() > 0)
                                                     positionMap = x.getPositionMap().stream()
-                                                            .map(y -> new Tuple<Integer, Set<? extends CvParamProvider>>(y.getKey(), y.getValue().stream()
-                                                                    .map(z -> new CvParam(z.getCvLabel(), z.getAccession(), z.getName(), z.getValue()))
+                                                            .map(y -> new Tuple<Integer, Set<? extends CvParamProvider>>(y.getKey(),
+                                                                    y.getValue().stream()
+                                                                            .map(z -> new CvParam(z.getCvLabel(),
+                                                                                    z.getAccession(), z.getName(), z.getValue()))
                                                                     .collect(Collectors.toSet())))
                                                             .collect(Collectors.toList());
 
                                                 CvParam modCv = null;
                                                 if (x.getModificationCvTerm() != null)
-                                                    modCv = new CvParam(x.getModificationCvTerm().getCvLabel(), x.getModificationCvTerm().getAccession(), x.getModificationCvTerm().getName(), x.getModificationCvTerm().getValue());
+                                                    modCv = new CvParam(x.getModificationCvTerm().getCvLabel(),
+                                                            x.getModificationCvTerm().getAccession(),
+                                                            x.getModificationCvTerm().getName(),
+                                                            x.getModificationCvTerm().getValue());
 
                                                 Set<CvParamProvider> modProperties = new HashSet<>();
 
@@ -928,23 +955,25 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                         .encodePeptide(psm.getSequence(), psm.getModifications()))
                                                 .build();
 
-                                        try {
-                                            BackupUtil.write(archivePSM, archiveSpectrumBufferedWriter);
-                                            BackupUtil.write(psmMongo, psmSummaryEvidenceBufferedWriter);
-                                            moleculesService.insertPsmSummaryEvidence(psmMongo);
-                                        } catch (DuplicateKeyException ex) {
-                                            moleculesService.savePsmSummaryEvidence(psmMongo);
-                                            log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
-                                        }
+                                        if(isValid || submitterValid ){
+                                            try {
+                                                BackupUtil.write(archivePSM, archiveSpectrumBufferedWriter);
+                                                BackupUtil.write(psmMongo, psmSummaryEvidenceBufferedWriter);
+                                                moleculesService.insertPsmSummaryEvidence(psmMongo);
+                                            } catch (DuplicateKeyException ex) {
+                                                moleculesService.savePsmSummaryEvidence(psmMongo);
+                                                log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
+                                            }
 
-                                        spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
+                                            spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
 
-                                        List<PeptideSpectrumOverview> usis = new ArrayList<>();
-                                        if (peptideUsi.containsKey(peptide.getPeptide().getID())) {
-                                            usis = peptideUsi.get(peptide.getPeptide().getID());
+                                            List<PeptideSpectrumOverview> usis = new ArrayList<>();
+                                            if (peptideUsi.containsKey(peptide.getPeptide().getID())) {
+                                                usis = peptideUsi.get(peptide.getPeptide().getID());
+                                            }
+                                            usis.add(new PeptideSpectrumOverview(psm.getCharge(), psm.getMassToCharge(), usi));
+                                            peptideUsi.put(peptide.getPeptide().getID(), usis);
                                         }
-                                        usis.add(new PeptideSpectrumOverview(psm.getCharge(), psm.getMassToCharge(), usi));
-                                        peptideUsi.put(peptide.getPeptide().getID(), usis);
 
                                     } catch (Exception e) {
                                         log.error(e.getMessage(), e);

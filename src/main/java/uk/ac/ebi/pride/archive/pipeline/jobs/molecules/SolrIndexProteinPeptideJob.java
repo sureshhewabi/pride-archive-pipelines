@@ -89,13 +89,17 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
                     if(projectAccession == null) {
                         List<String> allProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
                         allProjectAccessions.forEach(p -> {
-                            Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService.findProteinAccessionByProjectAccessions(p));
-                            Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService.findPeptideSequenceByProjectAccessions(p));
+                            Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
+                                    .findProteinAccessionByProjectAccessions(p));
+                            Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
+                                    .findPeptideSequenceByProjectAccessions(p));
                             updateSolrProject(p, proteinAccessions, peptideSequences);
                         });
                     } else {
-                        Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService.findProteinAccessionByProjectAccessions(projectAccession));
-                        Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService.findPeptideSequenceByProjectAccessions(projectAccession));
+                        Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
+                                .findProteinAccessionByProjectAccessions(projectAccession));
+                        Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
+                                .findPeptideSequenceByProjectAccessions(projectAccession));
                         updateSolrProject(projectAccession, proteinAccessions, peptideSequences);
                     }
 
