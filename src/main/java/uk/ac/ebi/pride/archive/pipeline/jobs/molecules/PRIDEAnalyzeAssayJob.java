@@ -91,6 +91,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
     private static final Long FILE_ID = 1L;
+    private static final int PIPELINE_RETRY_LIMIT = 20;
     @Autowired
     PrideProjectMongoService prideProjectMongoService;
 
@@ -965,7 +966,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                 log.debug("The psm evidence was already in the database -- " + psmMongo.getUsi());
                                             }
 
-                                            spectralArchive.writePSM(archivePSM.getUsi(), archivePSM);
+                                            pushToS3(archivePSM.getUsi(), archivePSM, 0);
 
                                             List<PeptideSpectrumOverview> usis = new ArrayList<>();
                                             if (peptideUsi.containsKey(peptide.getPeptide().getID())) {
@@ -990,6 +991,25 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         return RepeatStatus.FINISHED;
                     }
                 }).build();
+    }
+
+    /**
+     * This method allow to retry to push into S3 if the service is failing
+     * @param usi usi to be push
+     * @param psm PSM to be push
+     * @param retry number of retries
+     * @throws Exception
+     */
+    private void pushToS3(String usi, PSMProvider psm, int retry) throws Exception {
+        try{
+            spectralArchive.writePSM(usi, psm);
+        }catch (com.amazonaws.SdkClientException e){
+            Thread.sleep(10000);
+            if(retry < PIPELINE_RETRY_LIMIT)
+                pushToS3(usi, psm, retry + 1);
+            else
+                throw new Exception("The S3 is not working properly, multiple retries failed --");
+        }
     }
 
     private String getSpectraLocation(SpectraData spectraData) {
