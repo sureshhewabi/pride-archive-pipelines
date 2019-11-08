@@ -23,7 +23,7 @@ before_script:
   script:
     - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
     - envsubst < config/.application.yml > config/application.yml
-    - envsubst < scripts/runPipelineInJava.sh > scripts/runPipelineInJava.sh
+    - cp scripts/runPipelineInJava.sh dummy.txt && envsubst '${SLACK_REPORT_URL}' < dummy.txt > scripts/runPipelineInJava.sh
     - chmod -R 700 config && chmod 700 scripts/*.sh
     - (rm src/main/resources/*.properties || true)
     - export HOSTNAME=$HOSTNAME_BCKUP
