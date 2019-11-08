@@ -23,10 +23,10 @@ before_script:
   script:
     - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
     - envsubst < config/.application.yml > config/application.yml
+    - envsubst < scripts/runPipelineInJava.sh > scripts/runPipelineInJava.sh
     - chmod -R 700 config && chmod 700 scripts/*.sh
     - (rm src/main/resources/*.properties || true)
     - export HOSTNAME=$HOSTNAME_BCKUP
-    #    - (envsubst < config/.application.yml > src/main/resources/application.yml) && (ls -al src/main/resources/)
     - mvn $MAVEN_CLI_OPTS clean package -DskipTests
     - cd target && jar_file=`ls *jar` && (ln -s $jar_file $JAR_FILE_LINK || true) && ls -al && cd ..
     - DEPLOY_DIR=$(date +"%Y%m%d_%H%M%S")
