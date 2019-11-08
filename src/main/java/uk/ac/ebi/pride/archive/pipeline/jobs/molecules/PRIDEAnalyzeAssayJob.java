@@ -11,6 +11,7 @@ import de.mpc.pia.modeller.protein.ReportProtein;
 import de.mpc.pia.modeller.psm.ReportPSM;
 import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
+import de.mpc.pia.modeller.report.filter.RegisteredFilters;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import de.mpc.pia.tools.pride.PRIDETools;
@@ -60,6 +61,7 @@ import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence
 import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 import uk.ac.ebi.pride.utilities.util.MoleculeUtilities;
@@ -264,21 +266,32 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                     .filter(entry -> entry.getValue().getIsDecoy())
                                     .count();
 
-                            allPeptides = modeller.getPeptideModeller().getFilteredReportPeptides(MERGE_FILE_ID, new ArrayList<>());
-                            allProteins = modeller.getProteinModeller().getFilteredReportProteins(new ArrayList<>());
-                            allPsms = modeller.getPSMModeller().getFilteredReportPSMs(FILE_ID, new ArrayList<>());
+                            List<AbstractFilter> filters = new ArrayList<>();
+                            filters.add(RegisteredFilters.PSM_SOURCE_ID_FILTER
+                                    .newInstanceOf(FilterComparator.equal,"index=null" ,true));
+
+                            allPsms = modeller.getPSMModeller()
+                                    .getFilteredReportPSMs(FILE_ID, filters);
+                            allPeptides = modeller.getPeptideModeller()
+                                    .getFilteredReportPeptides(MERGE_FILE_ID, filters);
+                            allProteins = modeller.getProteinModeller()
+                                    .getFilteredReportProteins(filters);
+
 
 
                             // setting filter for peptide level filtering
                             modeller = piaModellerService.performFilteringInference(modeller, qValueThreshold, qFilterProteinFDR);
-                            List<AbstractFilter> filters = new ArrayList<>();
                             filters.add(new PSMScoreFilter(FilterComparator.less_equal, false,
                                     qValueThreshold, ScoreModelEnum.PSM_LEVEL_Q_VALUE.getShortName()));              // you can also use fdr score here
 
                             // get the FDR filtered highQualityPeptides
-                            highQualityPeptides = modeller.getPeptideModeller().getFilteredReportPeptides(MERGE_FILE_ID, filters);
-                            highQualityProteins = modeller.getProteinModeller().getFilteredReportProteins(filters);
-                            highQualityPsms = modeller.getPSMModeller().getFilteredReportPSMs(MERGE_FILE_ID, filters);
+                            highQualityPsms = modeller.getPSMModeller()
+                                    .getFilteredReportPSMs(MERGE_FILE_ID, filters);
+                            highQualityPeptides = modeller.getPeptideModeller()
+                                    .getFilteredReportPeptides(MERGE_FILE_ID, filters);
+                            highQualityProteins = modeller.getProteinModeller()
+                                    .getFilteredReportProteins(filters);
+
 
                             if (!(nrDecoys > 0 && highQualityProteins.size() > 0 && highQualityPeptides.size() > 0 && highQualityPsms.size() > 0 && highQualityPsms.size() >= highQualityPeptides.size())) {
                                 highQualityPeptides = new ArrayList<>();
@@ -772,6 +785,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         totalPSM.set(totalPSM.get() + 1);
 
                                         PeptideSpectrumMatch finalSpectrum = spectrum;
+                                        System.out.println(finalSpectrum.getSourceID());
 
                                         Spectrum fileSpectrum = null;
                                         String spectrumFile = null;
@@ -786,15 +800,19 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                                     .getInputSpectra().get(0).getSpectraDataRef()))
                                                     .findFirst();
                                             spectrumFile = refeFile.get().getFirst();
-                                            fileSpectrum = finalService.getSpectrum(spectrumFile, SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(), (ReportPSM) psm));
-                                            usi = SubmissionPipelineConstants.buildUsi(projectAccession, refeFile.get(), (ReportPSM) psm);
+                                            fileSpectrum = finalService.getSpectrum(spectrumFile,
+                                                    SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(),
+                                                            (ReportPSM) psm));
+                                            usi = SubmissionPipelineConstants.buildUsi(projectAccession, refeFile.get(),
+                                                    (ReportPSM) psm);
                                             Path p = Paths.get(refeFile.get().getFirst());
                                             fileName = p.getFileName().toString();
                                         } else {
                                             SpectraData spectraData = new SpectraData();
                                             spectraData.setLocation(assayResultFile.get().getFileName());
                                             refeFile = Optional.of(new Triple<>
-                                                    (buildPath + assayResultFile.get().getFileName(), spectraData, SubmissionPipelineConstants.FileType.PRIDE));
+                                                    (buildPath + assayResultFile.get().getFileName(),
+                                                            spectraData, SubmissionPipelineConstants.FileType.PRIDE));
                                             fileSpectrum = finalService.getSpectrum(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()), ((ReportPSM) psm).getSourceID());
                                             usi = SubmissionPipelineConstants.buildUsi(projectAccession,
                                                     SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName()), (ReportPSM) psm);
@@ -976,9 +994,11 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             peptideUsi.put(peptide.getPeptide().getID(), usis);
                                         }
 
-                                    } catch (Exception e) {
+                                    }
+                                    catch (Exception e) {
                                         log.error(e.getMessage(), e);
-                                        throw new RuntimeException(e);
+                                        if(!(e instanceof JMzReaderException))
+                                            throw new RuntimeException(e);
                                     }
                                 }));
                             }
@@ -1034,10 +1054,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                         Set<CvParam> newValues = new HashSet<>(summaryResults.size());
 
                         for (CvParam param : summaryResults) {
-                            param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, highQualityPeptides.size());
-                            param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PROTEINS, highQualityProteins.size());
-                            param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_ID_PSMS, highQualityPsms.size());
-                            param = updateValueOfMongoParamter(param, CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES, modifiedPeptides.size());
+                            param = updateValueOfMongoParamter(param,
+                                    CvTermReference.PRIDE_NUMBER_ID_PEPTIDES, highQualityPeptides.size());
+                            param = updateValueOfMongoParamter(param,
+                                    CvTermReference.PRIDE_NUMBER_ID_PROTEINS, highQualityProteins.size());
+                            param = updateValueOfMongoParamter(param,
+                                    CvTermReference.PRIDE_NUMBER_ID_PSMS, highQualityPsms.size());
+                            param = updateValueOfMongoParamter(param,
+                                    CvTermReference.PRIDE_NUMBER_MODIFIED_PEPTIDES, modifiedPeptides.size());
                             newValues.add(param);
                         }
 

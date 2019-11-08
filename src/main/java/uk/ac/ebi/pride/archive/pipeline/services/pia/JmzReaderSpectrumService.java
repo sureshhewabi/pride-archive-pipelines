@@ -78,7 +78,11 @@ public class JmzReaderSpectrumService {
 
     public Spectrum getSpectrum(String filePath, String id) throws JMzReaderException {
         JMzReader reader = readers.get(filePath);
-        return reader.getSpectrumById(id);
+        try{
+            return reader.getSpectrumById(id);
+        }catch (java.lang.NumberFormatException e){
+            throw new JMzReaderException("Error parsing the following Accession -- " + id);
+        }
     }
 
 

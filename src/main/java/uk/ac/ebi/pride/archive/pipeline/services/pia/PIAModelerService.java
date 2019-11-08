@@ -17,6 +17,7 @@ import de.mpc.pia.modeller.report.filter.AbstractFilter;
 import de.mpc.pia.modeller.report.filter.FilterComparator;
 import de.mpc.pia.modeller.report.filter.RegisteredFilters;
 import de.mpc.pia.modeller.report.filter.impl.PSMScoreFilter;
+import de.mpc.pia.modeller.report.filter.impl.SimpleTypeFilter;
 import de.mpc.pia.modeller.score.FDRData;
 import de.mpc.pia.modeller.score.ScoreModelEnum;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,12 @@ public class PIAModelerService {
             piaModeller.getPSMModeller().setAllDecoyPattern("searchengine");
             piaModeller.getPSMModeller().setAllTopIdentifications(0);
 
+            piaModeller.getPSMModeller().addFilter(1L, new PSMScoreFilter(FilterComparator.less_equal,
+                    false, psmQThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+
+            piaModeller.getPSMModeller().addFilter(1L, RegisteredFilters.PSM_SOURCE_ID_FILTER
+                    .newInstanceOf(FilterComparator.equal,"index=null" ,true));
+
             piaModeller.getPSMModeller().calculateAllFDR();
             piaModeller.getPSMModeller().calculateCombinedFDRScore();
             piaModeller.setConsiderModifications(true);
@@ -70,7 +77,10 @@ public class PIAModelerService {
             // protein level
             OccamsRazorInference seInference = new OccamsRazorInference();
 
-            seInference.addFilter(new PSMScoreFilter(FilterComparator.less_equal, false, psmQThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+            seInference.addFilter(new PSMScoreFilter(FilterComparator.less_equal,
+                    false, psmQThreshold, ScoreModelEnum.PSM_LEVEL_FDR_SCORE.getShortName()));
+            seInference.addFilter(RegisteredFilters.PSM_SOURCE_ID_FILTER
+                    .newInstanceOf(FilterComparator.equal,"index=null" ,true));
 
             seInference.setScoring(new MultiplicativeScoring(new HashMap<>()));
             seInference.getScoring()
@@ -114,6 +124,7 @@ public class PIAModelerService {
            type = InputFileParserFactory.InputFileTypes.MZIDENTML_INPUT.getFileTypeShort();
 
         piaCompiler.getDataFromFile(assayKey, filePath, null, type);
+
 
         piaCompiler.buildClusterList();
         piaCompiler.buildIntermediateStructure();
