@@ -16,6 +16,8 @@ import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.tools.mgf_parser.MgfFile;
 import uk.ac.ebi.pride.tools.mzdata_wrapper.MzMlWrapper;
+import uk.ac.ebi.pride.tools.mzxml_parser.MzXMLFile;
+import uk.ac.ebi.pride.tools.mzxml_parser.MzXMLParsingException;
 import uk.ac.ebi.pride.tools.pkl_parser.PklFile;
 import uk.ac.ebi.pride.tools.pride_wrapper.PRIDEXmlWrapper;
 import uk.ac.ebi.pride.utilities.util.Triple;
@@ -40,7 +42,7 @@ public class JmzReaderSpectrumService {
 
     AmazonS3 s3Client;
 
-    private JmzReaderSpectrumService(List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> spectrumFileList) throws JMzReaderException {
+    private JmzReaderSpectrumService(List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> spectrumFileList) throws JMzReaderException, MzXMLParsingException {
         this.readers = new HashMap<>();
         for (Triple<String, SpectraData, SubmissionPipelineConstants.FileType> entry : spectrumFileList) {
             String key = (String) entry.getFirst();
@@ -57,6 +59,9 @@ public class JmzReaderSpectrumService {
             if( value == SubmissionPipelineConstants.FileType.PKL){
                 this.readers.put(key, new PklFile(new File(key)));
             }
+            if( value == SubmissionPipelineConstants.FileType.MZXML){
+                this.readers.put(key, new MzXMLFile(new File(key)));
+            }
         }
     }
 
@@ -67,7 +72,7 @@ public class JmzReaderSpectrumService {
      * @return
      * @throws JMzReaderException
      */
-    public static JmzReaderSpectrumService getInstance(List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> spectrumFileList) throws JMzReaderException {
+    public static JmzReaderSpectrumService getInstance(List<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> spectrumFileList) throws JMzReaderException, MzXMLParsingException {
         return new JmzReaderSpectrumService(spectrumFileList);
     }
 

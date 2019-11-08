@@ -49,16 +49,23 @@ public class SubmissionPipelineConstants {
         PKL,
         APL;
 
-        public static FileType getFileTypeFromPRIDEFileName( String filename){
+        public static FileType getFileTypeFromPRIDEFileName( String filename) {
             filename = returnUnCompressPath(filename.toLowerCase());
-            if(filename.contains(".mzid") || filename.contains("mzIdentML")){
+            if (filename.toLowerCase().endsWith("mzid") || filename.toLowerCase().endsWith("mzidentml")) {
                 return MZID;
-            }else if (filename.contains(".mzml")){
+            } else if (filename.toLowerCase().endsWith("mzml")) {
                 return MZML;
-            }else if (filename.contains("mgf")){
+            } else if (filename.toLowerCase().endsWith("mgf")) {
                 return MGF;
-            }else if(filename.contains(".xml"))
+            } else if(filename.toLowerCase().endsWith("mzxml")) {
+                return MZXML;
+            }else if(filename.toLowerCase().endsWith("mztab")){
+                return MZTAB;
+            }else if(filename.toLowerCase().endsWith("apl")){
+                return APL;
+            }else if (filename.toLowerCase().endsWith(".xml"))
                 return PRIDE;
+
             return null;
         }
 
