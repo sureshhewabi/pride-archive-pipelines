@@ -26,11 +26,15 @@ done
 
 if [ $CODE -eq 0 ]
 then
-     MSG="_${job_name}_ pipeline finished _SUCCESSFULLY_"
+     MSG="*${job_name}* pipeline finished _SUCCESSFULLY_"
 else
      MSG="*ERROR*: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
 fi
 
-MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n *LOG*: _${LOG_PATH}/${LOG_FILE_NAME}_ \n ------------------------------------------------------------------------------ "
+if [[ ${LOG_PATH} == ./* ]]; then
+    curdir="`readlink -f \`pwd\``/"
+fi
+
+MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${curdir}${LOG_PATH}/${LOG_FILE_NAME}_ \n ------------------------------------------------------------------------------ "
 
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
