@@ -17,11 +17,14 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
+import uk.ac.ebi.pride.mongodb.archive.model.stats.MongoPrideStats;
 import uk.ac.ebi.pride.mongodb.archive.model.stats.PrideStatsKeysConstants;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.stats.CategoryStats;
 import uk.ac.ebi.pride.mongodb.archive.service.stats.PrideStatsMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
+import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
+import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.text.SimpleDateFormat;
@@ -45,7 +48,7 @@ import java.util.stream.Stream;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveMongoConfig.class, MoleculesMongoConfig.class})
 public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
 
     private final
@@ -54,12 +57,15 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
     private final
     PrideStatsMongoService prideStatsMongoService;
 
+    final PrideMoleculesMongoService moleculesService;
+
     private Date date;
 
     @Autowired
-    public PrideArchiveSubmissionStatsJob(PrideProjectMongoService prideProjectMongoService, PrideStatsMongoService prideStatsMongoService) {
+    public PrideArchiveSubmissionStatsJob(PrideProjectMongoService prideProjectMongoService, PrideStatsMongoService prideStatsMongoService, PrideMoleculesMongoService moleculesService) {
         this.prideProjectMongoService = prideProjectMongoService;
         this.prideStatsMongoService = prideStatsMongoService;
+        this.moleculesService = moleculesService;
     }
 
     /**
@@ -100,6 +106,25 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
 
                 })
                 .build();
+    }
+
+    @Bean
+    public Step computeMoleculesStats() {
+        return stepBuilderFactory
+                .get("computeMoleculesStats")
+                .tasklet((stepContribution, chunkContext) -> {
+                    long proteinEvidences = moleculesService.getNumberProteinEvidences();
+                    long peptideEvidecnes = moleculesService.getNumberPeptideEvidences();
+                    long psmEvidences     = moleculesService.getNumberPSMEvidecnes();
+
+                    List<Tuple<String, Integer>> moleculesStats = new ArrayList<>();
+                    moleculesStats.add(new Tuple<String, Integer>("Number protein evidences", Math.toIntExact(proteinEvidences)));
+                    moleculesStats.add(new Tuple<String, Integer>("Number protein peptide evidences",  Math.toIntExact(peptideEvidecnes)));
+                    moleculesStats.add(new Tuple<String, Integer>("Number psm evidences",  Math.toIntExact(psmEvidences)));
+                    prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.EVIDENCES_IN_ARCHIVE, moleculesStats);
+
+                    return RepeatStatus.FINISHED;
+                }).build();
     }
 
     /**
@@ -411,6 +436,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
                 .next(estimateOrganismPartCountStep())
                 .next(estimateDiseasesCountStep())
                 .next(estimateCountryCountStep())
+                .next(computeMoleculesStats())
                 .build();
     }
 
