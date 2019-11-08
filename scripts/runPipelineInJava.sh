@@ -14,3 +14,23 @@ JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_65/bin/"
 mkdir -p ${LOG_PATH}
 
 ${JAVA_DIR}java -Xmx${MEMORY_LIMIT} ${PIPELINE_JOB_PARAMETERS} > ${LOG_PATH}/${LOG_FILE_NAME} 2>&1
+
+CODE=$?
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --spring.batch.job.names=*) job_name="${1#*=}"; shift 1;;
+    *) shift 1;;
+  esac
+done
+
+if [ $CODE -eq 0 ]
+then
+     MSG="_${job_name}_ pipeline finished _SUCCESSFULLY_"
+else
+     MSG="*ERROR*: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
+fi
+
+MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n *LOG*: _${LOG_PATH}/${LOG_FILE_NAME}_ \n ------------------------------------------------------------------------------ "
+
+curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
