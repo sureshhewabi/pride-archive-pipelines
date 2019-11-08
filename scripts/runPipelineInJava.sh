@@ -28,9 +28,9 @@ if [ $CODE -eq 0 ]
 then
      MSG="\`${job_name}\` pipeline finished \`SUCCESSFULLY\`"
 else
-     MSG="ERROR: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
+     MSG="*ERROR*: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
 fi
 
-MSG="${MSG}\nLOG: \`${LOG_PATH}/${LOG_FILE_NAME}\`"
+MSG="${MSG}. *LOG*: \`${LOG_PATH}/${LOG_FILE_NAME}\`"
 
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
