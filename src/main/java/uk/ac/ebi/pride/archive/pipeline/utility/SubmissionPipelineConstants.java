@@ -138,13 +138,15 @@ public class SubmissionPipelineConstants {
       PRIDE_ANALYZE_ASSAY_FROM_BACKUP_FILES("prideAnalyzeAssayFromBackupFilesJob",
               "Restore data from backup files"),
 
-       PRIDE_USERS_AAP_SYNC("PrideUsersAAPSync", "This job will sync the users from PRIDE to AAP"),
+      PRIDE_USERS_AAP_SYNC("PrideUsersAAPSync", "This job will sync the users from PRIDE to AAP"),
 
-       PRIDE_ARCHIVE_DATA_USAGE("calculatePrideArchiveDataUsage", "This job will calculate and collate PRIDE Archive data usage"),
+      PRIDE_ARCHIVE_DATA_USAGE("calculatePrideArchiveDataUsage", "This job will calculate and collate PRIDE Archive data usage"),
 
-      PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_MONGODB("syncMissingProjectsOracleToMongoJob", "This job will sync missing projects from Oracle into MongoDB");
+      PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_MONGODB("syncMissingProjectsOracleToMongoJob", "This job will sync missing projects from Oracle into MongoDB"),
 
-       String name;
+      PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive");
+
+      String name;
        String message;
 
        PrideArchiveJobNames(String name, String message) {
