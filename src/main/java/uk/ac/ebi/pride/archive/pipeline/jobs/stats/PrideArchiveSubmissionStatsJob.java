@@ -119,7 +119,7 @@ public class PrideArchiveSubmissionStatsJob extends AbstractArchiveJob {
 
                     List<Tuple<String, Integer>> moleculesStats = new ArrayList<>();
                     moleculesStats.add(new Tuple<String, Integer>("Number protein evidences", Math.toIntExact(proteinEvidences)));
-                    moleculesStats.add(new Tuple<String, Integer>("Number protein peptide evidences",  Math.toIntExact(peptideEvidecnes)));
+                    moleculesStats.add(new Tuple<String, Integer>("Number peptide evidences",  Math.toIntExact(peptideEvidecnes)));
                     moleculesStats.add(new Tuple<String, Integer>("Number psm evidences",  Math.toIntExact(psmEvidences)));
                     prideStatsMongoService.updateSubmissionCountStats(date, PrideStatsKeysConstants.EVIDENCES_IN_ARCHIVE, moleculesStats);
 
