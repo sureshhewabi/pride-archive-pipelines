@@ -24,6 +24,7 @@ before_script:
     - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
     - envsubst < config/.application.yml > config/application.yml
     - cp scripts/runPipelineInJava.sh dummy.txt && envsubst '${SLACK_REPORT_URL}' < dummy.txt > scripts/runPipelineInJava.sh
+    - cp scripts/projects_missing_annotations.sh dummy.txt && envsubst '${mongodb_machine_uri}, ${EXPORT_PATH}, ${MONGO_BIN_PATH}, ${NODE_PATH}, ${SLACK_APP_TOKEN}' < dummy.txt > scripts/projects_missing_annotations.sh
     - chmod -R 700 config && chmod 700 scripts/*.sh
     - (rm src/main/resources/*.properties || true)
     - export HOSTNAME=$HOSTNAME_BCKUP
@@ -31,7 +32,7 @@ before_script:
     - cd target && jar_file=`ls *jar` && (ln -s $jar_file $JAR_FILE_LINK || true) && ls -al && cd ..
     - DEPLOY_DIR=$(date +"%Y%m%d_%H%M%S")
     - ssh $SERVER_USER@$DEPLOY_SERVER "bash && mkdir -p $DEPLOY_PATH/$DEPLOY_DIR"
-    - rsync -a target/*.jar config scripts/*.sh $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/$DEPLOY_DIR/
+    - rsync -a target/*.jar config scripts/*.sh scripts/*.js $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/$DEPLOY_DIR/
     - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && ln -snf $DEPLOY_DIR current"
 
 deploy_prod:
