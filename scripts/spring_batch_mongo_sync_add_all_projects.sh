@@ -30,7 +30,7 @@ cd ${0%/*}
 #### RUN it on the production queue #####
 bsub -M ${MEMORY_LIMIT} \
      -R \"rusage[mem=${MEMORY_LIMIT}]\" \
-     -q research-rh74 \
+     -q production-rh74 \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
