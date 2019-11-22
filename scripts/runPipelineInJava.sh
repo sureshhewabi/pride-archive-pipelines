@@ -21,11 +21,11 @@ fi
 
 LOG_FILE_FULL_PATH="${curdir}${LOG_FILE_LOCAL}"
 
-# ---- filebeat start ---
-export log_file=${LOG_FILE_FULL_PATH}
-nohup ${FILE_BEAT_PATH}/filebeat -c ${FILE_BEAT_PATH}/filebeat.yml > /dev/null 2>&1 &
-filebeat_pid=$!
-# ---- filebeat end ---
+## ---- filebeat start ---
+#export log_file=${LOG_FILE_FULL_PATH}
+#nohup ${FILE_BEAT_PATH}/filebeat -c ${FILE_BEAT_PATH}/filebeat.yml > /dev/null 2>&1 &
+#filebeat_pid=$!
+## ---- filebeat end ---
 
 ${JAVA_DIR}java -Xmx${MEMORY_LIMIT} ${PIPELINE_JOB_PARAMETERS} > ${LOG_FILE_LOCAL} 2>&1
 
@@ -49,4 +49,4 @@ MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${LOG_FILE_FULL_PATH}_ \n -
 
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
 
-kill $filebeat_pid
+#kill $filebeat_pid
