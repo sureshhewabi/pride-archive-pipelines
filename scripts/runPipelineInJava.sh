@@ -13,7 +13,21 @@ JAVA_DIR="/nfs/pride/work/java/jdk1.8.0_65/bin/"
 
 mkdir -p ${LOG_PATH}
 
-${JAVA_DIR}java -Xmx${MEMORY_LIMIT} ${PIPELINE_JOB_PARAMETERS} > ${LOG_PATH}/${LOG_FILE_NAME} 2>&1
+LOG_FILE_LOCAL=${LOG_PATH}/${LOG_FILE_NAME}
+
+if [[ ${LOG_PATH} == ./* ]]; then
+    curdir="`readlink -f \`pwd\``/"
+fi
+
+LOG_FILE_FULL_PATH="${curdir}${LOG_FILE_LOCAL}"
+
+# ---- filebeat start ---
+export log_file=${LOG_FILE_FULL_PATH}
+nohup ${FILE_BEAT_PATH}/filebeat -c ${FILE_BEAT_PATH}/filebeat.yml > /dev/null 2>&1 &
+filebeat_pid=$!
+# ---- filebeat end ---
+
+${JAVA_DIR}java -Xmx${MEMORY_LIMIT} ${PIPELINE_JOB_PARAMETERS} > ${LOG_FILE_LOCAL} 2>&1
 
 CODE=$?
 
@@ -31,10 +45,8 @@ else
      MSG="*ERROR*: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
 fi
 
-if [[ ${LOG_PATH} == ./* ]]; then
-    curdir="`readlink -f \`pwd\``/"
-fi
-
-MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${curdir}${LOG_PATH}/${LOG_FILE_NAME}_ \n ------------------------------------------------------------------------------ "
+MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${LOG_FILE_FULL_PATH}_ \n ------------------------------------------------------------------------------ "
 
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
+
+kill $filebeat_pid
