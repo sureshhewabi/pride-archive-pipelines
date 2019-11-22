@@ -23,7 +23,7 @@ before_script:
   script:
     - export HOSTNAME_BCKUP=$HOSTNAME && export HOSTNAME='${HOSTNAME}'
     - envsubst < config/.application.yml > config/application.yml
-    - cp scripts/runPipelineInJava.sh dummy.txt && envsubst '${SLACK_REPORT_URL}' < dummy.txt > scripts/runPipelineInJava.sh
+    - cp scripts/runPipelineInJava.sh dummy.txt && envsubst '${SLACK_REPORT_URL}, ${FILE_BEAT_PATH}' < dummy.txt > scripts/runPipelineInJava.sh
     - cp scripts/projects_missing_annotations.sh dummy.txt && envsubst '${mongodb_machine_uri}, ${EXPORT_PATH}, ${MONGO_BIN_PATH}, ${NODE_PATH}, ${SLACK_APP_TOKEN}' < dummy.txt > scripts/projects_missing_annotations.sh
     - chmod -R 700 config && chmod 700 scripts/*.sh
     - (rm src/main/resources/*.properties || true)
@@ -38,8 +38,8 @@ before_script:
 deploy_prod:
   environment: prod
   extends: .deploy_script
-#  only:
-#    - master
+  #  only:
+  #    - master
   when: manual
 
 deploy_dev:
