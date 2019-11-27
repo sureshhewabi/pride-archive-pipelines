@@ -142,6 +142,9 @@ public class SubmissionPipelineConstants {
       PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexPeptideProteinJob",
               "This command indexes peptides & proteins to Solr"),
 
+      PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("syncMissingProjectsToSolrJob",
+              "This command indexes peptides & proteins to Solr"),
+
       PRIDE_ANALYZE_ASSAY_FROM_BACKUP_FILES("prideAnalyzeAssayFromBackupFilesJob",
               "Restore data from backup files"),
 
@@ -264,7 +267,10 @@ public class SubmissionPipelineConstants {
                 "This step update the protein and peptide information"),
 
         PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexProteinPeptideIndexStep",
-                                                     "This step update the protein and peptide information");
+                                                     "This step update the protein and peptide information"),
+
+        PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("solrSyncMissingProjectsStep",
+                                                         "This step syncs missing projects to solr");
 
         String name;
         String message;

@@ -90,12 +90,12 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
 
               // get list of accessions missing in mongoDB
                 oracleProjectAccessionsMongoCopy.removeAll(mongoDBProjectAccessions);
-              System.out.println("List of accessions missing in MongoDB: " + oracleProjectAccessionsMongoCopy.toString());
+              log.info("List of accessions missing in MongoDB: " + oracleProjectAccessionsMongoCopy.toString());
               notifyToMessagingQueue(oracleProjectAccessionsMongoCopy, true);
 
               // get list of accessions missing in in Oracle due to reset or mistakenly added to Mongo
               mongoDBProjectAccessionsCopy.removeAll(oracleProjectAccessions);
-              System.out.println("List of accessions mistakenly added to MongoDB: " + mongoDBProjectAccessionsCopy.toString());
+              log.info("List of accessions mistakenly added to MongoDB: " + mongoDBProjectAccessionsCopy.toString());
               notifyToMessagingQueue(mongoDBProjectAccessionsCopy, false);
 
               return RepeatStatus.FINISHED;
@@ -117,7 +117,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
                 .map(Project::getAccession)
                 .collect(Collectors.toSet());
 
-        System.out.println( "Number of Oracle projects: "+ oracleAccessions.size());
+        log.info("Number of Oracle projects: "+ oracleAccessions.size());
         return oracleAccessions;
     }
 
@@ -131,7 +131,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
         Set<String> mongoProjectAccessions =  prideProjectMongoService.findAllStream()
                 .map(MongoPrideProject::getAccession)
                 .collect(Collectors.toSet());
-        System.out.println( "Number of MongoDB projects: "+ mongoProjectAccessions.size());
+        log.info( "Number of MongoDB projects: "+ mongoProjectAccessions.size());
         return mongoProjectAccessions;
     }
 
@@ -147,7 +147,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
             String message = (isInsert) ? project : project + "_ERROR";
             messageNotifier.sendNotification(redisQueueName,
                     new PublicationCompletionPayload(message),PublicationCompletionPayload.class);
-            System.out.println("Notified to redis queue " + redisQueueName + " : " + message);
+            log.info("Notified to redis queue " + redisQueueName + " : " + message);
         }
     }
 }
