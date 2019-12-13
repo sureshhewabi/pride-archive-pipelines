@@ -82,6 +82,9 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
               final Set<String> oracleProjectAccessions = getOracleProjectAccessions();
               final Set<String> mongoDBProjectAccessions = getMongoProjectAccessions();
 
+              log.info("Number of projects in Oracle DB: " + oracleProjectAccessions.size());
+              log.info("Number of projects in Mongo DB : " + mongoDBProjectAccessions.size());
+
               Set<String> oracleProjectAccessionsMongoCopy = new HashSet<>();
               Set<String> mongoDBProjectAccessionsCopy = new HashSet<>();
 
@@ -89,7 +92,7 @@ public class SyncMissingProjectsWithMongoJob extends AbstractArchiveJob{
               mongoDBProjectAccessionsCopy.addAll(mongoDBProjectAccessions);
 
               // get list of accessions missing in mongoDB
-                oracleProjectAccessionsMongoCopy.removeAll(mongoDBProjectAccessions);
+              oracleProjectAccessionsMongoCopy.removeAll(mongoDBProjectAccessions);
               log.info("List of accessions missing in MongoDB: " + oracleProjectAccessionsMongoCopy.toString());
               notifyToMessagingQueue(oracleProjectAccessionsMongoCopy, true);
 

@@ -154,6 +154,8 @@ public class SubmissionPipelineConstants {
 
       PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_MONGODB("syncMissingProjectsOracleToMongoJob", "This job will sync missing projects from Oracle into MongoDB"),
 
+      PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_PC("syncMissingProjectsOracleToPXJob", "This job will sync missing projects from Oracle into ProteomeXchange"),
+
       PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive");
 
       String name;
@@ -232,6 +234,9 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_MISSING_PROJ_ORACLE_TO_MONGO_SYNC("syncMissingProjectOracleToMongoDB",
                 "This Step will sync missing projects from Oracle into MongoDB"),
+
+        PRIDE_ARCHIVE_MISSING_PROJ_ORACLE_TO_PC_SYNC("syncMissingProjectsOracleToPXStep",
+                "This Step will sync missing projects from Oracle into ProteomeXchange"),
 
         PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("cleanSolrCloudStep",
                 "Clean all the documents in SolrCloud Master"),

@@ -11,10 +11,10 @@
     <!-- This project requires several maven profiles to build and run correctly.
 
         Maven profiles to use:
-        mongodb-pridedb-dev-machine
+        mongodb-pridedb-prod-machine-rw
         oracle-pridedb-prod-machine
         oracle-pridedb-prod-rw-user
-        pride-aap-explore-env
+        pride-aap-prod-env
         pride-archive-integration-production
         pride-prod-pipeline-variables
         pride-spectra-archive-s3
