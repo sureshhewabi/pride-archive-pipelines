@@ -66,6 +66,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
 
     private void doProjectSync(MongoPrideProject mongoPrideProject){
         PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
+        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoPrideProject.getAccession());
+        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+        solrProject.setProjectFileNames(fileNames);
         PrideSolrProject status = solrProjectService.save(solrProject);
         log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
     }
@@ -167,7 +170,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC.getName())
                 .start(cleanSolrCloudStep())
                 .next(syncProjectMongoDBToSolrCloudStep())
-                .next(syncFilesToSolrProjectStep())
+//                .next(syncFilesToSolrProjectStep()) //file sync is also included in above step
                 .build();
 
     }
