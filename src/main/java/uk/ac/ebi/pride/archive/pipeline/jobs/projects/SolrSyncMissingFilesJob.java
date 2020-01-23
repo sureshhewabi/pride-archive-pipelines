@@ -93,7 +93,6 @@ public class SolrSyncMissingFilesJob extends AbstractArchiveJob {
                             List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(accession);
                             Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
                             updateSolrProject(accession, fileNames);
-                            break;
                         }
                     } else {
                         List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(projectAccession);
