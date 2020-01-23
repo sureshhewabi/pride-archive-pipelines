@@ -23,7 +23,10 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @Slf4j
@@ -46,7 +49,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession){
+    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession) {
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
@@ -69,7 +72,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step solrIndexPrintTraceStep(){
+    public Step solrIndexPrintTraceStep() {
         return stepBuilderFactory
                 .get("solrIndexPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
@@ -79,22 +82,22 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step solrIndexProteinPeptideIndexStep(){
+    public Step solrIndexProteinPeptideIndexStep() {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
                     long initInsertPeptides = System.currentTimeMillis();
 
-                    if(projectAccession == null) {
-                        List<String> allProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
-                        allProjectAccessions.forEach(p -> {
+                    if (projectAccession == null) {
+                        Set<String> projects = solrProjectService.findProjectAccessionsWithEmptyPeptideSequencesOrProteinIdentifications();
+                        for (String accession : projects) {
                             Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
-                                    .findProteinAccessionByProjectAccessions(p));
+                                    .findProteinAccessionByProjectAccessions(accession));
                             Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
-                                    .findPeptideSequenceByProjectAccessions(p));
-                            updateSolrProject(p, proteinAccessions, peptideSequences);
-                        });
+                                    .findPeptideSequenceByProjectAccessions(accession));
+                            updateSolrProject(accession, proteinAccessions, peptideSequences);
+                        }
                     } else {
                         Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
                                 .findProteinAccessionByProjectAccessions(projectAccession));
@@ -111,13 +114,11 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     private void updateSolrProject(String prjAccession, Set<String> proteinIds, Set<String> peptideSequences) {
         PrideSolrProject solrProject = solrProjectService.findByAccession(prjAccession);
-        if(solrProject == null) {
+        if (solrProject == null) {
             return;
         }
         solrProject.addProteinIdentifications(proteinIds);
         solrProject.addPeptideSequences(peptideSequences);
         solrProjectService.update(solrProject);
     }
-
-
 }
