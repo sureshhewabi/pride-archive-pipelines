@@ -96,6 +96,9 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
                                     .findProteinAccessionByProjectAccessions(accession));
                             Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
                                     .findPeptideSequenceByProjectAccessions(accession));
+                            if(proteinAccessions.isEmpty() && peptideSequences.isEmpty()) {
+                                continue;
+                            }
                             updateSolrProject(accession, proteinAccessions, peptideSequences);
                         }
                     } else {
