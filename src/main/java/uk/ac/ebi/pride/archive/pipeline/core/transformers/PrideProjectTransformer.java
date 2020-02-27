@@ -146,6 +146,7 @@ public class PrideProjectTransformer {
                 .submissionType(oracleProject.getSubmissionType())
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
+                .publicProject(oracleProject.isPublicProject())
                 .build();
     }
 
