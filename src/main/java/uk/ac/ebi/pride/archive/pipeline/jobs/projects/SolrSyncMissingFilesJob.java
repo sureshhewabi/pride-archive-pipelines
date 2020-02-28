@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.molecules;
+package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
 import lombok.extern.slf4j.Slf4j;
@@ -16,29 +16,27 @@ import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
+import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
-import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
 @Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrCloudMasterConfig.class})
-public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
+public class SolrSyncMissingFilesJob extends AbstractArchiveJob {
 
     @Autowired
-    private PrideProjectMongoService prideProjectMongoService;
-
-    @Autowired
-    private PrideMoleculesMongoService prideMoleculesMongoService;
+    PrideFileMongoService prideFileMongoService;
 
     @Autowired
     private SolrProjectService solrProjectService;
@@ -49,32 +47,32 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession) {
+    public Tasklet initSolrSyncMissingFilesJob(@Value("#{jobParameters['project']}") String projectAccession) {
         return (stepContribution, chunkContext) ->
         {
             this.projectAccession = projectAccession;
-            log.info(String.format("==================>>>>>>> SolrIndexProteinPeptideJob - Run the job for Project %s", projectAccession));
+            log.info(String.format("==================>>>>>>> initSolrSyncMissingFilesJob - Run the job for Project %s", projectAccession));
             return RepeatStatus.FINISHED;
         };
     }
 
     @Bean
-    public Job solrIndexPeptideProteinJob() {
+    public Job solrSyncMissingFilesJobBean() {
         return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.getName())
+                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_SYNC_MISSING_FILES.getName())
                 .start(stepBuilderFactory
-                        .get("initJobSolrIndexProteinPeptideJob")
-                        .tasklet(initJobSolrIndexProteinPeptideJob(null))
+                        .get("initSolrSyncMissingFilesJob")
+                        .tasklet(initSolrSyncMissingFilesJob(null))
                         .build())
-                .next(solrIndexProteinPeptideIndexStep())
-                .next(solrIndexPrintTraceStep())
+                .next(solrSyncMissingFilesStep())
+                .next(solrSyncMissingFilesPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step solrIndexPrintTraceStep() {
+    public Step solrSyncMissingFilesPrintTraceStep() {
         return stepBuilderFactory
-                .get("solrIndexPrintTraceStep")
+                .get("solrSyncMissingFilesPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     return RepeatStatus.FINISHED;
@@ -82,43 +80,39 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step solrIndexProteinPeptideIndexStep() {
+    public Step solrSyncMissingFilesStep() {
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_SYNC_MISSING_FILES.name())
                 .tasklet((stepContribution, chunkContext) -> {
 
                     long initInsertPeptides = System.currentTimeMillis();
 
                     if (projectAccession == null) {
-                        Set<String> projects = solrProjectService.findProjectAccessionsWithEmptyPeptideSequencesOrProteinIdentifications();
+                        Set<String> projects = solrProjectService.findProjectAccessionsWithEmptyFileNames();
                         for (String accession : projects) {
-                            Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
-                                    .findProteinAccessionByProjectAccessions(accession));
-                            Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
-                                    .findPeptideSequenceByProjectAccessions(accession));
-                            updateSolrProject(accession, proteinAccessions, peptideSequences);
+                            List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(accession);
+                            Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+                            updateSolrProject(accession, fileNames);
+                            break;
                         }
                     } else {
-                        Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService
-                                .findProteinAccessionByProjectAccessions(projectAccession));
-                        Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService
-                                .findPeptideSequenceByProjectAccessions(projectAccession));
-                        updateSolrProject(projectAccession, proteinAccessions, peptideSequences);
+                        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(projectAccession);
+                        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+                        updateSolrProject(projectAccession, fileNames);
                     }
 
-                    taskTimeMap.put("InsertPeptidesProteinsIntoSolr", System.currentTimeMillis() - initInsertPeptides);
+                    taskTimeMap.put("SolrSyncMissingFiles", System.currentTimeMillis() - initInsertPeptides);
 
                     return RepeatStatus.FINISHED;
                 }).build();
     }
 
-    private void updateSolrProject(String prjAccession, Set<String> proteinIds, Set<String> peptideSequences) {
+    private void updateSolrProject(String prjAccession, Set<String> fileNames) {
         PrideSolrProject solrProject = solrProjectService.findByAccession(prjAccession);
         if (solrProject == null) {
             return;
         }
-        solrProject.addProteinIdentifications(proteinIds);
-        solrProject.addPeptideSequences(peptideSequences);
+        solrProject.setProjectFileNames(fileNames);
         solrProjectService.update(solrProject);
         log.info("updated solr project: " + prjAccession);
     }

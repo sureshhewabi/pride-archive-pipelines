@@ -137,3 +137,7 @@ aap:
     uname: $aap_pride_user
     pwd: $aap_pride_passwd
 
+# Commands
+command.update.pxxml.command: $pxxml_cmd
+proteome.exchange.url: $px_url
+
