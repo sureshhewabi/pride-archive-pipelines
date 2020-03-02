@@ -96,7 +96,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
 
 
     private void doProjectSync(Project oracleProject){
-        if(!(!oracleProject.isPublicProject() && (submissionType == SubmissionPipelineConstants.SubmissionsType.PUBLIC))) {
+        if(oracleProject.isPublicProject()) {
             MongoPrideProject mongoPrideProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
             Optional<MongoPrideProject> status = prideProjectMongoService.insert(mongoPrideProject);
             log.info(oracleProject.getAccession() + "-- Inserted Status " + status.isPresent());
