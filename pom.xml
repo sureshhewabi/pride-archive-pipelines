@@ -6,7 +6,7 @@
 
     <groupId>uk.ac.ebi.pride.archive</groupId>
     <artifactId>revised-archive-submission-pipeline</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1</version>
 
     <!-- This project requires several maven profiles to build and run correctly.
 
@@ -35,7 +35,7 @@
         <jmztab.version>3.0.8</jmztab.version>
         <px.submission.core.version>2.0.18</px.submission.core.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
-        <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
+        <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.3</uk.ac.ebi.pride.archive.mongodb.repo.version>
         <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
         <uk.ac.ebi.pride.archive.data-provider.version>1.0.1-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
