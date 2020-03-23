@@ -6,7 +6,7 @@
 
     <groupId>uk.ac.ebi.pride.archive</groupId>
     <artifactId>revised-archive-submission-pipeline</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
 
     <!-- This project requires several maven profiles to build and run correctly.
 
