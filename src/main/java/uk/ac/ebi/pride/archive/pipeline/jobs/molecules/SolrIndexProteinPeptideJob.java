@@ -45,14 +45,15 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
 
+    @Value("${project:#{null}}")
     private String projectAccession;
 
     @Bean
     @StepScope
-    public Tasklet initJobSolrIndexProteinPeptideJob(@Value("#{jobParameters['project']}") String projectAccession) {
+    public Tasklet initJobSolrIndexProteinPeptideJob(/*@Value("#{jobParameters['project']}") String accession*/) {
         return (stepContribution, chunkContext) ->
         {
-            this.projectAccession = projectAccession;
+//            this.projectAccession = accession;
             log.info(String.format("==================>>>>>>> SolrIndexProteinPeptideJob - Run the job for Project %s", projectAccession));
             return RepeatStatus.FINISHED;
         };
@@ -64,7 +65,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.getName())
                 .start(stepBuilderFactory
                         .get("initJobSolrIndexProteinPeptideJob")
-                        .tasklet(initJobSolrIndexProteinPeptideJob(null))
+                        .tasklet(initJobSolrIndexProteinPeptideJob())
                         .build())
                 .next(solrIndexProteinPeptideIndexStep())
                 .next(solrIndexPrintTraceStep())

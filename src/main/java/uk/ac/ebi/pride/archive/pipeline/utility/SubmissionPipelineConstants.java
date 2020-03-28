@@ -152,6 +152,9 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("syncMissingProjectsToSolrJob",
                 "This command indexes peptides & proteins to Solr"),
 
+        PRIDE_ARCHIVE_MONGO_CHECKSUM("mongoChecksumJobBean",
+                "Add checksum info to mongo files"),
+
         PRIDE_ANALYZE_ASSAY_FROM_BACKUP_FILES("prideAnalyzeAssayFromBackupFilesJob",
                 "Restore data from backup files"),
 
@@ -291,7 +294,10 @@ public class SubmissionPipelineConstants {
                 "This step update the missing files"),
 
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("solrSyncMissingProjectsStep",
-                "This step syncs missing projects to solr");
+                "This step syncs missing projects to solr"),
+
+        PRIDE_ARCHIVE_MONGO_CHECKSUM("populateMongoChecksumStep",
+                                                         "Add checksum info to mongo files");
 
         String name;
         String message;
