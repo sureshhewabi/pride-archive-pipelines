@@ -16,7 +16,7 @@ import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
-import uk.ac.ebi.pride.archive.pipeline.utility.CalculateSha1ChecksumForFile;
+import uk.ac.ebi.pride.archive.pipeline.utility.HashUtils;
 import uk.ac.ebi.pride.archive.pipeline.utility.StringUtils;
 import uk.ac.ebi.pride.archive.repo.repos.assay.Assay;
 import uk.ac.ebi.pride.archive.repo.repos.assay.AssayPTM;
@@ -33,6 +33,8 @@ import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -169,7 +171,13 @@ public class PrideProjectTransformer {
                                                                         List<MongoPrideMSRun> msRunRawFiles,
                                                                         Project oracleProject, String ftpURL,
                                                                         String asperaURL) {
-        return oracleFiles.stream().map(oracleFileProject -> transformOracleFileToMongo(oracleFileProject, msRunRawFiles, oracleProject, ftpURL, asperaURL))
+        return oracleFiles.stream().map(oracleFileProject -> {
+            try {
+                return transformOracleFileToMongo(oracleFileProject, msRunRawFiles, oracleProject, ftpURL, asperaURL);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        })
                 .collect(Collectors.toList());
 
     }
@@ -181,7 +189,7 @@ public class PrideProjectTransformer {
      * @param oracleProject     oracle Project
      * @return
      */
-    private static MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject, List<MongoPrideMSRun> msRunRawFiles, Project oracleProject, String ftpURL, String asperaURL) {
+    private static MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject, List<MongoPrideMSRun> msRunRawFiles, Project oracleProject, String ftpURL, String asperaURL) throws IOException {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for (MSFileTypeConstants currentFileType : MSFileTypeConstants.values())
             if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFileProject.getFileType().getName()))
@@ -192,8 +200,8 @@ public class PrideProjectTransformer {
         Set<CvParam> publicURLs = oracleProject.isPublicProject() ? createPublicFileLocations(oracleFileProject.getFileName(),
                 folderName, oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpURL, asperaURL) : Collections.emptySet();
 
-        String md5checkSum = getSha1Checksum(oracleFileProject, oracleProject, folderName);
-        String accession = oracleProject.getAccession() + "_" +  md5checkSum;
+        String checkSum = getSha1Checksum(oracleFileProject, oracleProject, folderName);
+        String accession = HashUtils.getSha256Checksum(oracleProject.getAccession() + folderName + oracleFileProject.getFileName());
 
         //check for MSRun files as they need to be stored in file collection and ms run collection
         if (fileType.getFileType().getName().equals(MSFileTypeConstants.RAW.getFileType().getName())) {
@@ -217,14 +225,14 @@ public class PrideProjectTransformer {
                 .publicationDate(oracleProject.getPublicationDate())
                 .fileSourceType(oracleFileProject.getFileSource().name())
                 .fileSourceFolder(folderName)
-                .md5Checksum(md5checkSum)
+                .checksum(checkSum)
                 .publicFileLocations(publicURLs)
                 .submissionDate(oracleProject.getSubmissionDate())
                 .updatedDate(oracleProject.getUpdateDate())
                 .build();
     }
 
-    private static String getSha1Checksum(ProjectFile oracleFileProject, Project oracleProject, String folderName) {
+    private static String getSha1Checksum(ProjectFile oracleFileProject, Project oracleProject, String folderName) throws IOException {
         String sha1Checksum = null;
         String filePath = submittedFilePath;
         if (!folderName.equals(SUBMITTED)) {
@@ -239,11 +247,7 @@ public class PrideProjectTransformer {
         }
         filePath = filePath.replace(PROJECT_ACCESSION, oracleProject.getAccession());
         filePath = filePath.replace(FILE_NAME, oracleFileProject.getFileName());
-        try {
-            sha1Checksum = CalculateSha1ChecksumForFile.calculateSha1Checksum(filePath);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        sha1Checksum = HashUtils.getSha1Checksum(new File(filePath));
 
         return sha1Checksum;
     }
