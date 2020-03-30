@@ -77,31 +77,36 @@ public class MongoChecksumJob extends AbstractArchiveJob {
                             .forEach(f -> {
                                 String prjAccession = f.getFileName().toString().split("-")[2].replaceAll(".csv", "");
                                 try {
-//                                    System.out.println(f.getFileName());
                                     Files.lines(f).filter(l -> !l.isEmpty()).forEach(l -> {
                                         int spaceIndex = l.indexOf(" ");
                                         String checksum = l.substring(0, spaceIndex).trim();
                                         String filePath = l.substring(spaceIndex).trim();
                                         String fName = filePath.substring(filePath.lastIndexOf("/") + 1);
-//                                        System.out.println(fName);
-//                                        System.out.println(checksum);
-                                        checksumMap.put(prjAccession + "-" + fName, checksum);
+                                        String dir = "submitted";
+                                        if(filePath.contains("/generated/")) {
+                                            dir = "generated";
+                                        }
+                                        String key = prjAccession + "-" + dir + "-" + fName;
+                                        if(checksumMap.get(key)==null) {
+                                            checksumMap.put(key, checksum);
+                                        }
+//                                        else {
+//                                            System.err.println("****** exists key: "+ key);
+//                                        }
                                     });
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
                             });
 
-//                    System.out.println(map.size());
 
                     List<String> allProjectAccessions = projectMongoService.getAllProjectAccessions();
-                    allProjectAccessions.stream().forEach(p -> {
+                    allProjectAccessions.forEach(p -> {
                         List<MongoPrideFile> mongoFiles = prideFileMongoService.findFilesByProjectAccession(p);
-//                        System.out.println(mongoFiles.size());
-                        mongoFiles.stream().forEach(mongoPrideFile -> {
-//                            System.out.println(i);
+                        mongoFiles.forEach(mongoPrideFile -> {
                             String prjAccession = mongoPrideFile.getProjectAccessions().stream().findFirst().get();
-                            String key = prjAccession + "-" + mongoPrideFile.getFileName();
+                            String dir = mongoPrideFile.getFileSourceFolder();
+                            String key = prjAccession + "-" + dir + "-" + mongoPrideFile.getFileName();
                             String cs = checksumMap.get(key);
                             if (cs != null && mongoPrideFile.getChecksum() == null) {
                                 mongoPrideFile.setChecksum(cs);
