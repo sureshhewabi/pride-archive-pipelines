@@ -24,7 +24,7 @@ printUsage() {
     echo "$ ./scripts/mongoChecksums.sh"
     echo ""
     echo "Usage: ./mongoChecksums.sh --path"
-    echo "     Example: ./mongoChecksums.sh --path=/path/to/checksum/files"
+    echo "     Example: ./mongoChecksums.sh --path '/path/to/checksum/files'"
 }
 
 JOB_ARGS=""
@@ -39,7 +39,7 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
-
+echo $PATH
 DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))

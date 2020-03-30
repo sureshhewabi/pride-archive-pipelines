@@ -19,7 +19,9 @@ import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -73,31 +75,32 @@ public class MongoChecksumJob extends AbstractArchiveJob {
                     long initTime = System.currentTimeMillis();
 
                     Map<String, String> checksumMap = new HashMap<>();
-                    Files.newDirectoryStream(Paths.get(path), f -> f.toString().endsWith(".csv"))
-                            .forEach(f -> {
-                                String prjAccession = f.getFileName().toString().split("-")[2].replaceAll(".csv", "");
-                                try {
-                                    Files.lines(f).filter(l -> !l.isEmpty()).forEach(l -> {
-                                        int spaceIndex = l.indexOf(" ");
-                                        String checksum = l.substring(0, spaceIndex).trim();
-                                        String filePath = l.substring(spaceIndex).trim();
-                                        String fName = filePath.substring(filePath.lastIndexOf("/") + 1);
-                                        String dir = "submitted";
-                                        if(filePath.contains("/generated/")) {
-                                            dir = "generated";
-                                        }
-                                        String key = prjAccession + "-" + dir + "-" + fName;
-                                        if(checksumMap.get(key)==null) {
-                                            checksumMap.put(key, checksum);
-                                        }
+                    try (DirectoryStream<Path> files = Files.newDirectoryStream(Paths.get(path), f -> f.toString().endsWith(".csv"))) {
+                        for (Path f : files) {
+                            String prjAccession = f.getFileName().toString().split("-")[2].replaceAll(".csv", "");
+                            try {
+                                Files.lines(f).filter(l -> !l.isEmpty()).forEach(l -> {
+                                    int spaceIndex = l.indexOf(" ");
+                                    String checksum = l.substring(0, spaceIndex).trim();
+                                    String filePath = l.substring(spaceIndex).trim();
+                                    String fName = filePath.substring(filePath.lastIndexOf("/") + 1);
+                                    String dir = "submitted";
+                                    if (filePath.contains("/generated/")) {
+                                        dir = "generated";
+                                    }
+                                    String key = prjAccession + "-" + dir + "-" + fName;
+                                    if (checksumMap.get(key) == null) {
+                                        checksumMap.put(key, checksum);
+                                    }
 //                                        else {
 //                                            System.err.println("****** exists key: "+ key);
 //                                        }
-                                    });
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            });
+                                });
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
 
 
                     List<String> allProjectAccessions = projectMongoService.getAllProjectAccessions();
