@@ -239,9 +239,9 @@ public class PrideProjectTransformer {
             filePath = filePath.replace(SUBMITTED, GENERATED);
         }
         if (oracleProject.isPublicProject()) {
-            Calendar calendar = new GregorianCalendar();
+            Calendar calendar = Calendar.getInstance();
             calendar.setTime(oracleProject.getPublicationDate());
-            filePath = filePath.replace(PUBLICATION_DATE, calendar.get(Calendar.YEAR) + "/" + String.format("%02d", calendar.get(Calendar.MONTH)));
+            filePath = filePath.replace(PUBLICATION_DATE, calendar.get(Calendar.YEAR) + "/" + String.format("%02d", calendar.get(Calendar.MONTH)+1));
         } else {
             filePath = filePath.replace(PUBLICATION_DATE + "\\/", "");
         }
