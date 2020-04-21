@@ -290,6 +290,9 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexProteinPeptideIndexStep",
                 "This step update the protein and peptide information"),
 
+        PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN_FROM_FILE("solrIndexPeptideProteinFromFile",
+                "This command indexes peptides & proteins to Solr"),
+
         PRIDE_ARCHIVE_SOLR_SYNC_MISSING_FILES("solrSyncMissingFilesStep",
                 "This step update the missing files"),
 
