@@ -27,11 +27,19 @@ MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
 ##### Change directory to where the script locate
 cd ${0%/*}
 
-#### RUN it on the production queue #####
-bsub -M ${MEMORY_LIMIT} \
-     -R \"rusage[mem=${MEMORY_LIMIT}]\" \
-     -q production-rh74 \
-     -g /pride/analyze_assays \
-     -u ${JOB_EMAIL} \
-     -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=syncOracleToMongoProjectsJob
+
+while true; do
+	read -p $'Are you sure you want to sync \e[1;31mALL\e[0m records(y/n)?' answer
+    case $answer in
+        [Yy]* ) bsub -M ${MEMORY_LIMIT} \
+                     -R \"rusage[mem=${MEMORY_LIMIT}]\" \
+                     -q production-rh74 \
+                     -g /pride/analyze_assays \
+                     -u ${JOB_EMAIL} \
+                     -J ${JOB_NAME} \
+                     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=syncOracleToMongoProjectsJob;
+				break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes(y) or no(n).";;
+    esac
+done
