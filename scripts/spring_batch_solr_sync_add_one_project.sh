@@ -11,7 +11,7 @@ PROJECT_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="spring_batch_reset_mongo_accession"
+JOB_NAME="spring_batch_solr_sync_add_one_project"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
