@@ -165,7 +165,7 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive"),
 
-        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob","This job is used to generate ebeye prider xml");
+        PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB");
 
         String name;
         String message;
@@ -236,6 +236,12 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("annotateProjectsWithCountryStep",
                 "This job take a configuration file from github and annotate the Projects with the Country"),
 
+        /**
+         * Re-analysis Data
+         * */
+        PRIDE_ARCHIVE_UPDATE_REANALYSIS_DATA("updateReanalysisDatasetsStep",
+                "This job reads re-analysis data from TSV file and update the MongoDB collection"),
+
         /*AAP user sync*/
         PRIDE_USERS_AAP_SYNC("PrideUsersAAPSyncStep",
                 "This step will sync pride users into AAP DB"),
@@ -293,9 +299,7 @@ public class SubmissionPipelineConstants {
                 "This step update the missing files"),
 
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("solrSyncMissingProjectsStep",
-                "This step syncs missing projects to solr"),
-
-        PRIDER_EBEYE_ALL_DECISION("priderEbeyeAllDecision","This step decides to generate or store");
+                "This step syncs missing projects to solr");
 
         String name;
         String message;
