@@ -96,7 +96,7 @@ public class PrideAnalyzeAssayFromBackupFiles extends AbstractArchiveJob {
     @Bean
     public Step prideAnalyzeAssayFromBackupFilesStep() {
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN_FROM_FILE.name())
                 .tasklet(new Tasklet() {
                     @Override
                     public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) throws Exception {

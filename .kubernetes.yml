@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pride-pipelines
+  labels:
+    app: pride-pipelines
+spec:
+  selector:
+    matchLabels:
+      app: pride-pipelines
+  template:
+    metadata:
+      labels:
+        app: pride-pipelines
+    spec:
+      imagePullSecrets:
+        - name: $DOCKER_PULL_SECRET
+      volumes:
+        - name: application-config
+          configMap:
+            name: $PRIDE_CONFIG_MAP
+            items:
+              - key: application.yml
+                path: application.yml
+      containers:
+        - name: pride-pipelines
+          image: $IMAGE
+          env:
+            - name: JAVA_OPTS
+              value: "-Dhttp.proxyHost=$http_proxy_host -Dhttp.proxyPort=$http_proxy_port -Dhttp.nonProxyHosts=$non_proxy_hosts"
+            - name: HTTP_PROXY
+              value: "http://$http_proxy_host:$http_proxy_port"
+            - name: HTTPS_PROXY
+              value: "http://$http_proxy_host:$http_proxy_port"
+            - name: http_proxy
+              value: "http://$http_proxy_host:$http_proxy_port"
+            - name: https_proxy
+              value: "http://$http_proxy_host:$http_proxy_port"
+          volumeMounts:
+            - name: application-config
+              mountPath: "/pride-pipelines/config/"
+              readOnly: true

@@ -59,7 +59,7 @@ public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
     @Bean
     public Step syncMissingProjectsToSolrPrintTraceStep() {
         return stepBuilderFactory
-                .get("solrIndexPrintTraceStep")
+                .get("syncMissingProjectsToSolrPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     return RepeatStatus.FINISHED;

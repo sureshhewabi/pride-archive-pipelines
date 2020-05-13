@@ -96,7 +96,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
 
 
     private void doProjectSync(Project oracleProject){
-        if(!(!oracleProject.isPublicProject() && (submissionType == SubmissionPipelineConstants.SubmissionsType.PUBLIC))) {
+        if(oracleProject.isPublicProject()) {
             MongoPrideProject mongoPrideProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
             Optional<MongoPrideProject> status = prideProjectMongoService.upsert(mongoPrideProject);
             log.info(oracleProject.getAccession() + "-- Inserted Status " + status.isPresent());
@@ -107,8 +107,7 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob{
         Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
         List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
         List<MongoPrideMSRun> msRunRawFiles = new ArrayList<>();
-        int accessionSequence = prideFileMongoService.getNextAccessionNumber(oracleFiles.size());
-        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles,msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol,accessionSequence),msRunRawFiles);
+        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles,msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol),msRunRawFiles);
         log.info("Number of files has been inserted -- " + status.size());
         if(msRunRawFiles.size()>0){
             //to-do
