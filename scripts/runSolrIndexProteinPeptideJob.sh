@@ -42,7 +42,7 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         PROJECT_ACCESSION=$1
-        JOB_ARGS="${JOB_ARGS} project=${PROJECT_ACCESSION}"
+        JOB_ARGS="${JOB_ARGS} --project=${PROJECT_ACCESSION}"
         ;;
     esac
     shift
