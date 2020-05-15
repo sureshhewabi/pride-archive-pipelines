@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.molecules;
+package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 
 import lombok.extern.slf4j.Slf4j;
@@ -13,17 +13,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
-import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
+import uk.ac.ebi.pride.mongodb.archive.model.molecules.MongoPrideMolecules;
+import uk.ac.ebi.pride.mongodb.archive.service.molecules.PrideMoleculesMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
-import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -34,11 +29,8 @@ import java.util.*;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrCloudMasterConfig.class})
-public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
-
-    @Autowired
-    private SolrProjectService solrProjectService;
+@Import({ArchiveMongoConfig.class, PrideMoleculesMongoService.class})
+public class MongoProjectProteinPeptideJob extends AbstractArchiveJob {
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
 
@@ -48,34 +40,37 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     @Value("${pride.data.backup.path}")
     String backupPath;
 
+    @Autowired
+    private PrideMoleculesMongoService prideMoleculesMongoService;
+
     @Bean
     @StepScope
-    public Tasklet initJobSolrIndexProteinPeptideJob() {
+    public Tasklet initMongoProjectProteinPeptideJob() {
         return (stepContribution, chunkContext) ->
         {
-            log.info(String.format("==================>>>>>>> SolrIndexProteinPeptideJob - Run the job for Project %s", projectAccession));
+            log.info(String.format("==================>>>>>>> MongoProjectProteinPeptideJob - Run the job for Project %s", projectAccession));
             backupPath = backupPath.endsWith(File.separator) ? backupPath : backupPath + File.separator;
             return RepeatStatus.FINISHED;
         };
     }
 
     @Bean
-    public Job solrIndexPeptideProteinJob() {
+    public Job mongoProjectProteinPeptideJobBean() {
         return jobBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveJobNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.getName())
+                .get("mongoProjectProteinPeptideJobBean")
                 .start(stepBuilderFactory
-                        .get("initJobSolrIndexProteinPeptideJob")
-                        .tasklet(initJobSolrIndexProteinPeptideJob())
+                        .get("initMongoProjectProteinPeptideJob")
+                        .tasklet(initMongoProjectProteinPeptideJob())
                         .build())
-                .next(solrIndexProteinPeptideIndexStep())
-                .next(solrIndexPrintTraceStep())
+                .next(mongoProjectProteinPeptideStep())
+                .next(mongoProjectProteinPeptideJobPrintTraceStep())
                 .build();
     }
 
     @Bean
-    public Step solrIndexPrintTraceStep() {
+    public Step mongoProjectProteinPeptideJobPrintTraceStep() {
         return stepBuilderFactory
-                .get("solrIndexPrintTraceStep")
+                .get("mongoProjectProteinPeptideJobPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     return RepeatStatus.FINISHED;
@@ -83,9 +78,9 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     @Bean
-    public Step solrIndexProteinPeptideIndexStep() {
+    public Step mongoProjectProteinPeptideStep() {
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN.name())
+                .get("mongoProjectProteinPeptideStep")
                 .tasklet((stepContribution, chunkContext) -> {
 
                     long initInsertPeptides = System.currentTimeMillis();
@@ -98,17 +93,13 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
                         restoreFromFile(projectAccession);
                     }
 
-                    taskTimeMap.put("InsertPeptidesProteinsIntoSolr", System.currentTimeMillis() - initInsertPeptides);
+                    taskTimeMap.put("mongoProjectProteinPeptide", System.currentTimeMillis() - initInsertPeptides);
 
                     return RepeatStatus.FINISHED;
                 }).build();
     }
 
     private void restoreFromFile(String projectAccession) throws Exception {
-        PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
-        if (solrProject == null) {
-            return;
-        }
         String dir = backupPath + projectAccession;
         Set<String> proteinAccessions = new HashSet<>();
         Set<String> peptideSequences = new HashSet<>();
@@ -122,9 +113,9 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
             }
         }
 
-        solrProject.addProteinIdentifications(proteinAccessions);
-        solrProject.addPeptideSequences(peptideSequences);
-        solrProjectService.update(solrProject);
-        log.info("updated solr project: " + projectAccession);
+        MongoPrideMolecules mongoPrideMolecules = MongoPrideMolecules.builder().projectAccession(projectAccession)
+                .peptideAccessions(peptideSequences).proteinAccessions(proteinAccessions).build();
+
+        prideMoleculesMongoService.insert(mongoPrideMolecules);
     }
 }
