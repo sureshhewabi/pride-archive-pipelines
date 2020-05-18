@@ -152,6 +152,9 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("syncMissingProjectsToSolrJob",
                 "This command indexes peptides & proteins to Solr"),
 
+        PRIDE_ARCHIVE_MONGO_CHECKSUM("mongoChecksumJobBean",
+                "Add checksum info to mongo files"),
+
         PRIDE_ANALYZE_ASSAY_FROM_BACKUP_FILES("prideAnalyzeAssayFromBackupFilesJob",
                 "Restore data from backup files"),
 
@@ -165,7 +168,9 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive"),
 
-        PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB");
+        PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB"),
+
+        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob","This job is used to generate ebeye prider xml");
 
         String name;
         String message;
@@ -295,11 +300,19 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN("solrIndexProteinPeptideIndexStep",
                 "This step update the protein and peptide information"),
 
+        PRIDE_ARCHIVE_SOLR_INDEX_PEPTIDE_PROTEIN_FROM_FILE("solrIndexPeptideProteinFromFile",
+                "This command indexes peptides & proteins to Solr"),
+
         PRIDE_ARCHIVE_SOLR_SYNC_MISSING_FILES("solrSyncMissingFilesStep",
                 "This step update the missing files"),
 
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_SOLR("solrSyncMissingProjectsStep",
-                "This step syncs missing projects to solr");
+                "This step syncs missing projects to solr"),
+
+        PRIDE_ARCHIVE_MONGO_CHECKSUM("populateMongoChecksumStep",
+                                                         "Add checksum info to mongo files"),
+
+        PRIDER_EBEYE_ALL_DECISION("priderEbeyeAllDecision","This step decides to generate or store");
 
         String name;
         String message;
