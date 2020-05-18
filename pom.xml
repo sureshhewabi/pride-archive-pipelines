@@ -47,6 +47,7 @@
         <aws.version>1.11.569</aws.version>
         <accession.resolver.version>1.0.1</accession.resolver.version>
         <jackson.version>2.10.0</jackson.version>
+        <mongo.protein.identification.index.service.version>1.0.4-SNAPSHOT</mongo.protein.identification.index.service.version>
     </properties>
 
     <dependencies>
@@ -104,6 +105,24 @@
             <groupId>uk.ac.ebi.pride.tools</groupId>
             <artifactId>jmzreader</artifactId>
             <version>${uk.ac.ebi.pride.tools-jmzreader.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.ac.ebi.pride</groupId>
+            <artifactId>mongo-protein-identification-index-search</artifactId>
+            <version>${mongo.protein.identification.index.service.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.ac.ebi.pride</groupId>
+            <artifactId>protein-identification-index-search</artifactId>
+            <version>1.0.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.ac.ebi.pride.archive.ebeye</groupId>
+            <artifactId>archive-ebeye-xml</artifactId>
+            <version>1.5.2</version>
         </dependency>
 
         <dependency>
@@ -231,6 +250,13 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>uk.ac.ebi.ddi</groupId>
+            <artifactId>ddi-validator</artifactId>
+            <version>1.3-SNAPSHOT</version>
+        </dependency>
+
 
 
         <!-- mzTab conversion -->
@@ -374,7 +400,6 @@
             <url>http://genesis.ugent.be/maven2</url>
             <layout>default</layout>
         </repository>
-
         <repository>
             <id>pst-release</id>
             <name>EBI Nexus Repository</name>
