@@ -38,15 +38,18 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+slack_url=$SLACK_REPORT_URL
+
 if [ $CODE -eq 0 ]
 then
      MSG="*${job_name}* pipeline finished _SUCCESSFULLY_"
 else
      MSG="*ERROR*: \`${job_name}\` pipeline \`FAILED\` with code:  ${CODE}"
+     slack_url=$SLACK_ERROR_REPORT_URL
 fi
 
 MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${LOG_FILE_FULL_PATH}_ \n ------------------------------------------------------------------------------ "
 
-curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $SLACK_REPORT_URL || true
+curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $slack_url || true
 
 #kill $filebeat_pid
