@@ -86,7 +86,7 @@ public class PrideAnalyzeAssayFromBackupFiles extends AbstractArchiveJob {
     @Bean
     public Step prideAnalyzeAssayFromBackupFilesPrintTraceStep() {
         return stepBuilderFactory
-                .get("solrIndexPrintTraceStep")
+                .get("prideAnalyzeAssayFromBackupFilesPrintTraceStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     taskTimeMap.forEach((key, value) -> log.info("Task: " + key + " Time: " + value));
                     return RepeatStatus.FINISHED;

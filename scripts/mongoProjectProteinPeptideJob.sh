@@ -11,7 +11,7 @@ PROJECT_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="solr_index_peptide_protein"
+JOB_NAME="mongo_project_peptide_protein"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -26,12 +26,11 @@ LOG_FILE_NAME=""
 ##### FUNCTIONS
 printUsage() {
     echo "Description: In the revised archive pipeline, This job indexes peptides & proteins to Solr from MongoDB"
-    echo "$ ./scripts/runSolrIndexProteinPeptideJob.sh"
+    echo "$ ./scripts/mongoProjectProteinPeptideJob.sh"
     echo ""
-    echo "Usage: ./runSolrIndexProteinPeptideJob.sh -a|--accession [-e|--email]"
-    echo "     Example: ./runSolrIndexProteinPeptideJob.sh -a PXD011181"
-    echo "     (required) accession         : the project accession"
-    echo "     (optional) email             :  Email to send LSF notification"
+    echo "Usage: ./mongoProjectProteinPeptideJob.sh -a|--accession"
+    echo "     Example: ./mongoProjectProteinPeptideJob.sh -a PXD011181"
+    echo "     (optional) accession         : the project accession"
 }
 
 JOB_ARGS=""
@@ -68,5 +67,5 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=solrIndexPeptideProteinJob ${JOB_ARGS}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=mongoProjectProteinPeptideJobBean ${JOB_ARGS}
 
