@@ -24,8 +24,8 @@ printUsage() {
     echo "$ ./scripts/spring_batch_mongo_sync_add_all_projects.sh"
     echo ""
     echo "Usage: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles=true]"
-    echo "     Example: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles=true]"
-    echo "     (optional) skipfiles :  if set to true will skip syncing files"
+    echo "     Example: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles]"
+    echo "     (optional) skipfiles :  if set will skip syncing files"
 }
 
 ##### Set variables
@@ -43,8 +43,7 @@ SKIP_FILES="false"
 while [ "$1" != "" ]; do
     case $1 in
       "--skipfiles")
-        shift
-        SKIP_FILES=$1
+        SKIP_FILES="true"
         ;;
     esac
     shift

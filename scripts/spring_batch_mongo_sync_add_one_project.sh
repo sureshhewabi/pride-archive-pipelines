@@ -30,10 +30,10 @@ printUsage() {
     echo "Description: In the revised archive pipeline, this will import one project information to mongoDB"
     echo "$ ./scripts/spring_batch_mongo_sync_add_one_project.sh"
     echo ""
-    echo "Usage: ./spring_batch_mongo_sync_add_one_project.sh -a|--accession [--skipfiles=true]"
+    echo "Usage: ./spring_batch_mongo_sync_add_one_project.sh -a|--accession [--skipfiles]"
     echo "     Example: ./spring_batch_mongo_sync_add_one_project.sh -a PXD011181"
     echo "     (required) accession         : the project accession"
-    echo "     (optional) skipfiles         :  if set to true will skip syncing files"
+    echo "     (optional) skipfiles         :  if set will skip syncing files"
 }
 
 SKIP_FILES="false"
@@ -46,8 +46,7 @@ while [ "$1" != "" ]; do
         PROJECT_ACCESSION=$1
         ;;
       "--skipfiles")
-        shift
-        SKIP_FILES=$1
+        SKIP_FILES="true"
         ;;
     esac
     shift
