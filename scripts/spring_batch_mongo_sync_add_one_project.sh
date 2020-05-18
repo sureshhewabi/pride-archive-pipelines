@@ -30,11 +30,13 @@ printUsage() {
     echo "Description: In the revised archive pipeline, this will import one project information to mongoDB"
     echo "$ ./scripts/spring_batch_mongo_sync_add_one_project.sh"
     echo ""
-    echo "Usage: ./spring_batch_mongo_sync_add_one_project.sh -a|--accession [-e|--email]"
+    echo "Usage: ./spring_batch_mongo_sync_add_one_project.sh -a|--accession [--skipfiles=true]"
     echo "     Example: ./spring_batch_mongo_sync_add_one_project.sh -a PXD011181"
     echo "     (required) accession         : the project accession"
-    echo "     (optional) email             :  Email to send LSF notification"
+    echo "     (optional) skipfiles         :  if set to true will skip syncing files"
 }
+
+SKIP_FILES="false"
 
 ##### PARSE the provided parameters
 while [ "$1" != "" ]; do
@@ -42,6 +44,10 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         PROJECT_ACCESSION=$1
+        ;;
+      "--skipfiles")
+        shift
+        SKIP_FILES=$1
         ;;
     esac
     shift
@@ -70,4 +76,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=syncOracleToMongoProjectsJob -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=syncOracleToMongoProjectsJob -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION} --skipfiles=${SKIP_FILES}
