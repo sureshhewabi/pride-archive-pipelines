@@ -14,7 +14,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.jobs.stats.PrideArchiveReanalysisJob;
 
 import java.util.*;
 
@@ -38,7 +37,7 @@ public class ReanalysisProjectJobTest {
      * @throws Exception
      */
     @Test
-    public void getReanalysisCount() throws Exception {
+    public void updateReanalysisCountsTest() throws Exception {
         JobParameters param = new JobParametersBuilder()
                 .addString("instance_id", UUID.randomUUID().toString(), true)
                 .toJobParameters();

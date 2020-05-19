@@ -1,4 +1,4 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.stats;
+package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -10,22 +10,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import uk.ac.ebi.pride.archive.dataprovider.reference.Reference;
+import uk.ac.ebi.pride.archive.dataprovider.reference.ReferenceProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.ReanalysisProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideReanalysisMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
+import uk.ac.ebi.pride.pubmed.PubMedFetcher;
+import uk.ac.ebi.pride.pubmed.model.EupmcReferenceSummary;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
+import java.util.*;
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -62,7 +62,18 @@ public class PrideArchiveReanalysisJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_UPDATE_REANALYSIS_DATA.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     HashMap<String, Set<String>> reanalysisDatasets = extractReferencesFromTsv();
-                    updateReanalysisData(reanalysisDatasets);
+
+                    // get references from Pubmed
+                    HashMap<String, Set<EupmcReferenceSummary>> reannalysisReferences = new HashMap<>();
+                    for (Map.Entry<String, Set<String>> entry : reanalysisDatasets.entrySet()) {
+                        Set<EupmcReferenceSummary> eupmcReferenceSummarySet = new HashSet<>();
+                        for (String pubmedId:entry.getValue()) {
+                            EupmcReferenceSummary eupmcReferenceSummary = PubMedFetcher.getPubMedSummary(pubmedId);
+                            eupmcReferenceSummarySet.add(eupmcReferenceSummary);
+                        }
+                        reannalysisReferences.put(entry.getKey(),eupmcReferenceSummarySet);
+                    }
+                    updateReanalysisData(reannalysisReferences);
                     return RepeatStatus.FINISHED;
                 }).build();
     }
@@ -135,14 +146,22 @@ public class PrideArchiveReanalysisJob extends AbstractArchiveJob {
      *
      * @param reanalysisDatasets Key is the project accession and value is set of references to the pubmed
      */
-    private void updateReanalysisData(HashMap<String, Set<String>> reanalysisDatasets) {
+    private void updateReanalysisData(HashMap<String, Set<EupmcReferenceSummary>> reanalysisDatasets) {
 
         try {
-            for (Map.Entry<String, Set<String>> entry : reanalysisDatasets.entrySet()) {
+            for (Map.Entry<String, Set<EupmcReferenceSummary>> entry : reanalysisDatasets.entrySet()) {
 
+                Set<ReferenceProvider> referenceProviders = new HashSet<>();
+                for (EupmcReferenceSummary eupmcReferenceSummary:entry.getValue()) {
+                    ReferenceProvider referenceProvider = new Reference(
+                            eupmcReferenceSummary.getRefLine(),
+                            Integer.parseInt(eupmcReferenceSummary.getEupmcResult().getPmid()),
+                            eupmcReferenceSummary.getEupmcResult().getDoi());
+                    referenceProviders.add(referenceProvider);
+                }
                 ReanalysisProject reanalysisProject = ReanalysisProject.builder()
                         .accession(entry.getKey())
-                        .references(entry.getValue())
+                        .references(referenceProviders)
                         .build();
                 prideReanalysisMongoService.upsert(reanalysisProject);
 
