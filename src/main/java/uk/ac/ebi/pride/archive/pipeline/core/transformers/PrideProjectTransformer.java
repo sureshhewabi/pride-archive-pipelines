@@ -264,7 +264,7 @@ public class PrideProjectTransformer {
      * @param asperaFTP        aspera prefix
      * @return
      */
-    private static Set<CvParam> createPublicFileLocations(String fileName, String fileFolder, Date date, String projectAccession, String ftpURL, String asperaFTP) {
+    public static Set<CvParam> createPublicFileLocations(String fileName, String fileFolder, Date date, String projectAccession, String ftpURL, String asperaFTP) {
         Set<CvParam> cvsPublicURLs = new HashSet<>();
         if (ftpURL != null && !ftpURL.isEmpty()) {
             cvsPublicURLs.add(new CvParam(CvTermReference.PRIDE_FTP_PROTOCOL_URL.getCvLabel(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getAccession(), CvTermReference.PRIDE_FTP_PROTOCOL_URL.getName(), buildURL(ftpURL, date, projectAccession, fileName, fileFolder)));
