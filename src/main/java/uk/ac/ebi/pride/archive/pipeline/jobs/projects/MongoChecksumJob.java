@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @Slf4j
@@ -103,7 +104,7 @@ public class MongoChecksumJob extends AbstractArchiveJob {
                     }
 
 
-                    List<String> allProjectAccessions = projectMongoService.getAllProjectAccessions();
+                    Set<String> allProjectAccessions = projectMongoService.getAllProjectAccessions();
                     allProjectAccessions.forEach(p -> {
                         List<MongoPrideFile> mongoFiles = prideFileMongoService.findFilesByProjectAccession(p);
                         mongoFiles.forEach(mongoPrideFile -> {
