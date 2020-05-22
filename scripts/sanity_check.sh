@@ -35,7 +35,9 @@ printUsage() {
     echo "     (optional) accession         : the project accession"
 }
 
-SKIP_FILES="false"
+fixProjects="false"
+fixFiles="false"
+JOB_ARGS=""
 
 ##### PARSE the provided parameters
 while [ "$1" != "" ]; do
@@ -43,11 +45,19 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         PROJECT_ACCESSION=$1
+        JOB_ARGS="${JOB_ARGS} projects=${PROJECT_ACCESSION}"
+        ;;
+      "--fixProjects")
+        fixProjects="true"
+        ;;
+      "--fixFiles")
+        fixFiles="true"
         ;;
     esac
     shift
 done
 
+JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles}"
 
 ##### Set variables
 JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
@@ -65,4 +75,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=sanityCheckJobBean project=${PROJECT_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=sanityCheckJobBean ${JOB_ARGS}

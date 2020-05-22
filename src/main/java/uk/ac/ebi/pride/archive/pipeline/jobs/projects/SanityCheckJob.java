@@ -66,15 +66,29 @@ public class SanityCheckJob extends AbstractArchiveJob {
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
 
-    private String projectAccession;
+    private String[] projectAccessions;
+    private boolean fixFilesOptionSet = false;
+    private boolean fixProjectsOptionSet = false;
 
     @Bean
     @StepScope
-    public Tasklet initSanityCheckJob(@Value("#{jobParameters['project']}") String projectAccession) {
+    public Tasklet initSanityCheckJob(@Value("#{jobParameters['projects']}") String projects,
+                                      @Value("#{jobParameters['fixProjects']}") Boolean fixProjects,
+                                      @Value("#{jobParameters['fixFiles']}") Boolean fixFiles) {
         return (stepContribution, chunkContext) ->
         {
-            this.projectAccession = projectAccession;
-            log.info(String.format("==================>>>>>>> initSanityCheckJobJob - Run the job for Project %s", projectAccession));
+            if (projects != null) {
+                this.projectAccessions = projects.split(",");
+            }
+
+            if (fixProjects != null && fixProjects) {
+                this.fixProjectsOptionSet = true;
+            }
+            if (fixFiles != null && fixFiles) {
+                this.fixFilesOptionSet = true;
+            }
+
+            log.info(String.format("==================>>>>>>> initSanityCheckJobJob - Run the job for Project %s", Arrays.toString(projectAccessions)));
             return RepeatStatus.FINISHED;
         };
     }
@@ -85,7 +99,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 .get("sanityCheckJobBean")
                 .start(stepBuilderFactory
                         .get("initSanityCheckJobJob")
-                        .tasklet(initSanityCheckJob(null))
+                        .tasklet(initSanityCheckJob(null, null, null))
                         .build())
                 .next(sanityCheckStep())
                 .next(sanityCheckPrintTraceStep())
@@ -110,11 +124,11 @@ public class SanityCheckJob extends AbstractArchiveJob {
 
                     long initInsertPeptides = System.currentTimeMillis();
 
-                    if (projectAccession == null) {
+                    if (projectAccessions == null || projectAccessions.length == 0) {
                         Set<String> mongoPrjAccessions = getMongoProjectAccessions();
                         mongoPrjAccessions.forEach(this::compareProjectsAndFix);
                     } else {
-                        compareProjectsAndFix(projectAccession);
+                        Arrays.stream(projectAccessions).forEach(this::compareProjectsAndFix);
                     }
 
                     taskTimeMap.put("SanityCheckJob", System.currentTimeMillis() - initInsertPeptides);
@@ -157,22 +171,25 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 mongoUpdated = true;
             }*/
 
-            if (!DateUtils.equalsDate(transformedOracleProject.getSubmissionDate(), mongoProject.getSubmissionDate())) {
+            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getSubmissionDate(), mongoProject.getSubmissionDate())) {
                 mongoProject.setSubmissionDate(transformedOracleProject.getSubmissionDate());
                 mongoUpdated = true;
             }
-            if (!DateUtils.equalsDate(transformedOracleProject.getPublicationDate(), mongoProject.getPublicationDate())) {
+            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getPublicationDate(), mongoProject.getPublicationDate())) {
                 mongoProject.setPublicationDate(transformedOracleProject.getPublicationDate());
                 mongoUpdated = true;
             }
-            if (!DateUtils.equalsDate(transformedOracleProject.getUpdatedDate(), mongoProject.getUpdatedDate())) {
+            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getUpdatedDate(), mongoProject.getUpdatedDate())) {
                 mongoProject.setUpdatedDate(transformedOracleProject.getUpdatedDate());
                 mongoUpdated = true;
             }
 
             if (mongoUpdated) {
-                log.error(" ----- Mongo project Dates Mismatched : " + accession + "---- ");
-                mongoProject = prideProjectMongoService.update(mongoProject).get();
+                log.error(" ----- Mongo project Dates Mismatched : " + accession + " ----- ");
+                if (fixProjectsOptionSet) {
+                    log.info("^^^^^ FIXING mongo project : " + accession + "^^^^^");
+                    mongoProject = prideProjectMongoService.update(mongoProject).get();
+                }
             }
 
             /*if (!transformedOracleProject.equals(mongoProject)) {
@@ -185,24 +202,29 @@ public class SanityCheckJob extends AbstractArchiveJob {
             List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
             Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, mongoFiles)).collect(Collectors.toSet());
 
-           /* Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
+            Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
             mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
 
             Map<String, MongoPrideFile> transfromedOracleFilesMap = new HashMap<>();
             transfromedOracleFiles.forEach(m -> transfromedOracleFilesMap.put(m.getAccession(), m));
 
-            mongoFiles.forEach(m -> {
+            if (!mongoFiles.equals(transfromedOracleFiles)) {
+                log.error(" ----- Mongo files mismatched for project : " + accession + " ---- ");
+            }
+
+            boolean fixedFiles = false;
+            for (MongoPrideFile m : mongoFiles) {
                 boolean fileUpdate = false;
                 MongoPrideFile transformedFile = transfromedOracleFilesMap.get(m.getAccession());
-                if (!DateUtils.equalsDate(m.getSubmissionDate(), transformedFile.getSubmissionDate())) {
+                if (!DateUtils.equalsDatePartOnly(m.getSubmissionDate(), transformedFile.getSubmissionDate())) {
                     m.setSubmissionDate(transformedFile.getSubmissionDate());
                     fileUpdate = true;
                 }
-                if (!DateUtils.equalsDate(m.getPublicationDate(), transformedFile.getPublicationDate())) {
+                if (!DateUtils.equalsDatePartOnly(m.getPublicationDate(), transformedFile.getPublicationDate())) {
                     m.setPublicationDate(transformedFile.getPublicationDate());
                     fileUpdate = true;
                 }
-                if (!DateUtils.equalsDate(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
+                if (!DateUtils.equalsDatePartOnly(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
                     m.setUpdatedDate(transformedFile.getUpdatedDate());
                     fileUpdate = true;
                 }
@@ -210,14 +232,32 @@ public class SanityCheckJob extends AbstractArchiveJob {
                     m.setPublicFileLocations(transformedFile.getPublicFileLocations());
                     fileUpdate = true;
                 }
-//                if (fileUpdate) {
-//                    prideFileMongoService.save(m);
-//                }
+                if (!Objects.equals(m.getFileSizeBytes(), transformedFile.getFileSizeBytes())) {
+                    m.setFileSizeBytes(transformedFile.getFileSizeBytes());
+                    fileUpdate = true;
+                }
+                if (fileUpdate && fixFilesOptionSet) {
+                    fixedFiles = true;
+                    prideFileMongoService.save(m);
+                }
+            }
 
-            });*/
+            if (fixedFiles) {
+                log.info("^^^^^ fixed mongo files for : " + accession + "^^^^^");
+            }
 
-            if (!mongoFiles.equals(transfromedOracleFiles)) {
-                log.error(" ----- Mongo files mismatched for project : " + accession + "---- ");
+            HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+            if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
+                log.error(" ***** Even after fixing, Mongo files mismatched for project : " + accession + " *****");
+
+                //debug log to identify the differences
+                List<MongoPrideFile> collect = mongoFiles.stream()
+                        .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
+                        .collect(Collectors.toList());
+                log.info("mismatched mongo files : " + collect);
+
+                List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
+                log.info("reference transformedOracleFiles : " + collect1);
             }
 
           /*  PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
@@ -311,7 +351,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
             Set<String> fileNames = mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
             transformedSolrProject.setProjectFileNames(fileNames);
             if (!transformedSolrProject.equals(solrProject)) {
-                log.error(" ----- Solr project Mismatched : " + accession + "---- ");
+                log.error(" ----- Solr project Mismatched : " + accession + " ---- ");
                 log.info("transformedSolrProject : " + transformedSolrProject);
                 log.info("solrProject : " + solrProject);
 //                transformedSolrProject.setId((String)solrProject.getId());
@@ -320,37 +360,35 @@ public class SanityCheckJob extends AbstractArchiveJob {
         }
     }
 
-    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFileProject, Project oracleProject, Set<MongoPrideFile> mongoFiles) {
+    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject, Set<MongoPrideFile> mongoFiles) {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for (MSFileTypeConstants currentFileType : MSFileTypeConstants.values())
-            if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFileProject.getFileType().getName()))
+            if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFile.getFileType().getName()))
                 fileType = currentFileType;
-        String folderName = Objects.requireNonNull(ProjectFolderSourceConstants.fromTypeString(oracleFileProject.getFileSource().name())).getFolderName();
-        Set<CvParam> publicURLs = oracleProject.isPublicProject() ? PrideProjectTransformer.createPublicFileLocations(oracleFileProject.getFileName(),
+        String folderName = Objects.requireNonNull(ProjectFolderSourceConstants.fromTypeString(oracleFile.getFileSource().name())).getFolderName();
+        Set<CvParam> publicURLs = oracleProject.isPublicProject() ? PrideProjectTransformer.createPublicFileLocations(oracleFile.getFileName(),
                 folderName, oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpUrl, asperaUrl) : Collections.emptySet();
 
-        String accession = HashUtils.getSha256Checksum(oracleProject.getAccession() + folderName + oracleFileProject.getFileName());
+        String accession = HashUtils.getSha256Checksum(oracleProject.getAccession() + folderName + oracleFile.getFileName());
 
         Map<String, String> checkSumMap = new HashMap<>();
         mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
 
-        MongoPrideFile file = MongoPrideFile.builder()
+        return MongoPrideFile.builder()
                 .accession(accession)
-                .fileName(oracleFileProject.getFileName())
+                .fileName(oracleFile.getFileName())
                 .fileCategory(new CvParam(fileType.getFileType().getCv().getCvLabel(), fileType.getFileType().getCv().getAccession(),
                         fileType.getFileType().getCv().getName(), fileType.getFileType().getCv().getValue()))
-                .fileSourceFolder(oracleFileProject.getFileSource().name())
+                .fileSourceFolder(oracleFile.getFileSource().name())
                 .projectAccessions(Collections.singleton(oracleProject.getAccession()))
-                .fileSizeBytes(oracleFileProject.getFileSize())
+                .fileSizeBytes(oracleFile.getFileSize())
                 .publicationDate(oracleProject.getPublicationDate())
-                .fileSourceType(oracleFileProject.getFileSource().name())
+                .fileSourceType(oracleFile.getFileSource().name())
                 .fileSourceFolder(folderName)
                 .publicFileLocations(publicURLs)
                 .submissionDate(oracleProject.getSubmissionDate())
                 .updatedDate(oracleProject.getUpdateDate())
                 .checksum(checkSumMap.get(accession)) //Checksum is not calculated again.
                 .build();
-
-        return file;
     }
 }
