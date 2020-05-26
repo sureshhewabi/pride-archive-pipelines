@@ -11,11 +11,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.reference.Reference;
-import uk.ac.ebi.pride.archive.dataprovider.reference.ReferenceProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.model.projects.ReanalysisProject;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideReanalysisProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideReanalysisMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.pubmed.PubMedFetcher;
@@ -151,17 +150,17 @@ public class PrideArchiveReanalysisJob extends AbstractArchiveJob {
         try {
             for (Map.Entry<String, Set<EupmcReferenceSummary>> entry : reanalysisDatasets.entrySet()) {
 
-                Set<ReferenceProvider> referenceProviders = new HashSet<>();
+                Set<Reference> referenceSet = new HashSet<>();
                 for (EupmcReferenceSummary eupmcReferenceSummary:entry.getValue()) {
-                    ReferenceProvider referenceProvider = new Reference(
+                    Reference reference = new Reference(
                             eupmcReferenceSummary.getRefLine(),
                             Integer.parseInt(eupmcReferenceSummary.getEupmcResult().getPmid()),
                             eupmcReferenceSummary.getEupmcResult().getDoi());
-                    referenceProviders.add(referenceProvider);
+                    referenceSet.add(reference);
                 }
-                ReanalysisProject reanalysisProject = ReanalysisProject.builder()
+                MongoPrideReanalysisProject reanalysisProject = MongoPrideReanalysisProject.builder()
                         .accession(entry.getKey())
-                        .references(referenceProviders)
+                        .references(referenceSet)
                         .build();
                 prideReanalysisMongoService.upsert(reanalysisProject);
 
