@@ -127,9 +127,7 @@ public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
     }
 
     private Set<String> getMongoProjectAccessions() {
-        Set<String> mongoProjectAccessions = prideProjectMongoService.findAllStream()
-                .map(MongoPrideProject::getAccession)
-                .collect(Collectors.toSet());
+        Set<String> mongoProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
         log.info("Number of MongoDB projects: " + mongoProjectAccessions.size());
         return mongoProjectAccessions;
     }

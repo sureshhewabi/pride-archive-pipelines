@@ -23,7 +23,7 @@ printUsage() {
     echo "Description: In the revised archive pipeline, this will import one project information to mongoDB"
     echo "$ ./scripts/spring_batch_mongo_sync_add_all_projects.sh"
     echo ""
-    echo "Usage: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles=true]"
+    echo "Usage: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles]"
     echo "     Example: ./spring_batch_mongo_sync_add_all_projects.sh [--skipfiles]"
     echo "     (optional) skipfiles :  if set will skip syncing files"
 }
