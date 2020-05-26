@@ -60,7 +60,7 @@ done
 JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles}"
 
 ##### Set variables
-JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
+JOB_NAME="${JOB_NAME}"
 DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
