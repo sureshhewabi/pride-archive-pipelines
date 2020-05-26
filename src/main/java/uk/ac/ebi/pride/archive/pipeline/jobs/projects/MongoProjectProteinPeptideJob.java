@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
@@ -114,7 +115,7 @@ public class MongoProjectProteinPeptideJob extends AbstractArchiveJob {
         }
 
         MongoPrideMolecules mongoPrideMolecules = MongoPrideMolecules.builder().projectAccession(projectAccession)
-                .peptideAccessions(peptideSequences).proteinAccessions(proteinAccessions).build();
+                .peptideAccessions(peptideSequences.stream().collect(Collectors.joining(","))).proteinAccessions(proteinAccessions.stream().collect(Collectors.joining(","))).build();
 
         prideMoleculesMongoService.insert(mongoPrideMolecules);
     }
