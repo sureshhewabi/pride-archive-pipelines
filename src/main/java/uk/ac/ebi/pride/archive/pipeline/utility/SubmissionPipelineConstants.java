@@ -166,7 +166,9 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_SYNC_MISSING_PROJECTS_ORACLE_PC("syncMissingProjectsOracleToPXJob", "This job will sync missing projects from Oracle into ProteomeXchange"),
 
-        PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive");
+        PRIDE_ARCHIVE_MONGODB_MOLECULE_STATS("moleculeStatsJob", "This job compute some basic statistics across the entire PRIDE Archive"),
+
+        PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB");
 
         String name;
         String message;
@@ -236,6 +238,12 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_MONGODB_ANNOTATE_PROJECTS_COUNTRY("annotateProjectsWithCountryStep",
                 "This job take a configuration file from github and annotate the Projects with the Country"),
+
+        /**
+         * Re-analysis Data
+         * */
+        PRIDE_ARCHIVE_UPDATE_REANALYSIS_DATA("updateReanalysisDatasetsStep",
+                "This job reads re-analysis data from TSV file and update the MongoDB collection"),
 
         /*AAP user sync*/
         PRIDE_USERS_AAP_SYNC("PrideUsersAAPSyncStep",
