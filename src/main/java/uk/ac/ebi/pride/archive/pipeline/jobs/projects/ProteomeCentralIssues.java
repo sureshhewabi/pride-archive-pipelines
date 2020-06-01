@@ -36,10 +36,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Configuration
 @Slf4j
@@ -169,11 +166,12 @@ public class ProteomeCentralIssues extends AbstractArchiveJob {
             File pxSubmissionSummaryFile = Paths.get(prideDataPath, datasetPath, "internal", "submission.px").toFile();
             File pxXml = pxXmlMessageWriter.createIntialPxXml(pxSubmissionSummaryFile, pxXmlsDir.toFile(), accession, datasetPath, pxSchemaVersion);
 
-            log.info("Validating PX file: " + pxXml.getAbsolutePath());
+            String pxXmlAbsolutePath = pxXml.getAbsolutePath();
+            log.info("Validating PX file: " + pxXmlAbsolutePath);
             String output = ValidateMessage.validateMessage(pxXml, pxSchemaVersion);
             if (StringUtils.isNotEmpty(output)) {
                 log.error(output);
-                throw new WrongDocumentException("PX file not correct:\n" + output);
+                throw new IllegalStateException("PX file not valid :" + pxXmlAbsolutePath + "\n" + output);
             } else {
                 log.info("PX file is valid: " + accession);
             }
