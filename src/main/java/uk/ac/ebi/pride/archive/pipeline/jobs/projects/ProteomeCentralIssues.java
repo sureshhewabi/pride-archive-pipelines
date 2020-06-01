@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import sun.plugin.dom.exception.WrongDocumentException;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
@@ -36,7 +35,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @Slf4j
