@@ -56,5 +56,3 @@ release.properties
 
 *.log*
 *ArchiveSpectrum.json
-*PrideMongoPeptideEvidence.json
-*PrideMongoProteinEvidence.json
