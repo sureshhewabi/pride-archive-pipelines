@@ -14,7 +14,6 @@ import java.util.Set;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @TestPropertySource(properties = {"backupPath=src/test/resources/"})
-@Slf4j
 public class GenerateEbeyeXmlTaskletTest {
 
     private GenerateEbeyeXmlTasklet generateEbeyeXmlTasklet;
