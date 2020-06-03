@@ -48,7 +48,7 @@ while [ "$1" != "" ]; do
         ACCESSION=$1
         LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}"
         JOB_NAME="${JOB_NAME}-${ACCESSION}"
-        JOB_PARAMETERS="${JOB_PARAMETERS} project.accession=${ACCESSION}"
+        JOB_PARAMETERS="${JOB_PARAMETERS} --project.accession=${ACCESSION}"
         MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
       "-all")
@@ -56,7 +56,7 @@ while [ "$1" != "" ]; do
         ALL=true
         LOG_FILE_NAME="ebeye-allpub-${JOB_NAME}"
         JOB_NAME="${JOB_NAME}-ebeye-allpub"
-        JOB_PARAMETERS="${JOB_PARAMETERS} process.all=${ALL}"
+        JOB_PARAMETERS="${JOB_PARAMETERS} --process.all=${ALL}"
         MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
       "-e" | "--email")
@@ -66,7 +66,7 @@ while [ "$1" != "" ]; do
       "-d" | "--date")
         shift
         DATE=$1
-        JOB_PARAMETERS="${JOB_PARAMETERS} time.stamp=${DATE}"
+        JOB_PARAMETERS="${JOB_PARAMETERS} --time.stamp=${DATE}"
         ;;
     esac
     shift
