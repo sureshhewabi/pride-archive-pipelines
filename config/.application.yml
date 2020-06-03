@@ -145,3 +145,8 @@ px.partner:
   name: $px_partner_name
   pass: $px_password
 
+submission:
+  file:
+    name: submission.px
+
+pride.ebeye.dir: $pride_ebeye_dir

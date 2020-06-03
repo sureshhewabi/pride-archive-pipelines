@@ -363,7 +363,7 @@ public class GenerateEBeyeXMLNew {
                         });
                     } else {
                         Field softwareField = new Field();
-                        softwareField.setName(SOFTWARE);
+                        softwareField.setName(PUBLICATION);
                         softwareField.setValue(NOT_AVAILABLE);
                         additionalFieldsList.add(softwareField);
                     }
