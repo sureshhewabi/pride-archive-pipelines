@@ -16,6 +16,9 @@ import uk.ac.ebi.pride.data.io.SubmissionFileParser;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
+import uk.ac.ebi.pride.tools.protein_details_fetcher.ProteinDetailFetcher;
+import uk.ac.ebi.pride.tools.protein_details_fetcher.model.Protein;
+import uk.ac.ebi.pride.tools.utils.AccessionResolver;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -56,11 +59,14 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
         exceptionsLaunchingProjects = Collections.synchronizedList(new ArrayList<String>());
         if (processAll) {
-            prideProjectMongoService.getAllProjectAccessions().parallelStream().forEach(projAcc -> {
-                launchIndividualEbeyeXmlGenerationForProjectAcc(projAcc, prideProjectMongoService, exceptionsLaunchingProjects);
+            prideProjectMongoService.getAllProjectAccessions()
+                    .parallelStream().forEach(projAcc -> {
+                        launchIndividualEbeyeXmlGenerationForProjectAcc(projAcc,
+                                prideProjectMongoService, exceptionsLaunchingProjects);
             });
             if (!CollectionUtils.isEmpty(exceptionsLaunchingProjects)) {
-                exceptionsLaunchingProjects.parallelStream().forEach(s -> log.error("Problems launching EBeye generation for: " + s));
+                exceptionsLaunchingProjects.parallelStream().forEach(s ->
+                        log.error("Problems launching EBeye generation for: " + s));
                 throw new JobExecutionException("Unable to launch individual EBeye generation jobs");
             }
         } else {
@@ -82,36 +88,39 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
         MongoPrideProject mongoPrideProject = prideProjectMongoService.findByAccession(projectAcc).get();
         Assert.notNull(mongoPrideProject, "Project to update cannot be null! Accession: " + projectAccession);
         File submissionFile = new File(getSubmissionFilePath(mongoPrideProject));
-        Set<String> proteins = restoreFromFile(projectAcc);
-        Map<String, String> proteinMapping = new HashMap<>();
-        if (proteins.size() > 0) {
-            //TODO protein mapping
-            // proteinMapping.putAll(getProteinMapping(proteins));
-        }
-
+        Map<String, String> proteins = restoreFromFile(projectAcc);
         GenerateEBeyeXMLNew generateEBeyeXMLNew = new GenerateEBeyeXMLNew(mongoPrideProject,
-                SubmissionFileParser.parse(submissionFile), outputDirectory, proteinMapping, true);
+                SubmissionFileParser.parse(submissionFile), outputDirectory, proteins, true);
         generateEBeyeXMLNew.generate();
     }
 
-    public Map<String, String> getProteinMapping(Set<String> proteins) throws Exception {
-        return null;
-    }
 
-
-    public Set<String> restoreFromFile(String projectAccession) throws Exception {
+    public Map<String, String> restoreFromFile(String projectAccession) throws Exception {
         backupPath = backupPath.endsWith(File.separator) ? backupPath : backupPath + File.separator;
         String dir = backupPath + projectAccession;
         Set<String> proteinAccessions = new HashSet<>();
+        Map<String, String> mappedAccessions = new HashMap<>();
         for (Path f : Files.newDirectoryStream(Paths.get(dir), path -> path.toFile().isFile())) {
             if (f.getFileName().toString().endsWith(PrideMongoPeptideEvidence.class.getSimpleName() + BackupUtil.JSON_EXT)) {
-                List<PrideMongoPeptideEvidence> objs = BackupUtil.getObjectsFromFile(f, PrideMongoPeptideEvidence.class);
+                List<PrideMongoPeptideEvidence> objs = BackupUtil
+                        .getObjectsFromFile(f, PrideMongoPeptideEvidence.class);
                 objs.forEach(o -> {
                     proteinAccessions.add(o.getProteinAccession());
                 });
             }
         }
-        return proteinAccessions;
+
+        proteinAccessions.parallelStream().forEach(accession -> {
+            ProteinDetailFetcher.AccessionType type = ProteinDetailFetcher.getAccessionType(accession);
+            if(type == ProteinDetailFetcher.AccessionType.UNIPROT_ACC ||
+                    type == ProteinDetailFetcher.AccessionType.UNIPROT_ID)
+                mappedAccessions.put(accession, "uniprot");
+
+            if(type == ProteinDetailFetcher.AccessionType.ENSEMBL)
+                mappedAccessions.put(accession, "ensembl");
+        });
+
+        return mappedAccessions;
     }
 
     public void setBackupPath(String backupPath) {

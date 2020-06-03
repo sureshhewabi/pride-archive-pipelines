@@ -26,12 +26,11 @@ public class GenerateEbeyeXmlTaskletTest {
 
     @Test
     public void getProteinMappingTest() throws Exception {
-        Set<String> proteins = generateEbeyeXmlTasklet.restoreFromFile("PXD002633");
-        Map<String, String> proteinMapping = generateEbeyeXmlTasklet.getProteinMapping(proteins);
+        Map<String, String> proteinMapping = generateEbeyeXmlTasklet.restoreFromFile("PXD002633");
         Assert.assertNotNull(proteinMapping.size());
         Assert.assertEquals(1, proteinMapping.size());
-        Assert.assertTrue(proteinMapping.containsKey("P04114"));
-        Assert.assertEquals("uniprot", proteinMapping.get("P04114"));
+        Assert.assertTrue(proteinMapping.containsKey("APOB_HUMAN"));
+        Assert.assertEquals("uniprot", proteinMapping.get("APOB_HUMAN"));
 
     }
 
