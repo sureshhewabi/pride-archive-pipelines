@@ -5,10 +5,9 @@
 
 #This job syncs one document(accession based) from oracle into mongodb
 
-
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="sanity_check"
+JOB_NAME="proteomeCentralIssues"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -25,15 +24,13 @@ LOG_FILE_NAME=""
 ##### FUNCTIONS
 printUsage() {
     echo "Description: In the revised archive pipeline, this will import one project information to mongoDB"
-    echo "$ ./scripts/sanity_check.sh"
+    echo "$ ./scripts/proteomeCentralIssues.sh"
     echo ""
-    echo "Usage: ./sanity_check.sh -a|--accession"
-    echo "     Example: ./sanity_check.sh -a PXD011181"
+    echo "Usage: ./proteomeCentralIssues.sh -a|--accession"
+    echo "     Example: ./proteomeCentralIssues.sh -a PXD011181"
     echo "     (optional) accession         : the project accession"
 }
 
-fixProjects="false"
-fixFiles="false"
 JOB_ARGS=""
 
 ##### PARSE the provided parameters
@@ -44,17 +41,9 @@ while [ "$1" != "" ]; do
         PROJECT_ACCESSION=$1
         JOB_ARGS="${JOB_ARGS} projects=${PROJECT_ACCESSION}"
         ;;
-      "--fixProjects")
-        fixProjects="true"
-        ;;
-      "--fixFiles")
-        fixFiles="true"
-        ;;
     esac
     shift
 done
-
-JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles}"
 
 ##### Set variables
 JOB_NAME="${JOB_NAME}"
@@ -72,4 +61,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=sanityCheckJobBean ${JOB_ARGS}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=pcIssuesJob ${JOB_ARGS}

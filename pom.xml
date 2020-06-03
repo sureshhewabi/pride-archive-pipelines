@@ -34,6 +34,7 @@
         <java.version>1.8</java.version>
         <jmztab.version>3.0.8</jmztab.version>
         <px.submission.core.version>2.0.18</px.submission.core.version>
+        <archive.px.xml.generator.version>1.0.28</archive.px.xml.generator.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
         <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.4-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
         <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
@@ -250,29 +251,19 @@
             </exclusions>
         </dependency>
 
-        <!--proteomexchange submission core api-->
+        <!--PX XML-->
         <dependency>
-            <groupId>uk.ac.ebi.pride</groupId>
-            <artifactId>px-submission-core</artifactId>
-            <version>${px.submission.core.version}</version>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>archive-px-xml-generator</artifactId>
+            <version>${archive.px.xml.generator.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
+                    <groupId>uk.ac.ebi.pride</groupId>
+                    <artifactId>px-submission-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--&lt;!&ndash; mongo-psm-index-searc &ndash;&gt;-->
-        <!--<dependency>-->
-        <!--<groupId>uk.ac.ebi.pride</groupId>-->
-        <!--<artifactId>mongo-psm-index-search</artifactId>-->
-        <!--<version>${mongo.psm.index.search.version}</version>-->
-        <!--</dependency>-->
-        <!-- archive-repo -->
+
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>

@@ -53,3 +53,5 @@ MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${LOG_FILE_FULL_PATH}_ \n -
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $slack_url || true
 
 #kill $filebeat_pid
+
+exit $CODE # so that LSF reports correct status in EMAIL
