@@ -1,14 +1,11 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import uk.ac.ebi.ddi.xml.validator.parser.marshaller.OmicsDataMarshaller;
 import uk.ac.ebi.ddi.xml.validator.parser.model.*;
 import uk.ac.ebi.ddi.xml.validator.utils.OmicsType;
-import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.dataprovider.user.Contact;
 import uk.ac.ebi.pride.archive.dataprovider.user.ContactProvider;
-import uk.ac.ebi.pride.archive.repo.repos.user.User;
 import uk.ac.ebi.pride.data.model.CvParam;
 import uk.ac.ebi.pride.data.model.DataFile;
 import uk.ac.ebi.pride.data.model.Param;
@@ -24,9 +21,8 @@ import java.util.stream.Collectors;
 
 import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.*;
 
+@Slf4j
 public class GenerateEBeyeXMLNew {
-
-    private static final Logger logger = LoggerFactory.getLogger(GenerateEBeyeXMLNew.class);
 
     private MongoPrideProject project;
     private File outputDirectory;
@@ -48,7 +44,7 @@ public class GenerateEBeyeXMLNew {
     public void generate() {
         if (this.project != null && this.submission != null && this.outputDirectory != null) {
             if (!this.project.isPublicProject()) {
-                logger.error("Project " + this.project.getAccession() + " is still private, not generating EB-eye XML.");
+                log.error("Project " + this.project.getAccession() + " is still private, not generating EB-eye XML.");
             } else {
                 try {
 
@@ -99,7 +95,7 @@ public class GenerateEBeyeXMLNew {
 
                     Field repository = new Field();
                     repository.setName(REPOSITORY);
-                    fullDatasetLink.setValue(PRIDE);
+                    repository.setValue(PRIDE);
 
                     additionalFieldsList.add(repository);
 
@@ -330,12 +326,12 @@ public class GenerateEBeyeXMLNew {
 
 
                     //Doi
-                    String doi = this.project.getDoi().get();
+                    Optional<String> doi = this.project.getDoi();
 
-                    if (doi != null && !doi.isEmpty()) {
+                    if (doi != null && doi.isPresent() && !doi.get().isEmpty()) {
                         Field doiField = new Field();
                         doiField.setName(DOI);
-                        doiField.setValue(doi);
+                        doiField.setValue(doi.get());
                         additionalFieldsList.add(doiField);
                     }
 
@@ -388,17 +384,20 @@ public class GenerateEBeyeXMLNew {
                             submitterMailField.setValue(submitter.getEmail());
                             additionalFieldsList.add(submitterMailField);
 
-                            if (submitter.getAffiliation() != null) {
+                            String affiliation = submitter.getAffiliation();
+
+                            if (affiliation != null && !affiliation.isEmpty()) {
                                 Field affiliationField = new Field();
                                 affiliationField.setName(SUBMITTER_AFFILIATION);
-                                affiliationField.setValue(submitter.getAffiliation());
+                                affiliationField.setValue(affiliation);
                                 additionalFieldsList.add(affiliationField);
                             }
 
-                            if (submitter.getCountry() != null) {
+                            String country = submitter.getCountry();
+                            if (country != null && !country.isEmpty()) {
                                 Field countryField = new Field();
                                 countryField.setName(SUBMITTER_COUNTRY);
-                                countryField.setValue(submitter.getCountry());
+                                countryField.setValue(country);
                                 additionalFieldsList.add(countryField);
                             }
                         });
@@ -510,10 +509,13 @@ public class GenerateEBeyeXMLNew {
         if (users != null) {
 
             for (Object contact : users) {
-                Reference xmlReference = new Reference();
-                xmlReference.setDbkey(((Contact) contact).getOrcid());
-                xmlReference.setDbname(ORCID);
-                references.add(xmlReference);
+                String orcid = ((Contact) contact).getOrcid();
+                if (orcid != null && !orcid.isEmpty()) {
+                    Reference xmlReference = new Reference();
+                    xmlReference.setDbkey(orcid);
+                    xmlReference.setDbname(ORCID);
+                    references.add(xmlReference);
+                }
             }
 
 

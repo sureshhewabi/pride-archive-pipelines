@@ -170,7 +170,7 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB"),
 
-        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob","This job is used to generate ebeye prider xml");
+        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob", "This job is used to generate ebeye prider xml");
 
         String name;
         String message;
@@ -243,7 +243,7 @@ public class SubmissionPipelineConstants {
 
         /**
          * Re-analysis Data
-         * */
+         */
         PRIDE_ARCHIVE_UPDATE_REANALYSIS_DATA("updateReanalysisDatasetsStep",
                 "This job reads re-analysis data from TSV file and update the MongoDB collection"),
 
@@ -312,11 +312,11 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_MONGO_CHECKSUM("populateMongoChecksumStep",
                 "Add checksum info to mongo files"),
 
-        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGeneration","This step generates ebeye xml"),
+        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGeneration", "This step generates ebeye xml"),
 
-        PRIDER_EBEYE_ALL_DECISION("priderEbeyeAllDecision","This step decides to generate or store"),
+        PRIDER_EBEYE_ALL_DECISION("priderEbeyeAllDecision", "This step decides to generate or store"),
 
-        PRIDER_GET_AND_STORE_ORIGINAL_PUBLICATION("priderGetAndStoreOriginalPublication","This step gets and store public path");
+        PRIDER_GET_AND_STORE_ORIGINAL_PUBLICATION("priderGetAndStoreOriginalPublication", "This step gets and store public path");
 
         String name;
         String message;
@@ -529,5 +529,8 @@ public class SubmissionPipelineConstants {
         public static final String PUBMED = "pubmed";
         public static final String TAXONOMY = "TAXONOMY";
         public static final String ORCID = "ORCID";
+
+        public static final String INTERNAL = "internal";
+        public static final String SUBMISSION_PX = "submission.px";
     }
 }

@@ -1,7 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -14,6 +13,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
 import uk.ac.ebi.pride.data.io.SubmissionFileParser;
+import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 
@@ -24,29 +24,30 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static uk.ac.ebi.pride.archive.pipeline.tasklets.LaunchIndividualEbeyeXmlTasklet.launchIndividualEbeyeXmlGenerationForProjectAcc;
+import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.INTERNAL;
+import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.SUBMISSION_PX;
 
 @StepScope
 @Component
+@Slf4j
 public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
-
-    public static final Logger logger = LoggerFactory.getLogger(GenerateEbeyeXmlTasklet.class);
 
     @Value("${pride.data.backup.path}")
     String backupPath;
 
-    @Value("file:${pride.repo.data.base.dir}/#{jobExecutionContext['public.path.fragment']}/internal/${submission.file.name}")
-    private File submissionFile;
+    @Value("${pride.repo.data.base.dir}")
+    private String prideRepoRootPath;
 
-    @Value("${pride.ebeye.dir}")
+    @Value("${pride.ebeye.dir:''}")
     private File outputDirectory;
 
-    @Value("${project.accession}")
+    @Value("${project.accession:''}")
     private String projectAccession;
 
     @Autowired
     private PrideProjectMongoService prideProjectMongoService;
 
-    @Value("${process.all}")
+    @Value("${process.all:false}")
     private boolean processAll;
 
     private List<String> exceptionsLaunchingProjects;
@@ -59,13 +60,13 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
                 launchIndividualEbeyeXmlGenerationForProjectAcc(projAcc, prideProjectMongoService, exceptionsLaunchingProjects);
             });
             if (!CollectionUtils.isEmpty(exceptionsLaunchingProjects)) {
-                exceptionsLaunchingProjects.parallelStream().forEach(s -> logger.error("Problems launching EBeye generation for: " + s));
+                exceptionsLaunchingProjects.parallelStream().forEach(s -> log.error("Problems launching EBeye generation for: " + s));
                 throw new JobExecutionException("Unable to launch individual EBeye generation jobs");
             }
         } else {
-            generateEBeye(projectAccession, submissionFile);
+            generateEBeyeXml(projectAccession);
         }
-        logger.info("Finished generating EBeye XML.");
+        log.info("Finished generating EBeye XML.");
         return RepeatStatus.FINISHED;
     }
 
@@ -77,26 +78,29 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
      * @param projectAcc the project's accession number to generate EBeye XML for
      * @throws Exception any problem during the EBeye generation process
      */
-    private void generateEBeye(String projectAcc, File submissionFile) throws Exception {
+    private void generateEBeyeXml(String projectAcc) throws Exception {
+        MongoPrideProject mongoPrideProject = prideProjectMongoService.findByAccession(projectAcc).get();
+        Assert.notNull(mongoPrideProject, "Project to update cannot be null! Accession: " + projectAccession);
+        File submissionFile = new File(getSubmissionFilePath(mongoPrideProject));
         Set<String> proteins = restoreFromFile(projectAcc);
         Map<String, String> proteinMapping = new HashMap<>();
         if (proteins.size() > 0) {
             //TODO protein mapping
-
-            proteinMapping.putAll(getProteinMapping(proteins));
+            // proteinMapping.putAll(getProteinMapping(proteins));
         }
 
-        GenerateEBeyeXMLNew generateEBeyeXMLNew = new GenerateEBeyeXMLNew(prideProjectMongoService.findByAccession(projectAcc).get(),
+        GenerateEBeyeXMLNew generateEBeyeXMLNew = new GenerateEBeyeXMLNew(mongoPrideProject,
                 SubmissionFileParser.parse(submissionFile), outputDirectory, proteinMapping, true);
         generateEBeyeXMLNew.generate();
     }
 
-    public Map<String,String> getProteinMapping(Set<String> proteins) {
+    public Map<String, String> getProteinMapping(Set<String> proteins) throws Exception {
         return null;
     }
 
 
     public Set<String> restoreFromFile(String projectAccession) throws Exception {
+        backupPath = backupPath.endsWith(File.separator) ? backupPath : backupPath + File.separator;
         String dir = backupPath + projectAccession;
         Set<String> proteinAccessions = new HashSet<>();
         for (Path f : Files.newDirectoryStream(Paths.get(dir), path -> path.toFile().isFile())) {
@@ -116,8 +120,21 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Assert.notNull(prideProjectMongoService,"prideProjectMongoService should not be null");
+        Assert.notNull(prideProjectMongoService, "prideProjectMongoService should not be null");
         Assert.notNull(outputDirectory, "Output directory cannot be null.");
+    }
+
+    public String getSubmissionFilePath(MongoPrideProject prideProject) {
+        log.info("Generating public file path fragment based on the publication date and project accession");
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(prideProject.getPublicationDate());
+        int month = calendar.get(Calendar.MONTH) + 1; // the month are zero based, hence the correction +1
+        int year = calendar.get(Calendar.YEAR);
+        String datePath = year + File.separator + (month < 10 ? "0" : "") + month;
+        String publicPath = datePath + File.separator + prideProject.getAccession();
+        log.info("Generated public path fragment: " + publicPath);
+        prideRepoRootPath = prideRepoRootPath.endsWith(File.separator) ? prideRepoRootPath : prideRepoRootPath + File.separator;
+        return prideRepoRootPath + publicPath + File.separator + INTERNAL + File.separator + SUBMISSION_PX;
     }
 }
 

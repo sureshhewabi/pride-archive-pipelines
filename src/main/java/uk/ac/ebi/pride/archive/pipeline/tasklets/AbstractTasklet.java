@@ -1,7 +1,5 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.scope.context.StepContext;
@@ -13,8 +11,6 @@ import org.springframework.util.Assert;
 import java.util.Map;
 
 public abstract class AbstractTasklet implements Tasklet, InitializingBean {
-    public static final Logger logger = LoggerFactory.getLogger(AbstractTasklet.class);
-
     /**
      * Update step execution context using a given map of values
      *

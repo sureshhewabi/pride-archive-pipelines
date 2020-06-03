@@ -1,14 +1,12 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
 import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
@@ -22,9 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 public class LaunchIndividualEbeyeXmlTasklet extends AbstractTasklet {
-
-    public static final Logger logger = LoggerFactory.getLogger(GenerateEbeyeXmlTasklet.class);
 
     private String projectAccession;
     private PrideProjectMongoService projectRepository;
@@ -48,11 +45,11 @@ public class LaunchIndividualEbeyeXmlTasklet extends AbstractTasklet {
             try {
                 launchEBeyeXmlJob(projectAcc);
             } catch (IOException | InterruptedException e) {
-                logger.info("Problem launching job", e);
+                log.info("Problem launching job", e);
                 exceptionsLaunchingProjects.add(projectAcc);
             }
         } else {
-            logger.info("Skipping private project: " + projectAcc);
+            log.info("Skipping private project: " + projectAcc);
         }
     }
 
@@ -63,25 +60,25 @@ public class LaunchIndividualEbeyeXmlTasklet extends AbstractTasklet {
      * @throws IOException problems launching the EBeye generation job
      */
     private static void launchEBeyeXmlJob(String projectAcc) throws IOException, InterruptedException {
-        logger.info("Launching EBeye XML job for: " + projectAcc);
+        log.info("Launching EBeye XML job for: " + projectAcc);
         String script = "./runEBeyeXMLGeneration.sh";
-        logger.info("Executing: $" + script + " -a " + projectAcc);
+        log.info("Executing: $" + script + " -a " + projectAcc);
         Process p = new ProcessBuilder(script, "-a", projectAcc).start();
         p.waitFor();
         String line;
         InputStream inputStream = p.getInputStream();
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         while ((line = bufferedReader.readLine()) != null) {
-            logger.info(line);
+            log.info(line);
         }
         bufferedReader.close();
         inputStream.close();
         if (p.exitValue() != 0) {
             inputStream = p.getErrorStream();
-            logger.error("Failed to launch individual EBeye generation job");
+            log.error("Failed to launch individual EBeye generation job");
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             while ((line = bufferedReader.readLine()) != null) {
-                logger.error(line);
+                log.error(line);
             }
             bufferedReader.close();
             inputStream.close();
@@ -96,7 +93,7 @@ public class LaunchIndividualEbeyeXmlTasklet extends AbstractTasklet {
      */
     private static void checkForExceptions(List<String> exceptionsLaunchingProjects) throws JobExecutionException {
         if (!CollectionUtils.isEmpty(exceptionsLaunchingProjects)) {
-            exceptionsLaunchingProjects.parallelStream().forEach(projAcc -> logger.error("Problems launching EBeye generation for: " + projAcc));
+            exceptionsLaunchingProjects.parallelStream().forEach(projAcc -> log.error("Problems launching EBeye generation for: " + projAcc));
             throw new JobExecutionException("Unable to launch individual EBeye generation jobs");
         }
     }
