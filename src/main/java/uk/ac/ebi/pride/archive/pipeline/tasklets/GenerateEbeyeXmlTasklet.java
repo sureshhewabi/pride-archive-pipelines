@@ -4,44 +4,51 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
 import uk.ac.ebi.pride.data.io.SubmissionFileParser;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
-import uk.ac.ebi.pride.proteinidentificationindex.mongo.search.model.MongoProteinIdentification;
-import uk.ac.ebi.pride.proteinidentificationindex.mongo.search.service.MongoProteinIdentificationSearchService;
-import uk.ac.ebi.pride.proteinidentificationindex.search.model.ProteinIdentification;
-import uk.ac.ebi.pride.proteinidentificationindex.search.service.ProteinIdentificationSearchService;
+import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 import static uk.ac.ebi.pride.archive.pipeline.tasklets.LaunchIndividualEbeyeXmlTasklet.launchIndividualEbeyeXmlGenerationForProjectAcc;
 
+@StepScope
 @Component
-
 public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
 
     public static final Logger logger = LoggerFactory.getLogger(GenerateEbeyeXmlTasklet.class);
 
+    @Value("${pride.data.backup.path}")
+    String backupPath;
+
+    @Value("file:${pride.repo.data.base.dir}/#{jobExecutionContext['public.path.fragment']}/internal/${submission.file.name}")
     private File submissionFile;
+
+    @Value("${pride.ebeye.dir}")
     private File outputDirectory;
+
+    @Value("${project.accession}")
     private String projectAccession;
+
     @Autowired
-    PrideProjectMongoService prideProjectMongoService;
-    private ProteinIdentificationSearchService proteinIdentificationSearchService;
-    private MongoProteinIdentificationSearchService mongoProteinIdentificationSearchService;
+    private PrideProjectMongoService prideProjectMongoService;
+
+    @Value("${process.all}")
     private boolean processAll;
+
     private List<String> exceptionsLaunchingProjects;
 
     @Override
@@ -71,99 +78,46 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
      * @throws Exception any problem during the EBeye generation process
      */
     private void generateEBeye(String projectAcc, File submissionFile) throws Exception {
-        long proteinCount = proteinIdentificationSearchService.countByProjectAccession(projectAcc);
-        List<MongoProteinIdentification> proteinResults = new ArrayList<>();
-        final int MAX_PAGE_SIZE = 1000; // 10 000 may cause timeouts
-        if (proteinCount > MAX_PAGE_SIZE) {
-            int i = 0;
-            int currentPage = 0;
-            List<ProteinIdentification> proteinList;
-            while (i < proteinCount) {
-                proteinList = proteinIdentificationSearchService.findByProjectAccession(projectAcc,
-                        new PageRequest(currentPage, MAX_PAGE_SIZE)).getContent();
-                if (proteinList.size() > 0) {
-                    proteinResults.addAll(mongoProteinIdentificationSearchService.findByIdIn(proteinList.
-                            stream().
-                            map(ProteinIdentification::getId).
-                            collect(Collectors.toCollection(ArrayList::new))));
-                }
-                i += MAX_PAGE_SIZE;
-                currentPage++;
-            }
-        } else {
-            if (proteinCount > 0) {
-                proteinResults = mongoProteinIdentificationSearchService.findByIdIn(
-                        proteinIdentificationSearchService.findByProjectAccession(projectAcc).
-                                stream().
-                                map(ProteinIdentification::getId).
-                                collect(Collectors.toCollection(ArrayList::new)));
-            }
-        }
-        HashMap<String, String> proteins = new HashMap<>();
-        if (proteinResults.size() > 0) {
-            for (MongoProteinIdentification proteinId : proteinResults) {
-                if (proteinId.getUniprotMapping() != null && !proteinId.getUniprotMapping().isEmpty()) {
-                    if (!proteins.containsKey(proteinId.getUniprotMapping())) {
-                        proteins.put(proteinId.getUniprotMapping(), "uniprot");
-                    }
-                }
-                if (proteinId.getEnsemblMapping() != null && !proteinId.getEnsemblMapping().isEmpty()) {
-                    if (!proteins.containsKey(proteinId.getEnsemblMapping())) {
-                        proteins.put(proteinId.getEnsemblMapping(), "ensembl");
-                    }
-                }
-            }
+        Set<String> proteins = restoreFromFile(projectAcc);
+        Map<String, String> proteinMapping = new HashMap<>();
+        if (proteins.size() > 0) {
+            //TODO protein mapping
+
+            proteinMapping.putAll(getProteinMapping(proteins));
         }
 
-        GenerateEBeyeXMLNew generateEBeyeXMLNew = new GenerateEBeyeXMLNew(projectRepository.findByAccession(projectAcc),
-                SubmissionFileParser.parse(submissionFile),outputDirectory,proteins,true);
+        GenerateEBeyeXMLNew generateEBeyeXMLNew = new GenerateEBeyeXMLNew(prideProjectMongoService.findByAccession(projectAcc).get(),
+                SubmissionFileParser.parse(submissionFile), outputDirectory, proteinMapping, true);
         generateEBeyeXMLNew.generate();
+    }
+
+    public Map<String,String> getProteinMapping(Set<String> proteins) {
+        return null;
+    }
 
 
+    public Set<String> restoreFromFile(String projectAccession) throws Exception {
+        String dir = backupPath + projectAccession;
+        Set<String> proteinAccessions = new HashSet<>();
+        for (Path f : Files.newDirectoryStream(Paths.get(dir), path -> path.toFile().isFile())) {
+            if (f.getFileName().toString().endsWith(PrideMongoPeptideEvidence.class.getSimpleName() + BackupUtil.JSON_EXT)) {
+                List<PrideMongoPeptideEvidence> objs = BackupUtil.getObjectsFromFile(f, PrideMongoPeptideEvidence.class);
+                objs.forEach(o -> {
+                    proteinAccessions.add(o.getProteinAccession());
+                });
+            }
+        }
+        return proteinAccessions;
+    }
 
-
-
-
-        /*GenerateEBeyeXML generateEBeyeXML = new GenerateEBeyeXML(projectRepository.findByAccession(projectAcc),
-                SubmissionFileParser.parse(submissionFile), outputDirectory, proteins, true);
-        logger.info("About to generate EB-eye XML file for: " + projectAcc);
-        generateEBeyeXML.generate();*/
+    public void setBackupPath(String backupPath) {
+        this.backupPath = backupPath;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Assert.notNull(projectRepository, "Project repo cannot be null.");
+        Assert.notNull(prideProjectMongoService,"prideProjectMongoService should not be null");
         Assert.notNull(outputDirectory, "Output directory cannot be null.");
-    }
-
-    public void setSubmissionFile(File submissionFile) {
-        this.submissionFile = submissionFile;
-    }
-
-    public void setProjectAccession(String projectAccession) {
-        this.projectAccession = projectAccession;
-    }
-
-    public void setProjectRepository(ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
-    }
-
-    public void setOutputDirectory(File outputDirectory) {
-        this.outputDirectory = outputDirectory;
-    }
-
-    public void setProteinIdentificationSearchService(ProteinIdentificationSearchService proteinIdentificationSearchService) {
-        this.proteinIdentificationSearchService = proteinIdentificationSearchService;
-    }
-
-    public void setMongoProteinIdentificationSearchService(MongoProteinIdentificationSearchService mongoProteinIdentificationSearchService) {
-        this.mongoProteinIdentificationSearchService = mongoProteinIdentificationSearchService;
-    }
-
-    public void setProcessAll(Boolean processAll) {
-        if (processAll != null) {
-            this.processAll = processAll;
-        }
     }
 }
 

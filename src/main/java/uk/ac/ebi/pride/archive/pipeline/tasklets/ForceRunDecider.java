@@ -15,7 +15,7 @@ public class ForceRunDecider extends AbstractTasklet {
     public static final String YES = "YES";
     public static final String NO = "NO";
 
-    @Value("#{jobParameters['forceToRun']?:false}")
+    @Value("${process.all:false}")
     private boolean forceToRun;
 
     @Override

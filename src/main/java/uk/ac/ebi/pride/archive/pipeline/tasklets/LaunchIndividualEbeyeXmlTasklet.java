@@ -112,6 +112,6 @@ public class LaunchIndividualEbeyeXmlTasklet extends AbstractTasklet {
     }
 
     public void setProjectRepository(ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
+        //this.projectRepository = projectRepository;
     }
 }
