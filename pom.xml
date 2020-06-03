@@ -233,6 +233,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>uk.ac.ebi.ddi</groupId>
+            <artifactId>ddi-validator</artifactId>
+            <version>1.3-SNAPSHOT</version>
+        </dependency>
+
+
 
         <!-- mzTab conversion -->
         <dependency>
