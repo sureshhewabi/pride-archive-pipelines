@@ -38,7 +38,7 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     @Value("${pride.data.backup.path}")
     String backupPath;
 
-    @Value("${pride.repo.data.base.dir}")
+    @Value("${pride.archive.data.path}")
     private String prideRepoRootPath;
 
     @Value("${pride.ebeye.dir:''}")
