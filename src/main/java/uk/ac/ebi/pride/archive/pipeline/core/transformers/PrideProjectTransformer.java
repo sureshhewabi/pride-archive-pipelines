@@ -115,8 +115,11 @@ public class PrideProjectTransformer {
                 .stream()
                 .filter(software -> software.getCvParam() != null)
                 .map(software -> new CvParam(software.getCvParam().getCvLabel(), software.getCvParam().getAccession(),
-                        software.getCvParam().getName(), software.getCvParam().getValue()))
+                        software.getValue(),software.getCvParam().getValue()))
                 .collect(Collectors.toSet());
+
+        //Doi
+        Optional<String> doi = oracleProject.getDoi();
 
         // Project Tags
         List<String> projectTags = oracleProject.getProjectTags().stream()
@@ -157,6 +160,7 @@ public class PrideProjectTransformer {
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
                 .publicProject(oracleProject.isPublicProject())
+                .doi(doi.isPresent()?doi.get():"")
                 .build();
     }
 
