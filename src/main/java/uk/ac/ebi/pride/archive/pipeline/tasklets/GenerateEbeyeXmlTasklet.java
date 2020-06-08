@@ -95,19 +95,23 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     }
 
 
-    public Map<String, String> restoreFromFile(String projectAccession) throws Exception {
+    public Map<String, String> restoreFromFile(String projectAccession) {
         backupPath = backupPath.endsWith(File.separator) ? backupPath : backupPath + File.separator;
         String dir = backupPath + projectAccession;
         Set<String> proteinAccessions = new HashSet<>();
         Map<String, String> mappedAccessions = new HashMap<>();
-        for (Path f : Files.newDirectoryStream(Paths.get(dir), path -> path.toFile().isFile())) {
-            if (f.getFileName().toString().endsWith(PrideMongoPeptideEvidence.class.getSimpleName() + BackupUtil.JSON_EXT)) {
-                List<PrideMongoPeptideEvidence> objs = BackupUtil
-                        .getObjectsFromFile(f, PrideMongoPeptideEvidence.class);
-                objs.forEach(o -> {
-                    proteinAccessions.add(o.getProteinAccession());
-                });
+        try {
+            for (Path f : Files.newDirectoryStream(Paths.get(dir), path -> path.toFile().isFile())) {
+                if (f.getFileName().toString().endsWith(PrideMongoPeptideEvidence.class.getSimpleName() + BackupUtil.JSON_EXT)) {
+                    List<PrideMongoPeptideEvidence> objs = BackupUtil
+                            .getObjectsFromFile(f, PrideMongoPeptideEvidence.class);
+                    objs.forEach(o -> {
+                        proteinAccessions.add(o.getProteinAccession());
+                    });
+                }
             }
+        } catch (Exception e) {
+            log.info(projectAccession + " does not contain PeptideEvidence file");
         }
 
         proteinAccessions.parallelStream().forEach(accession -> {

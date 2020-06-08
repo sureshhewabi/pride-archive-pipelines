@@ -16,13 +16,15 @@ JOB_NAME="priderEbeyeXmlGenerationJob"
 # the job parameters that are going to be passed on to the job (build below)
 JOB_PARAMETERS="random.number="$RANDOM
 # memory limit
-MEMORY_LIMIT=64000
+MEMORY_LIMIT=6000
 # memory overhead
-MEMORY_OVERHEAD=4000
+MEMORY_OVERHEAD=1000
 # LSF email notification
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
 LOG_FILE_NAME=""
+# Log file path
+LOG_PATH="./log/${JOB_NAME}/"
 
 ##### FUNCTIONS
 printUsage() {
@@ -37,6 +39,7 @@ printUsage() {
 }
 
 
+DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
 
@@ -46,18 +49,16 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         ACCESSION=$1
-        LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}"
+        LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}-${DATE}.log"
         JOB_NAME="${JOB_NAME}-${ACCESSION}"
         JOB_PARAMETERS="${JOB_PARAMETERS} --project.accession=${ACCESSION}"
-        MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
       "-all")
         shift
         ALL=true
-        LOG_FILE_NAME="ebeye-allpub-${JOB_NAME}"
+        LOG_FILE_NAME="ebeye-allpub-${JOB_NAME}-${DATE}.log"
         JOB_NAME="${JOB_NAME}-ebeye-allpub"
         JOB_PARAMETERS="${JOB_PARAMETERS} --process.all=${ALL}"
-        MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
         ;;
       "-e" | "--email")
         shift
