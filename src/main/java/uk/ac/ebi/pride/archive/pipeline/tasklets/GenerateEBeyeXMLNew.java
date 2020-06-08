@@ -466,7 +466,7 @@ public class GenerateEBeyeXMLNew {
                     omicsDataMarshaller.marshall(database, new FileOutputStream(outputXML));
 
                 } catch (Exception ex) {
-                    System.out.println(ex);
+                    log.info("Error generating Xml:" + project.getAccession() + "\n" + ex.getMessage());
                 }
             }
         }
