@@ -88,11 +88,14 @@ public class PrideProjectTransformer {
                         contactX.getEmail(), StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING))
                 .collect(Collectors.toList());
 
+        String country = oracleProject.getSubmitter().getCountry();
+        String orcid = oracleProject.getSubmitter().getOrcid();
 
         // Get the Submitters data
         List<Contact> submitters = Collections.singletonList(new Contact(TitleConstants.fromString(oracleProject.getSubmitter().getTitle().getTitle()),
                 oracleProject.getSubmitter().getFirstName(), oracleProject.getSubmitter().getLastName(), oracleProject.getSubmitter().getId().toString(),
-                oracleProject.getSubmitter().getAffiliation(), oracleProject.getSubmitter().getEmail(), StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING));
+                oracleProject.getSubmitter().getAffiliation(), oracleProject.getSubmitter().getEmail(), country!=null?country:StringUtils.EMPTY_STRING,
+                orcid!=null?orcid:StringUtils.EMPTY_STRING));
 
         // Get Instruments information
         Set<CvParam> instruments = oracleProject.getInstruments().stream()
