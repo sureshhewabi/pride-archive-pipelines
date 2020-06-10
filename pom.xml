@@ -354,7 +354,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <excludeDevtools>true</excludeDevtools>
-                    <finalName>pride-pipelines</finalName>
+<!--                    <finalName>pride-pipelines</finalName>-->
                 </configuration>
             </plugin>
             <plugin>
