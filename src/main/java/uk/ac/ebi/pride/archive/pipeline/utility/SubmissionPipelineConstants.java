@@ -170,7 +170,9 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB"),
 
-        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob", "This job is used to generate ebeye prider xml");
+        PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob", "This job is used to generate ebeye prider xml"),
+
+        PRIDE_FILES_DOWNLOAD_COUNTS("fileDownloadCountsJob", "Updates the file download counts to the MongoDB");
 
         String name;
         String message;
@@ -246,6 +248,12 @@ public class SubmissionPipelineConstants {
          */
         PRIDE_ARCHIVE_UPDATE_REANALYSIS_DATA("updateReanalysisDatasetsStep",
                 "This job reads re-analysis data from TSV file and update the MongoDB collection"),
+
+        /**
+         * File download counts
+         */
+        PRIDE_UPDATE_FILES_DOWNLOAD_COUNTS("updateFileDownloadCountsStep",
+                "This job reads file download counts from logs(ddi-ebi-logs project) and add/update them to the Mongo file collection"),
 
         /*AAP user sync*/
         PRIDE_USERS_AAP_SYNC("PrideUsersAAPSyncStep",

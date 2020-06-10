@@ -11,6 +11,7 @@
     <!-- This project requires several maven profiles to build and run correctly.
 
         Maven profiles to use:
+        elastic-search-logs-production
         mongodb-pridedb-prod-machine-rw
         oracle-pridedb-prod-machine
         oracle-pridedb-prod-rw-user
@@ -42,6 +43,7 @@
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>2.0.6-SNAPSHOT
         </uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>
+        <uk.ac.ebi.ddi.ddi-ebi-logs.version>1.0</uk.ac.ebi.ddi.ddi-ebi-logs.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
@@ -277,6 +279,17 @@
             <groupId>uk.ac.ebi.ddi</groupId>
             <artifactId>ddi-validator</artifactId>
             <version>1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.ac.ebi.ddi</groupId>
+            <artifactId>ddi-ebi-logs</artifactId>
+            <version>${uk.ac.ebi.ddi.ddi-ebi-logs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>6.4.0</version>
         </dependency>
 
 
