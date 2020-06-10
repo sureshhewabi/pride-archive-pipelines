@@ -39,7 +39,7 @@ before_script:
     - cp -r target/*jar config scripts/* $DEPLOY_DIR/
     - cd $DEPLOY_DIR/ && jar_file=`ls *jar` && (ln -s $jar_file $JAR_FILE_LINK || true) && ls -al && cd ..
     - ssh $SERVER_USER@${DEPLOY_SERVERS_ARRAY[0]} "bash && mkdir -p $DEPLOY_PATH"
-    - rsync -a $DEPLOY_DIR $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/$DEPLOY_DIR/
+    - rsync -a $DEPLOY_DIR $SERVER_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
     - ssh $SERVER_USER@$DEPLOY_SERVER "bash && cd $DEPLOY_PATH && ln -snf $DEPLOY_DIR current"
 
 deploy_prod:
