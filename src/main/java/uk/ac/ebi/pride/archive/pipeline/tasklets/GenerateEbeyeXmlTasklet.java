@@ -21,6 +21,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.INTERNAL;
 import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.SUBMISSION_PX;
@@ -39,8 +41,11 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     @Value("${pride.ebeye.dir:''}")
     private File outputDirectory;
 
-    @Value("${project.accession:''}")
+    @Value("${project.accession:#{null}}")
     private String projectAccession;
+
+    @Value("${project.accession.file:#{null}}")
+    private File accessionListFile;
 
     @Autowired
     private PrideProjectMongoService prideProjectMongoService;
@@ -55,11 +60,23 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
                     .parallelStream().forEach(projAcc -> {
                 generateEBeyeXml(projAcc);
             });
-        } else {
+        } else if (projectAccession != null) {
             generateEBeyeXml(projectAccession);
+        } else if (accessionListFile != null) {
+            generateEBeyeXml(accessionListFile);
         }
         log.info("Finished generating EBeye XML.");
         return RepeatStatus.FINISHED;
+    }
+
+    private void generateEBeyeXml(File accessionListFile) {
+        List<String> accessions = new ArrayList<>();
+        try (Stream<String> lines = Files.lines(Paths.get(accessionListFile.getPath()))) {
+            accessions.addAll(lines.collect(Collectors.toList()));
+        } catch (Exception exception) {
+            log.error("Exception in reading accession list file");
+        }
+        accessions.parallelStream().forEach(accession -> generateEBeyeXml(accession));
     }
 
     /**
