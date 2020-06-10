@@ -30,11 +30,13 @@ LOG_PATH="./log/${JOB_NAME}/"
 printUsage() {
     echo "Description: For generation of search parameters to output tab-spaced text file for 'complete' projects."
     echo ""
-    echo "Usage: ./runEBeyeXMLGeneration.sh -a|--accession -all [-d|--date]"
+    echo "Usage: ./runEBeyeXMLGeneration.sh -a|--accession -all [-d|--date] -f"
     echo "     Example: ./runEBeyeXMLGeneration.sh -a PXD000542"
     echo "     Example: ./runEBeyeXMLGeneration.sh -all"
+      echo "     Example: ./runEBeyeXMLGeneration.sh -f fileWithListOfAccessions.txt"
     echo "     (required either:) accession: the project accession"
-    echo "     (required or: ) accession: the project accession"
+    echo "     (required or: ) file: with list of project accession"
+    echo "     (required or: ) all"
     echo "     (optional) date   : the time stamp date in the format: yyyy-mm-dd"
 }
 
@@ -52,6 +54,13 @@ while [ "$1" != "" ]; do
         LOG_FILE_NAME="${ACCESSION}-${JOB_NAME}-${DATE}.log"
         JOB_NAME="${JOB_NAME}-${ACCESSION}"
         JOB_PARAMETERS="${JOB_PARAMETERS} --project.accession=${ACCESSION}"
+        ;;
+       "-f")
+        shift
+        ACCESSION_FILE=$1
+        LOG_FILE_NAME="ebeye-filelist-${JOB_NAME}-${DATE}.log"
+        JOB_NAME="${JOB_NAME}-ebeye-filelist"
+        JOB_PARAMETERS="${JOB_PARAMETERS} --project.accession.file=${ACCESSION_FILE}"
         ;;
       "-all")
         shift
