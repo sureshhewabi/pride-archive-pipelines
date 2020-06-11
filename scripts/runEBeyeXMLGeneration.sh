@@ -16,9 +16,9 @@ JOB_NAME="priderEbeyeXmlGenerationJob"
 # the job parameters that are going to be passed on to the job (build below)
 JOB_PARAMETERS="random.number="$RANDOM
 # memory limit
-MEMORY_LIMIT=6000
+MEMORY_LIMIT=64000
 # memory overhead
-MEMORY_OVERHEAD=1000
+MEMORY_OVERHEAD=4000
 # LSF email notification
 JOB_EMAIL="pride-report@ebi.ac.uk"
 # Log file name
@@ -84,8 +84,8 @@ done
 
 
 ##### CHECK the provided arguments
-if [ -z ${ACCESSION} ]  && [ -z ${ALL} ]; then
-         echo "Need to enter a project accession or set all to true"
+if [ -z ${ACCESSION} ]  && [ -z ${ALL} ] && [ -z ${ACCESSION_FILE} ]; then
+         echo "Need to enter a project accession or provide file with accession list or set all to true"
          printUsage
          exit 1
 fi

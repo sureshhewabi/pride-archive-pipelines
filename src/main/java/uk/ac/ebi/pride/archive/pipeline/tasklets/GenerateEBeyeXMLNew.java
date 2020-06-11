@@ -49,7 +49,7 @@ public class GenerateEBeyeXMLNew {
                 try {
 
                     Database database = new Database();
-                    database.setName(PRIDE_ARCHIVE);
+                    database.setName(PRIDE_DATABASE_NAME);
                     database.setDescription("");
                     database.setRelease("3");
                     database.setReleaseDate(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
@@ -230,7 +230,8 @@ public class GenerateEBeyeXMLNew {
                     }
 
                     // ExperimentType
-                    /*Collection<? extends CvParamProvider> projectExperimentTypes = this.project.getExperimentTypes();
+                    Set<CvParam> projectExperimentTypes = this.submission.getProjectMetaData()
+                            .getMassSpecExperimentMethods();
 
                     if (projectExperimentTypes != null && projectExperimentTypes.size() > 0) {
                         projectExperimentTypes.stream().forEach(projectExperimentType ->
@@ -240,13 +241,7 @@ public class GenerateEBeyeXMLNew {
                             projectExperimentTypeField.setValue(projectExperimentType.getName());
                             additionalFieldsList.add(projectExperimentTypeField);
                         });
-                    } else {
-                        Field projectExperimentTypeField = new Field();
-                        projectExperimentTypeField.setName(TECHNOLOGY_TYPE);
-                        projectExperimentTypeField.setValue(NOT_AVAILABLE);
-                        additionalFieldsList.add(projectExperimentTypeField);
                     }
-*/
 
                     Field projectExperimentTypeField = new Field();
                     projectExperimentTypeField.setName(TECHNOLOGY_TYPE);
