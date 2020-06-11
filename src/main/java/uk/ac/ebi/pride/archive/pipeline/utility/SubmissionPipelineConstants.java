@@ -492,7 +492,7 @@ public class SubmissionPipelineConstants {
         public static final String NOT_AVAILABLE = "Not available";
         public static final String PRIDE_URL = "http://www.ebi.ac.uk/pride/archive/projects/";
         public static final String DEFAULT_EXPERIMENT_TYPE = "Mass Spectrometry";
-        public static final String PRIDE_ARCHIVE = "Pride Archive";
+        public static final String PRIDE_DATABASE_NAME = "Pride";
         public static final String PUBLICATION = "publication";
         public static final String SUBMISSION = "submission";
         public static final String YYYY_MM_DD = "yyyy-MM-dd";
