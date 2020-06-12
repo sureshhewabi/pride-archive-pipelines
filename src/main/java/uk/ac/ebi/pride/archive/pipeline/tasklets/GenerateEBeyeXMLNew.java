@@ -46,7 +46,7 @@ public class GenerateEBeyeXMLNew {
             if (!this.project.isPublicProject()) {
                 log.error("Project " + this.project.getAccession() + " is still private, not generating EB-eye XML.");
             } else {
-                try {
+                try (FileOutputStream outputFile = new FileOutputStream(new File(this.outputDirectory, PRIDE_EBEYE + this.project.getAccession() + XML))) {
 
                     Database database = new Database();
                     database.setName(PRIDE_DATABASE_NAME);
@@ -104,7 +104,7 @@ public class GenerateEBeyeXMLNew {
                     if (sampleProcessingProtocol != null && !sampleProcessingProtocol.isEmpty()) {
                         Field sampleProtocol = new Field();
                         sampleProtocol.setName(SAMPLE_PROTOCOL);
-                        sampleProtocol.setValue(sampleProcessingProtocol);
+                        sampleProtocol.setValue(removeNonPrintableChars(sampleProcessingProtocol));
                         additionalFieldsList.add(sampleProtocol);
                     }
 
@@ -113,7 +113,7 @@ public class GenerateEBeyeXMLNew {
                     if (dataProcessingProtocol != null && !dataProcessingProtocol.isEmpty()) {
                         Field dataProtocol = new Field();
                         dataProtocol.setName(DATA_PROTOCOL);
-                        dataProtocol.setValue(dataProcessingProtocol);
+                        dataProtocol.setValue(removeNonPrintableChars(dataProcessingProtocol));
                         additionalFieldsList.add(dataProtocol);
                     }
 
@@ -457,8 +457,7 @@ public class GenerateEBeyeXMLNew {
                     entries.addEntry(entry);
                     database.setEntries(entries);
 
-                    File outputXML = new File(this.outputDirectory, PRIDE_EBEYE + this.project.getAccession() + XML);
-                    omicsDataMarshaller.marshall(database, new FileOutputStream(outputXML));
+                    omicsDataMarshaller.marshall(database, outputFile);
 
                 } catch (Exception ex) {
                     log.info("Error generating Xml:" + project.getAccession() + "\n" + ex.getMessage());
@@ -516,5 +515,9 @@ public class GenerateEBeyeXMLNew {
 
         }
         return references;
+    }
+
+    private String removeNonPrintableChars(String string){
+        return string.replaceAll("\\p{C}", "");
     }
 }
