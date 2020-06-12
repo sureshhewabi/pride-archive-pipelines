@@ -58,7 +58,7 @@ public class GenerateEBeyeXMLNew {
                     Entries entries = new Entries();
                     Entry entry = new Entry();
                     entry.setId(project.getAccession());
-                    entry.setName(project.getTitle());
+                    entry.setName(removeNonPrintableChars(project.getTitle()));
                     String projectDescription = project.getDescription();
                     entry.setDescription((projectDescription != null && !projectDescription.isEmpty()) ? projectDescription : project.getTitle());
                     CrossReferences crossReferences = new CrossReferences();
