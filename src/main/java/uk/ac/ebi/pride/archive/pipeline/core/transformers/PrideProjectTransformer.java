@@ -88,11 +88,14 @@ public class PrideProjectTransformer {
                         contactX.getEmail(), StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING))
                 .collect(Collectors.toList());
 
+        String country = oracleProject.getSubmitter().getCountry();
+        String orcid = oracleProject.getSubmitter().getOrcid();
 
         // Get the Submitters data
         List<Contact> submitters = Collections.singletonList(new Contact(TitleConstants.fromString(oracleProject.getSubmitter().getTitle().getTitle()),
                 oracleProject.getSubmitter().getFirstName(), oracleProject.getSubmitter().getLastName(), oracleProject.getSubmitter().getId().toString(),
-                oracleProject.getSubmitter().getAffiliation(), oracleProject.getSubmitter().getEmail(), StringUtils.EMPTY_STRING, StringUtils.EMPTY_STRING));
+                oracleProject.getSubmitter().getAffiliation(), oracleProject.getSubmitter().getEmail(), country!=null?country:StringUtils.EMPTY_STRING,
+                orcid!=null?orcid:StringUtils.EMPTY_STRING));
 
         // Get Instruments information
         Set<CvParam> instruments = oracleProject.getInstruments().stream()
@@ -115,8 +118,11 @@ public class PrideProjectTransformer {
                 .stream()
                 .filter(software -> software.getCvParam() != null)
                 .map(software -> new CvParam(software.getCvParam().getCvLabel(), software.getCvParam().getAccession(),
-                        software.getCvParam().getName(), software.getCvParam().getValue()))
+                        software.getValue(),software.getCvParam().getValue()))
                 .collect(Collectors.toSet());
+
+        //Doi
+        Optional<String> doi = oracleProject.getDoi();
 
         // Project Tags
         List<String> projectTags = oracleProject.getProjectTags().stream()
@@ -157,6 +163,7 @@ public class PrideProjectTransformer {
                 .quantificationMethods(quantMethods)
                 .samplesDescription(projectSampleDescription(oracleProject))
                 .publicProject(oracleProject.isPublicProject())
+                .doi(doi.isPresent()?doi.get():"")
                 .build();
     }
 

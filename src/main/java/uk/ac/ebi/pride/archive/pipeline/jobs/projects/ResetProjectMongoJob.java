@@ -40,12 +40,6 @@ public class ResetProjectMongoJob extends AbstractArchiveJob {
     @Autowired
     PrideMsRunMongoService prideMsRunMongoService;
 
-    @Autowired
-    ProjectFileRepository oracleFileRepository;
-
-    @Autowired
-    ProjectRepository oracleProjectRepository;
-
     @Value("${accession:#{null}}")
     @StepScope
     private String accession;

@@ -49,9 +49,6 @@ public class ProteomeCentralIssues extends AbstractArchiveJob {
     @Autowired
     ProjectRepository oracleProjectRepository;
 
-    @Autowired
-    ProjectFileRepository oracleFileRepository;
-
     @Value("${pride.proteomecentral-issues.path}")
     private String pcIssuesBasePath;
 

@@ -46,10 +46,10 @@ public class GenerateEBeyeXMLNew {
             if (!this.project.isPublicProject()) {
                 log.error("Project " + this.project.getAccession() + " is still private, not generating EB-eye XML.");
             } else {
-                try {
+                try (FileOutputStream outputFile = new FileOutputStream(new File(this.outputDirectory, PRIDE_EBEYE + this.project.getAccession() + XML))) {
 
                     Database database = new Database();
-                    database.setName(PRIDE_ARCHIVE);
+                    database.setName(PRIDE_DATABASE_NAME);
                     database.setDescription("");
                     database.setRelease("3");
                     database.setReleaseDate(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
@@ -58,7 +58,7 @@ public class GenerateEBeyeXMLNew {
                     Entries entries = new Entries();
                     Entry entry = new Entry();
                     entry.setId(project.getAccession());
-                    entry.setName(project.getTitle());
+                    entry.setName(removeNonPrintableChars(project.getTitle()));
                     String projectDescription = project.getDescription();
                     entry.setDescription((projectDescription != null && !projectDescription.isEmpty()) ? projectDescription : project.getTitle());
                     CrossReferences crossReferences = new CrossReferences();
@@ -104,7 +104,7 @@ public class GenerateEBeyeXMLNew {
                     if (sampleProcessingProtocol != null && !sampleProcessingProtocol.isEmpty()) {
                         Field sampleProtocol = new Field();
                         sampleProtocol.setName(SAMPLE_PROTOCOL);
-                        sampleProtocol.setValue(sampleProcessingProtocol);
+                        sampleProtocol.setValue(removeNonPrintableChars(sampleProcessingProtocol));
                         additionalFieldsList.add(sampleProtocol);
                     }
 
@@ -113,7 +113,7 @@ public class GenerateEBeyeXMLNew {
                     if (dataProcessingProtocol != null && !dataProcessingProtocol.isEmpty()) {
                         Field dataProtocol = new Field();
                         dataProtocol.setName(DATA_PROTOCOL);
-                        dataProtocol.setValue(dataProcessingProtocol);
+                        dataProtocol.setValue(removeNonPrintableChars(dataProcessingProtocol));
                         additionalFieldsList.add(dataProtocol);
                     }
 
@@ -230,7 +230,8 @@ public class GenerateEBeyeXMLNew {
                     }
 
                     // ExperimentType
-                    /*Collection<? extends CvParamProvider> projectExperimentTypes = this.project.getExperimentTypes();
+                    Set<CvParam> projectExperimentTypes = this.submission.getProjectMetaData()
+                            .getMassSpecExperimentMethods();
 
                     if (projectExperimentTypes != null && projectExperimentTypes.size() > 0) {
                         projectExperimentTypes.stream().forEach(projectExperimentType ->
@@ -240,13 +241,7 @@ public class GenerateEBeyeXMLNew {
                             projectExperimentTypeField.setValue(projectExperimentType.getName());
                             additionalFieldsList.add(projectExperimentTypeField);
                         });
-                    } else {
-                        Field projectExperimentTypeField = new Field();
-                        projectExperimentTypeField.setName(TECHNOLOGY_TYPE);
-                        projectExperimentTypeField.setValue(NOT_AVAILABLE);
-                        additionalFieldsList.add(projectExperimentTypeField);
                     }
-*/
 
                     Field projectExperimentTypeField = new Field();
                     projectExperimentTypeField.setName(TECHNOLOGY_TYPE);
@@ -462,11 +457,10 @@ public class GenerateEBeyeXMLNew {
                     entries.addEntry(entry);
                     database.setEntries(entries);
 
-                    File outputXML = new File(this.outputDirectory, PRIDE_EBEYE + this.project.getAccession() + XML);
-                    omicsDataMarshaller.marshall(database, new FileOutputStream(outputXML));
+                    omicsDataMarshaller.marshall(database, outputFile);
 
                 } catch (Exception ex) {
-                    System.out.println(ex);
+                    log.info("Error generating Xml:" + project.getAccession() + "\n" + ex.getMessage());
                 }
             }
         }
@@ -521,5 +515,9 @@ public class GenerateEBeyeXMLNew {
 
         }
         return references;
+    }
+
+    private String removeNonPrintableChars(String string){
+        return string.replaceAll("\\p{C}", "");
     }
 }

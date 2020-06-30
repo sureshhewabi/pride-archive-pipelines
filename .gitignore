@@ -56,3 +56,5 @@ release.properties
 
 *.log*
 *ArchiveSpectrum.json
+
+config/application*
