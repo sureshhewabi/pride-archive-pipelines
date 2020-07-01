@@ -42,6 +42,7 @@
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>2.0.6-SNAPSHOT
         </uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>
+        <pride-repo-version>0.0.1-SNAPSHOT</pride-repo-version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
@@ -205,11 +206,10 @@
             </exclusions>
         </dependency>
 
-        <!-- This will be keep until is needed, The oracle dependency -->
         <dependency>
-            <groupId>uk.ac.ebi.pride.archive</groupId>
-            <artifactId>archive-repo</artifactId>
-            <version>${uk.ac.ebi.pride.archive.repo.version}</version>
+            <groupId>uk.ac.ebi.pride.repoclient</groupId>
+            <artifactId>pride-repo</artifactId>
+            <version>${pride-repo-version}</version>
         </dependency>
 
         <!-- Archive integration library -->
@@ -354,7 +354,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <excludeDevtools>true</excludeDevtools>
-<!--                    <finalName>pride-pipelines</finalName>-->
+                    <!-- <finalName>pride-pipelines</finalName>-->
                 </configuration>
             </plugin>
             <plugin>

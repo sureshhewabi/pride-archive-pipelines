@@ -18,13 +18,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.dataprovider.utils.RoleConstants;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.archive.repo.repos.user.User;
-import uk.ac.ebi.pride.archive.repo.repos.user.UserAAP;
-import uk.ac.ebi.pride.archive.repo.repos.user.UserRepository;
+import uk.ac.ebi.pride.archive.repo.client.UserRepoClient;
+import uk.ac.ebi.pride.archive.repo.models.user.User;
+import uk.ac.ebi.pride.archive.repo.models.user.UserAAP;
 import uk.ac.ebi.pride.archive.repo.util.AAPConstants;
 import uk.ac.ebi.pride.archive.repo.util.ObjectMapper;
 
@@ -36,7 +36,7 @@ import java.util.Map;
 
 @Configuration
 @Slf4j
-@Import({ArchiveOracleConfig.class, DataSourceConfiguration.class})
+@Import({RepoConfig.class, DataSourceConfiguration.class})
 public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
 
     @Value("${aap.auth.url}")
@@ -61,7 +61,7 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
     private String aapUserSearchURL;
 
     @Autowired
-    UserRepository userRepository;
+    UserRepoClient userRepoClient;
 
     private RestTemplate restTemplate;
     private String aapToken;
@@ -168,7 +168,12 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
 
         if (responseEntity.getStatusCode().is2xxSuccessful()) {
             user.setUserRef(responseEntity.getBody());
-            userRepository.save(user);
+            try {
+                userRepoClient.saveUser(user);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                throw new IllegalStateException(e);
+            }
             log.info("User:" + user.getId() + " saved successfully in AAP and updated in PRIDE");
         } else {
             log.error("Creating user in AAP returned error code:" + responseEntity.getStatusCode() + " and body:" + responseEntity.getBody());
@@ -213,28 +218,37 @@ public class UserAccountsAAPSyncJob extends AbstractArchiveJob {
                 .tasklet((stepContribution, chunkContext) -> {
 
                     initializeParameters();
-
-                    List<User> filteredLocalUsers = userRepository.findFilteredLocalUsers();
-                    if (!filteredLocalUsers.isEmpty()) {
-                        log.info("Need to sync users count : " + filteredLocalUsers.size());
+                    try {
+                        List<User> filteredLocalUsers = userRepoClient.findUsersNotInAAP();
+                        if (!filteredLocalUsers.isEmpty()) {
+                            log.info("Need to sync users count : " + filteredLocalUsers.size());
+                        }
+                        filteredLocalUsers.forEach(localUser -> {
+                            if (localUser.getEmail() == null || localUser.getEmail().trim().length() == 0) {
+                                log.error("User email null for id:" + localUser.getId());
+                                return;
+                            }
+                            Tuple<Boolean, String> resultTuple = checkUserInAAP(localUser.getEmail(), localUser.getId());
+                            if (resultTuple.getKey()) {
+                                //if user already exists, save user ref in DB
+                                localUser.setUserRef(resultTuple.getValue());
+                                try {
+                                    userRepoClient.saveUser(localUser);
+                                } catch (Exception e) {
+                                    log.error(e.getMessage(), e);
+                                    throw new IllegalStateException(e);
+                                }
+                            } else {
+                                //create a new user in AAP
+                                createUserInAAP(localUser);
+                            }
+                            //update user domain memberships in AAP
+                            updateAAPDomainMembership(localUser);
+                        });
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                        throw new IllegalStateException(e);
                     }
-                    filteredLocalUsers.forEach(localUser -> {
-                        if (localUser.getEmail() == null || localUser.getEmail().trim().length() == 0) {
-                            log.error("User email null for id:" + localUser.getId());
-                            return;
-                        }
-                        Tuple<Boolean, String> resultTuple = checkUserInAAP(localUser.getEmail(), localUser.getId());
-                        if (resultTuple.getKey()) {
-                            //if user already exists, save user ref in DB
-                            localUser.setUserRef(resultTuple.getValue());
-                            userRepository.save(localUser);
-                        } else {
-                            //create a new user in AAP
-                            createUserInAAP(localUser);
-                        }
-                        //update user domain memberships in AAP
-                        updateAAPDomainMembership(localUser);
-                    });
 
                     return RepeatStatus.FINISHED;
                 })

@@ -9,12 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
 import uk.ac.ebi.pride.integration.command.builder.CommandBuilder;
 import uk.ac.ebi.pride.integration.command.builder.DefaultCommandBuilder;
 import uk.ac.ebi.pride.integration.command.runner.CommandRunner;
@@ -22,8 +21,6 @@ import uk.ac.ebi.pride.integration.command.runner.CommandRunner;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * @author Suresh Hewapathirana
@@ -31,12 +28,12 @@ import java.util.stream.StreamSupport;
 @Configuration
 @Slf4j
 @PropertySource("classpath:application.properties")
-@Import({ArchiveOracleConfig.class,  DataSourceConfiguration.class})
+@Import({RepoConfig.class, DataSourceConfiguration.class})
 @ImportResource({"classpath*:/META-INF/spring/integration/common-context.xml"})
 public class SyncMissingProjectsWithProteomeXJob extends AbstractArchiveJob {
 
     @Autowired
-    ProjectRepository oracleRepository;
+    ProjectRepoClient oracleRepository;
 
     @Value("${command.update.pxxml.command}")
     private String assayAnalyseCommand;
@@ -72,7 +69,7 @@ public class SyncMissingProjectsWithProteomeXJob extends AbstractArchiveJob {
                             log.info("Number of oraclePublicAccessions projects: " + oraclePublicAccessions.size());
 
                             for (String prideAccession : oraclePublicAccessions) {
-                                if(!pxPublicAccessions.contains(prideAccession)){
+                                if (!pxPublicAccessions.contains(prideAccession)) {
                                     if (!prideAccession.startsWith("PRD")) {
                                         log.info(prideAccession + " is not public on ProteomeXchange");
                                         runCommand(prideAccession);
@@ -112,15 +109,16 @@ public class SyncMissingProjectsWithProteomeXJob extends AbstractArchiveJob {
      *
      * @return Set of project accessions
      */
-    private Set<String> getOracleProjectAccessions(){
+    private Set<String> getOracleProjectAccessions() {
 
-        Iterable<Project> oracleAllProjects = oracleRepository.findAll();
-        Set<String> oracleAccessions = StreamSupport.stream(oracleAllProjects.spliterator(), false)
-                .filter(Project::isPublicProject)
-                .map(Project::getAccession)
-                .collect(Collectors.toSet());
-
-        log.info( "Number of Oracle projects: "+ oracleAccessions.size());
+        Set<String> oracleAccessions = null;
+        try {
+            oracleAccessions = new HashSet<>(oracleRepository.getAllPublicAccessions());
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
+        log.info("Number of Oracle projects: " + oracleAccessions.size());
         return oracleAccessions;
     }
 
