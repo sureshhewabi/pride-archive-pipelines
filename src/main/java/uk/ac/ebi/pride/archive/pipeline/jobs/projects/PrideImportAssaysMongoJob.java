@@ -133,10 +133,13 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     private void syncProject(String projectAccession) {
         try {
             Project project = projectRepoClient.findByAccession(projectAccession);
-            if (!project.getSubmissionType().equals(SubmissionType.PRIDE.name())) {
-                if (!project.isPublicProject()) {
-                    return;
-                }
+            if (!project.isPublicProject()) {
+                log.warn("This is a private submission, therefore Sync will not happen : " + projectAccession);
+                return;
+            }
+            if (project.getSubmissionType().equals(SubmissionType.PRIDE.name())) {
+                log.warn("Sync will not happen as submission type is " + project.getSubmissionType() + " : " + projectAccession);
+                return;
             }
             List<Assay> assays = assayRepoClient.findAllByProjectId(project.getId());
             List<ProjectFile> files = fileRepoClient.findAllByProjectId(project.getId());
