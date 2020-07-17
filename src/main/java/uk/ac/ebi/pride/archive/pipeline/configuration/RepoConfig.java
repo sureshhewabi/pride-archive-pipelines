@@ -3,10 +3,7 @@ package uk.ac.ebi.pride.archive.pipeline.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import uk.ac.ebi.pride.archive.repo.client.AssayRepoClient;
-import uk.ac.ebi.pride.archive.repo.client.FileRepoClient;
-import uk.ac.ebi.pride.archive.repo.client.PrideRepoClientFactory;
-import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.*;
 
 @Configuration
 public class RepoConfig {
@@ -32,6 +29,11 @@ public class RepoConfig {
     @Bean
     public FileRepoClient getFileRepoClient() {
         return prideRepoClientFactory.getFileRepoClient();
+    }
+
+    @Bean
+    public CvParamRepoClient getCvParamRepoClient() {
+        return prideRepoClientFactory.getCvParamRepoClient();
     }
 
 }

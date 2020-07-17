@@ -42,7 +42,8 @@
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>2.0.6-SNAPSHOT
         </uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>
-        <pride-repo-version>0.0.1-SNAPSHOT</pride-repo-version>
+        <archive.utils.version>0.1.22</archive.utils.version>
+        <pride.repo.client.version>0.0.1-SNAPSHOT</pride.repo.client.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>
@@ -207,9 +208,16 @@
         </dependency>
 
         <dependency>
-            <groupId>uk.ac.ebi.pride.repoclient</groupId>
-            <artifactId>pride-repo</artifactId>
-            <version>${pride-repo-version}</version>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>pride-repo-client</artifactId>
+            <version>${pride.repo.client.version}</version>
+        </dependency>
+
+        <!-- prider utils -->
+        <dependency>
+            <groupId>uk.ac.ebi.pride.archive</groupId>
+            <artifactId>archive-utils</artifactId>
+            <version>${archive.utils.version}</version>
         </dependency>
 
         <!-- Archive integration library -->

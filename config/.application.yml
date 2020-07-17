@@ -141,6 +141,7 @@ proteome.exchange.url: $px_url
 px.partner:
   name: $px_partner_name
   pass: $px_password
+  test: $px_test
 
 submission:
   file:
