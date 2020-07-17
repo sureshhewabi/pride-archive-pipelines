@@ -11,15 +11,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.repo.client.FileRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
+import uk.ac.ebi.pride.archive.repo.models.project.Project;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
@@ -43,7 +43,7 @@ import java.util.Optional;
 @Configuration
 @Slf4j
 //@EnableBatchProcessing
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class})
 public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
 
     // This parameter is use to override all the data in the MongoDB
@@ -59,10 +59,10 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
     PrideFileMongoService prideFileMongoService;
 
     @Autowired
-    ProjectFileRepository oracleFileRepository;
+    FileRepoClient fileRepoClient;
 
     @Autowired
-    ProjectRepository oracleProjectRepository;
+    ProjectRepoClient projectRepoClient;
 
     @Value("${ftp.protocol.url}")
     private String ftpProtocol;
@@ -102,23 +102,41 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
     }
 
 
-    private void doProjectSync(Project oracleProject) {
-        if (oracleProject.isPublicProject()) {
+    private void doProjectSync(String accession) {
+        try {
+            Project oracleProject = projectRepoClient.findByAccession(accession);
+            if (!oracleProject.isPublicProject()) {
+                return;
+            }
             MongoPrideProject mongoPrideProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
             Optional<MongoPrideProject> status = prideProjectMongoService.upsert(mongoPrideProject);
-            log.info(oracleProject.getAccession() + "-- Inserted Status " + status.isPresent());
+            log.info(oracleProject.getAccession() + "-- project inserted Status " + status.isPresent());
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
         }
     }
 
-    private void doFileSync(MongoPrideProject mongoPrideProject) {
-        Project oracleProject = oracleProjectRepository.findByAccession(mongoPrideProject.getAccession());
-        List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
-        List<MongoPrideMSRun> msRunRawFiles = new ArrayList<>();
-        List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles, msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol), msRunRawFiles);
-        log.info("Number of files has been inserted -- " + status.size());
-        if (msRunRawFiles.size() > 0) {
-            //to-do
-            log.info("Number of MS Run files has been inserted -- " + msRunRawFiles.size());
+    private void doFileSync(String accession) {
+        try {
+            Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
+            if (!mongoPrideProjectOptional.isPresent()) {
+                return;
+            }
+            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
+            Project oracleProject = projectRepoClient.findByAccession(mongoPrideProject.getAccession());
+            List<ProjectFile> oracleFiles = fileRepoClient.findAllByProjectId(oracleProject.getId());
+
+            List<MongoPrideMSRun> msRunRawFiles = new ArrayList<>();
+            List<Tuple<MongoPrideFile, MongoPrideFile>> status = prideFileMongoService.insertAllFilesAndMsRuns(PrideProjectTransformer.transformOracleFilesToMongoFiles(oracleFiles, msRunRawFiles, oracleProject, ftpProtocol, asperaProtocol), msRunRawFiles);
+            log.info("Number of files has been inserted -- " + status.size());
+            if (msRunRawFiles.size() > 0) {
+                //to-do
+                log.info("Number of MS Run files has been inserted -- " + msRunRawFiles.size());
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -136,12 +154,11 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
                     setOverride(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("override"));
                     setSubmissionType(chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("submissionType"));
                     //String accession = accession:chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("accession");
-                    System.out.println("############# job param accession:" + accession);
+                    log.info("############# job param accession:" + accession);
                     if (accession != null) {
-                        Project oracleProject = oracleProjectRepository.findByAccession(accession);
-                        doProjectSync(oracleProject);
+                        doProjectSync(accession);
                     } else {
-                        oracleProjectRepository.findAll().forEach(this::doProjectSync);
+                        projectRepoClient.getAllPublicAccessions().forEach(this::doProjectSync);
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -160,22 +177,15 @@ public class SyncProjectsOracleToMongoJob extends AbstractArchiveJob {
                     if (skipFiles != null && skipFiles) {
                         return RepeatStatus.FINISHED;
                     }
-                    System.out.println("############# job param accession:" + accession);
                     //String accession = chunkContext.getStepContext().getStepExecution().getJobExecution().getJobParameters().getString("accession");
                     if (accession != null) {
-                        Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
-                        if (mongoPrideProjectOptional.isPresent()) {
-                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
-                            doFileSync(mongoPrideProject);
-                        }
+                        doFileSync(accession);
                     } else {
-                        prideProjectMongoService.findAllStream().forEach(this::doFileSync);
+                        prideProjectMongoService.getAllProjectAccessions().forEach(this::doFileSync);
                     }
                     return RepeatStatus.FINISHED;
                 })
                 .build();
-
-
     }
 
 

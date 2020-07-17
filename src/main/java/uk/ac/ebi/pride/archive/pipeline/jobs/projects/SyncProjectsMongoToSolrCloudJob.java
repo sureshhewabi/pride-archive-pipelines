@@ -57,9 +57,6 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Autowired
     SolrProjectService solrProjectService;
 
-//    @Autowired
-//    SolrTemplate template;
-
     @Value("${accession:#{null}}")
     private String accession;
 
@@ -98,11 +95,6 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                         }
                     }else{
                         prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
-                        /*Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findAllStream().findFirst();
-                        if(mongoPrideProjectOptional.isPresent()) {
-                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
-                            doProjectSync(mongoPrideProject);
-                        }*/
                     }
                     return RepeatStatus.FINISHED;
                 })
