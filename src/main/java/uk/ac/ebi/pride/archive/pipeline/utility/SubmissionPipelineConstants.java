@@ -170,6 +170,8 @@ public class SubmissionPipelineConstants {
 
         PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB"),
 
+        PRIDE_PROJECT_METADATA_UPDATE("projectMetadataUpdateJob", "Project metadata can be updated in several resources"),
+
         PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob", "This job is used to generate ebeye prider xml");
 
         String name;
@@ -250,6 +252,13 @@ public class SubmissionPipelineConstants {
         /*AAP user sync*/
         PRIDE_USERS_AAP_SYNC("PrideUsersAAPSyncStep",
                 "This step will sync pride users into AAP DB"),
+
+        PRIDE_UPDATE_PROJECT_METADATA("PrideUpdateProjectMetadataStep",
+                "This step will update project metadata"),
+
+        PRIDE_DELETE_TEMP_SUMMARY_FILE("DeleteTempSubmissionFileJob",
+                "Delete temparirily saved submission.px file to update project metadata"),
+
 
         /**
          * PRIDE Data Sync from Oracle to MongoDB
