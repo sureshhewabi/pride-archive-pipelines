@@ -2,6 +2,7 @@ package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
@@ -36,11 +37,12 @@ public class ProjectMetadataUpdateJobTest {
      * You may backup your original file before running the test case
      */
     @Test
+    @Ignore
     public void projectMetadataUpdateJobTest() {
 
             JobParameters param = new JobParametersBuilder()
                     .addString("instance_id", UUID.randomUUID().toString(), true)
-                    .addString("modifiedSubmissionSummaryFile", "/absolute/file/path/submission_edited_version.px")
+                    .addString("modifiedSubmissionSummaryFile", "/absolute/path/here/submission_edited_version.px")
                     .addString("projectAccession", "PXD010142")
                     .toJobParameters();
 

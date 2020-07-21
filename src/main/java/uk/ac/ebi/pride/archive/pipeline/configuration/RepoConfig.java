@@ -12,8 +12,10 @@ public class RepoConfig {
 
     public RepoConfig(@Value("${pride-repo.api.baseUrl}") String apiBaseUrl,
                       @Value("${pride-repo.api.keyName}") String apiKeyName,
-                      @Value("${pride-repo.api.keyValue}") String apiKeyValue) {
-        this.prideRepoClientFactory = new PrideRepoClientFactory(apiBaseUrl, apiKeyName, apiKeyValue);
+                      @Value("${pride-repo.api.keyValue}") String apiKeyValue,
+                      @Value("${pride-repo.api.appname}") String appName)
+    {
+        this.prideRepoClientFactory = new PrideRepoClientFactory(apiBaseUrl, apiKeyName, apiKeyValue, appName);
     }
 
     @Bean
