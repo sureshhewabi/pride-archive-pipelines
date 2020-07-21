@@ -103,11 +103,11 @@ public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
                 Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
                 solrProject.setProjectFileNames(fileNames);
 
-                Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService.findProteinAccessionByProjectAccessions(i));
-                Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService.findPeptideSequenceByProjectAccessions(i));
-
-                solrProject.addProteinIdentifications(proteinAccessions);
-                solrProject.addPeptideSequences(peptideSequences);
+//                Set<String> proteinAccessions = new HashSet<>(prideMoleculesMongoService.findProteinAccessionByProjectAccessions(i));
+//                Set<String> peptideSequences = new HashSet<>(prideMoleculesMongoService.findPeptideSequenceByProjectAccessions(i));
+//
+//                solrProject.addProteinIdentifications(proteinAccessions);
+//                solrProject.addPeptideSequences(peptideSequences);
 
                 PrideSolrProject status = solrProjectService.save(solrProject);
                 log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
