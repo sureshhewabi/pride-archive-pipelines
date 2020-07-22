@@ -37,6 +37,8 @@ public class RepoConfig {
     public CvParamRepoClient getCvParamRepoClient() {
         return prideRepoClientFactory.getCvParamRepoClient();
 
+    }
+    
     @Bean  
     public UserRepoClient getUserRepoClient() {
         return prideRepoClientFactory.getUserRepoClient();
