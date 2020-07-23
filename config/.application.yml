@@ -82,16 +82,8 @@ ftp.protocol.url: $pride_ftp_protocol_url
 aspera.protocol.url: $pride_aspera_protocol_url
 
 ##### Solr CLoud #####
-solr:
-  master:
-    hh.url: $solr_master_hh_url
-    hx.url: $solr_master_hx_url
-spring.data.solr.zk-host:
-  hh: $solr_zk_hh
-  hx: $solr_zk_hx
 spring.pridedb.solr:
   hh.url: $solr_pridedb_hh_url
-  hx.url: $solr_pridedb_hx_url
 
 # Configuration for MongoDB
 mongodb:
