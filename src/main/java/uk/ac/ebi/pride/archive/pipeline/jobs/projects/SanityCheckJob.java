@@ -155,7 +155,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
     private void compareProjectsAndFix(String accession) {
         log.info("PROCESSING : " + accession);
         try {
-            Project oracleProject  = projectRepoClient.findByAccession(accession);
+            Project oracleProject = projectRepoClient.findByAccession(accession);
 
             Optional<MongoPrideProject> mongoProjectOptional = prideProjectMongoService.findByAccession(accession);
             if (oracleProject != null && oracleProject.isPublicProject() && mongoProjectOptional.isPresent()) {
@@ -186,22 +186,25 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 }
 
                 if (mongoUpdated) {
-                    log.error(" ----- Mongo project Dates Mismatched : " + accession + " ----- ");
+                    log.error(" ==== Mongo project Dates Mismatched : " + accession + " ==== ");
                     if (fixProjectsOptionSet) {
                         mongoProject = prideProjectMongoService.update(mongoProject).get();
-                        log.info("xxxxx fixed mongo project : " + accession + " xxxxx");
+                        log.info("==== fixed mongo project : " + accession + " ====");
                     }
                 }
 
             /*if (!transformedOracleProject.equals(mongoProject)) {
-                log.error(" ----- Mongo project Mismatched : " + accession + "---- ");
+                log.error(" ==== Mongo project Mismatched : " + accession + "==== ");
                 log.info("transformedOracleProject : " + transformedOracleProject);
                 log.info("mongoPrideProject : " + mongoProject);
             }*/
 
                 Set<MongoPrideFile> mongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+                Map<String, String> checkSumMap = new HashMap<>();
+                mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
+
                 List<ProjectFile> oracleFiles = fileRepoClient.findAllByProjectId(oracleProject.getId());
-                Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, mongoFiles)).collect(Collectors.toSet());
+                Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, checkSumMap)).collect(Collectors.toSet());
 
                 Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
                 mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
@@ -210,7 +213,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 transfromedOracleFiles.forEach(m -> transfromedOracleFilesMap.put(m.getAccession(), m));
 
                 if (!mongoFiles.equals(transfromedOracleFiles)) {
-                    log.error(" ----- Mongo files mismatched for project : " + accession + " ---- ");
+                    log.info(" ==== Mongo files mismatched for project : " + accession + " ==== ");
                 }
 
                 boolean fixedFiles = false;
@@ -244,21 +247,39 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 }
 
                 if (fixedFiles) {
-                    log.info("xxxxx fixed mongo files for : " + accession + " xxxxx");
+                    log.info("==== fixed mongo files for : " + accession + " ====");
                 }
 
                 HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
                 if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
-                    log.error(" xxxxx Even after fixing, Mongo files mismatched for project : " + accession + " xxxxx");
+                    if (fixedFiles) {
+                        log.error("==== [" + accession + "] Even after fixing, Mongo files mismatched");
+                    }
 
                     //debug log to identify the differences
                     List<MongoPrideFile> collect = mongoFiles.stream()
                             .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
                             .collect(Collectors.toList());
-                    log.info("mismatched mongo files : " + collect);
+                    if (collect.size() > 0) {
+                        log.error("==== [" + accession + "] mismatched mongo files : " + collect);
+                        List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
+                        log.error("==== [" + accession + "] reference transformedOracleFiles : " + collect1);
+                    }
 
-                    List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
-                    log.info("reference transformedOracleFiles : " + collect1);
+                    //case where one or more files are missing in mongo..
+                    //checksum in transfromedOracleFiles is taken from from mongo files. so, if the mongo file is missing then it's null for transfromedOracleFile
+                    final List<MongoPrideFile> missingMongoFiles = transfromedOracleFiles.stream().filter(o -> o.getChecksum() == null).collect(Collectors.toList());
+                    if (missingMongoFiles.size() == transfromedOracleFiles.size()) {
+                        log.error("==== [" + accession + "] All mongo files are missing");
+                    } else {
+                        List<String> missingFiles = missingMongoFiles.stream().map(m -> m.getFileSourceFolder() + "/" + m.getFileName()).collect(Collectors.toList());
+                        if (missingFiles.size() > 0) {
+                            log.error("==== [" + accession + "] Missing mongo files: " + missingFiles);
+                        } else {
+                            //this is a case where oracle has duplicate file entries
+                            log.error("==== [" + accession + "] Oracle has duplicate file entries");
+                        }
+                    }
                 }
 
           /*  PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
@@ -352,7 +373,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
             Set<String> fileNames = mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
             transformedSolrProject.setProjectFileNames(fileNames);
             if (!transformedSolrProject.equals(solrProject)) {
-                log.error(" ----- Solr project Mismatched : " + accession + " ---- ");
+                log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
                 log.info("transformedSolrProject : " + transformedSolrProject);
                 log.info("solrProject : " + solrProject);
 //                transformedSolrProject.setId((String)solrProject.getId());
@@ -360,11 +381,11 @@ public class SanityCheckJob extends AbstractArchiveJob {
             }*/
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 
-    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject, Set<MongoPrideFile> mongoFiles) {
+    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject, Map<String, String> checkSumMap) {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for (MSFileTypeConstants currentFileType : MSFileTypeConstants.values())
             if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFile.getFileType().getName()))
@@ -374,9 +395,6 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 folderName, oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpUrl, asperaUrl) : Collections.emptySet();
 
         String accession = HashUtils.getSha256Checksum(oracleProject.getAccession() + folderName + oracleFile.getFileName());
-
-        Map<String, String> checkSumMap = new HashMap<>();
-        mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
 
         return MongoPrideFile.builder()
                 .accession(accession)
