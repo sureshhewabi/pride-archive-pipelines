@@ -154,6 +154,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
 
     private void compareProjectsAndFix(String accession) {
         log.info("PROCESSING : " + accession);
+        String errorLogPrefix = "====[" + accession + "] ";
         try {
             Project oracleProject = projectRepoClient.findByAccession(accession);
 
@@ -253,7 +254,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
                 if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
                     if (fixedFiles) {
-                        log.error("==== [" + accession + "] Even after fixing, Mongo files mismatched");
+                        log.error(errorLogPrefix + "Even after fixing, Mongo files mismatched");
                     }
 
                     //debug log to identify the differences
@@ -261,23 +262,23 @@ public class SanityCheckJob extends AbstractArchiveJob {
                             .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
                             .collect(Collectors.toList());
                     if (collect.size() > 0) {
-                        log.error("==== [" + accession + "] mismatched mongo files : " + collect);
+                        log.error(errorLogPrefix + "mismatched mongo files : " + collect);
                         List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
-                        log.error("==== [" + accession + "] reference transformedOracleFiles : " + collect1);
+                        log.error(errorLogPrefix + "reference transformedOracleFiles : " + collect1);
                     }
 
                     //case where one or more files are missing in mongo..
                     //checksum in transfromedOracleFiles is taken from from mongo files. so, if the mongo file is missing then it's null for transfromedOracleFile
                     final List<MongoPrideFile> missingMongoFiles = transfromedOracleFiles.stream().filter(o -> o.getChecksum() == null).collect(Collectors.toList());
                     if (missingMongoFiles.size() == transfromedOracleFiles.size()) {
-                        log.error("==== [" + accession + "] All mongo files are missing");
+                        log.error(errorLogPrefix + "All mongo files are missing");
                     } else {
                         List<String> missingFiles = missingMongoFiles.stream().map(m -> m.getFileSourceFolder() + "/" + m.getFileName()).collect(Collectors.toList());
                         if (missingFiles.size() > 0) {
-                            log.error("==== [" + accession + "] Missing mongo files: " + missingFiles);
+                            log.error(errorLogPrefix + "Missing mongo files: " + missingFiles);
                         } else {
                             //this is a case where oracle has duplicate file entries
-                            log.error("==== [" + accession + "] Oracle has duplicate file entries");
+                            log.error(errorLogPrefix + "Oracle has duplicate file entries");
                         }
                     }
                 }
@@ -381,6 +382,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
             }*/
             }
         } catch (Exception e) {
+            log.error(errorLogPrefix + e.getMessage());
             log.error(e.getMessage(), e);
         }
     }
