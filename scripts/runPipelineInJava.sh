@@ -19,7 +19,7 @@ if [[ ${LOG_PATH} == ./* ]]; then
     curdir="`readlink -f \`pwd\``/"
 fi
 
-LOG_FILE_FULL_PATH="${curdir}${LOG_FILE_LOCAL}"
+LOG_FILE_FULL_PATH=$(realpath "${curdir}${LOG_FILE_LOCAL}")
 
 ## ---- filebeat start ---
 #export log_file=${LOG_FILE_FULL_PATH}
