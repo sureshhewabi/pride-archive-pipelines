@@ -88,6 +88,23 @@ public class SubmissionToProjectTransformer {
         });
         modifiedProject.setPtms(projectPTMS);
 
+        // Set Project Tag
+        Set<ProjectTag> projectTags = new HashSet<>();
+        submission.getProjectMetaData().getProjectTags().forEach(projectTag -> {
+            ProjectTag tag = new ProjectTag();
+            tag.setTag(projectTag);
+            projectTags.add(tag);
+            tag.setProject(modifiedProject);
+        });
+        modifiedProject.setProjectTags(projectTags);
+
+        // set Other omics links
+        modifiedProject.setOtherOmicsLink(submission.getProjectMetaData().getOtherOmicsLink());
+
+        // set Reanalysis
+        Set<String> reanalysis = submission.getProjectMetaData().getReanalysisAccessions();
+        modifiedProject.setReanalysis(String.join(",", reanalysis));
+
         // Set References
         setReferenceList(submission, modifiedProject);
 
