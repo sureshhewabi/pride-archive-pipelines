@@ -35,6 +35,7 @@ import uk.ac.ebi.pride.data.exception.SubmissionFileException;
 import uk.ac.ebi.pride.data.io.SubmissionFileParser;
 import uk.ac.ebi.pride.data.model.Submission;
 import uk.ac.ebi.pride.data.validation.SubmissionValidator;
+import uk.ac.ebi.pride.data.validation.ValidationMessage;
 import uk.ac.ebi.pride.data.validation.ValidationReport;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
@@ -124,7 +125,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                     throw new Exception("Input summary.px file does not exist in " + modifiedSubmissionSummaryFile);
                 }
             } catch (SubmissionFileException e) {
-                throw new Exception("Submission file parsing failed");
+                throw new Exception("Submission file parsing failed" + e.getMessage());
             }
 
             // validate the summary file
@@ -135,7 +136,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                 SubmissionToProjectTransformer submissionToProjectTransformer = new SubmissionToProjectTransformer(cvParamRepoClient);
                 this.modifiedProject = submissionToProjectTransformer.transform(submission, modifiedProject);
             } else {
-                throw new Exception("Submission validation failed");
+                throw new Exception("Submission validation failed. ERROR: " + String.join(",", validationReport.getMessages().stream().filter(validationMessage -> validationMessage.getType().equals(ValidationMessage.Type.ERROR)).map(ValidationMessage::getMessage).collect(Collectors.toList())));
             }
             return RepeatStatus.FINISHED;
         };
@@ -197,7 +198,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                             log.info(("Project is private, not reindexing or generating EBeye XML or update mongoDB or Solr"));
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("An error occurred while syncing :" + e.getMessage());
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
