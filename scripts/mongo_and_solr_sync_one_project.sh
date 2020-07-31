@@ -5,10 +5,13 @@
 
 #This job syncs one document(accession based) from oracle into mongodb
 
+##### OPTIONS
+# (required) the project accession
+PROJECT_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="sanity_check"
+JOB_NAME="mongo_and_solr_sync_one_project"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -25,16 +28,15 @@ LOG_FILE_NAME=""
 ##### FUNCTIONS
 printUsage() {
     echo "Description: In the revised archive pipeline, this will import one project information to mongoDB"
-    echo "$ ./scripts/sanity_check.sh"
+    echo "$ ./scripts/mongo_and_solr_sync_one_project.sh"
     echo ""
-    echo "Usage: ./sanity_check.sh -a|--accession"
-    echo "     Example: ./sanity_check.sh -a PXD011181"
-    echo "     (optional) accession         : the project accession"
+    echo "Usage: ./mongo_and_solr_sync_one_project.sh -a|--accession [--skipfiles]"
+    echo "     Example: ./mongo_and_solr_sync_one_project.sh -a PXD011181"
+    echo "     (required) accession         : the project accession"
+    echo "     (optional) skipfiles         :  if set will skip syncing files"
 }
 
-fixProjects="false"
-fixFiles="false"
-JOB_ARGS=""
+SKIP_FILES="false"
 
 ##### PARSE the provided parameters
 while [ "$1" != "" ]; do
@@ -42,22 +44,23 @@ while [ "$1" != "" ]; do
       "-a" | "--accession")
         shift
         PROJECT_ACCESSION=$1
-        JOB_ARGS="${JOB_ARGS} projects=${PROJECT_ACCESSION}"
         ;;
-      "--fixProjects")
-        fixProjects="true"
-        ;;
-      "--fixFiles")
-        fixFiles="true"
+      "--skipfiles")
+        SKIP_FILES="true"
         ;;
     esac
     shift
 done
 
-JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles}"
+##### CHECK the provided arguments
+if [ -z ${PROJECT_ACCESSION} ]; then
+         echo "Need to enter a project accession"
+         printUsage
+         exit 1
+fi
 
 ##### Set variables
-JOB_NAME="${JOB_NAME}"
+JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
 DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
@@ -72,4 +75,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava_SanityCheck.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=sanityCheckJobBean ${JOB_ARGS}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=syncProjectToMongoAndSolrJob -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION} --skipfiles=${SKIP_FILES}

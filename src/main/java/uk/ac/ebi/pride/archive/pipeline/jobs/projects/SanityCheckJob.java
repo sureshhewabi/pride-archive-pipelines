@@ -15,17 +15,16 @@ import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
-import uk.ac.ebi.pride.archive.pipeline.utility.DateUtils;
 import uk.ac.ebi.pride.archive.pipeline.utility.HashUtils;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.repo.client.FileRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
+import uk.ac.ebi.pride.archive.repo.models.project.Project;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
@@ -40,17 +39,17 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrCloudMasterConfig.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrCloudMasterConfig.class})
 public class SanityCheckJob extends AbstractArchiveJob {
 
     @Autowired
     PrideProjectMongoService prideProjectMongoService;
 
     @Autowired
-    ProjectRepository oracleProjectRepository;
+    ProjectRepoClient projectRepoClient;
 
     @Autowired
-    ProjectFileRepository oracleFileRepository;
+    FileRepoClient fileRepoClient;
 
     @Autowired
     PrideFileMongoService prideFileMongoService;
@@ -155,13 +154,16 @@ public class SanityCheckJob extends AbstractArchiveJob {
 
     private void compareProjectsAndFix(String accession) {
         log.info("PROCESSING : " + accession);
-        Project oracleProject = oracleProjectRepository.findByAccession(accession);
-        Optional<MongoPrideProject> mongoProjectOptional = prideProjectMongoService.findByAccession(accession);
-        if (oracleProject != null && oracleProject.isPublicProject() && mongoProjectOptional.isPresent()) {
-            MongoPrideProject transformedOracleProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
-            MongoPrideProject mongoProject = mongoProjectOptional.get();
+        String errorLogPrefix = "====[" + accession + "] ";
+        try {
+            Project oracleProject = projectRepoClient.findByAccession(accession);
 
-            boolean mongoUpdated = false;
+            Optional<MongoPrideProject> mongoProjectOptional = prideProjectMongoService.findByAccession(accession);
+            if (oracleProject != null && oracleProject.isPublicProject() && mongoProjectOptional.isPresent()) {
+                MongoPrideProject transformedOracleProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
+                MongoPrideProject mongoProject = mongoProjectOptional.get();
+
+                boolean mongoUpdated = false;
 
             /*Set<String> countries = new HashSet<>(mongoProject.getCountries());
             countries.addAll(transformedOracleProject.getCountries());
@@ -171,94 +173,115 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 mongoUpdated = true;
             }*/
 
-            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getSubmissionDate(), mongoProject.getSubmissionDate())) {
-                mongoProject.setSubmissionDate(transformedOracleProject.getSubmissionDate());
-                mongoUpdated = true;
-            }
-            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getPublicationDate(), mongoProject.getPublicationDate())) {
-                mongoProject.setPublicationDate(transformedOracleProject.getPublicationDate());
-                mongoUpdated = true;
-            }
-            if (!DateUtils.equalsDatePartOnly(transformedOracleProject.getUpdatedDate(), mongoProject.getUpdatedDate())) {
-                mongoProject.setUpdatedDate(transformedOracleProject.getUpdatedDate());
-                mongoUpdated = true;
-            }
-
-            if (mongoUpdated) {
-                log.error(" ----- Mongo project Dates Mismatched : " + accession + " ----- ");
-                if (fixProjectsOptionSet) {
-                    log.info("^^^^^ FIXING mongo project : " + accession + "^^^^^");
-                    mongoProject = prideProjectMongoService.update(mongoProject).get();
+                if (!Objects.equals(transformedOracleProject.getSubmissionDate(), mongoProject.getSubmissionDate())) {
+                    mongoProject.setSubmissionDate(transformedOracleProject.getSubmissionDate());
+                    mongoUpdated = true;
                 }
-            }
+                if (!Objects.equals(transformedOracleProject.getPublicationDate(), mongoProject.getPublicationDate())) {
+                    mongoProject.setPublicationDate(transformedOracleProject.getPublicationDate());
+                    mongoUpdated = true;
+                }
+                if (!Objects.equals(transformedOracleProject.getUpdatedDate(), mongoProject.getUpdatedDate())) {
+                    mongoProject.setUpdatedDate(transformedOracleProject.getUpdatedDate());
+                    mongoUpdated = true;
+                }
+
+                if (mongoUpdated) {
+                    log.error(" ==== Mongo project Dates Mismatched : " + accession + " ==== ");
+                    if (fixProjectsOptionSet) {
+                        mongoProject = prideProjectMongoService.update(mongoProject).get();
+                        log.info("==== fixed mongo project : " + accession + " ====");
+                    }
+                }
 
             /*if (!transformedOracleProject.equals(mongoProject)) {
-                log.error(" ----- Mongo project Mismatched : " + accession + "---- ");
+                log.error(" ==== Mongo project Mismatched : " + accession + "==== ");
                 log.info("transformedOracleProject : " + transformedOracleProject);
                 log.info("mongoPrideProject : " + mongoProject);
             }*/
 
-            Set<MongoPrideFile> mongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
-            List<ProjectFile> oracleFiles = oracleFileRepository.findAllByProjectId(oracleProject.getId());
-            Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, mongoFiles)).collect(Collectors.toSet());
+                Set<MongoPrideFile> mongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+                Map<String, String> checkSumMap = new HashMap<>();
+                mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
 
-            Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
-            mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
+                List<ProjectFile> oracleFiles = fileRepoClient.findAllByProjectId(oracleProject.getId());
+                Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, checkSumMap)).collect(Collectors.toSet());
 
-            Map<String, MongoPrideFile> transfromedOracleFilesMap = new HashMap<>();
-            transfromedOracleFiles.forEach(m -> transfromedOracleFilesMap.put(m.getAccession(), m));
+                Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
+                mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
 
-            if (!mongoFiles.equals(transfromedOracleFiles)) {
-                log.error(" ----- Mongo files mismatched for project : " + accession + " ---- ");
-            }
+                Map<String, MongoPrideFile> transfromedOracleFilesMap = new HashMap<>();
+                transfromedOracleFiles.forEach(m -> transfromedOracleFilesMap.put(m.getAccession(), m));
 
-            boolean fixedFiles = false;
-            for (MongoPrideFile m : mongoFiles) {
-                boolean fileUpdate = false;
-                MongoPrideFile transformedFile = transfromedOracleFilesMap.get(m.getAccession());
-                if (!DateUtils.equalsDatePartOnly(m.getSubmissionDate(), transformedFile.getSubmissionDate())) {
-                    m.setSubmissionDate(transformedFile.getSubmissionDate());
-                    fileUpdate = true;
+                if (!mongoFiles.equals(transfromedOracleFiles)) {
+                    log.info(" ==== Mongo files mismatched for project : " + accession + " ==== ");
                 }
-                if (!DateUtils.equalsDatePartOnly(m.getPublicationDate(), transformedFile.getPublicationDate())) {
-                    m.setPublicationDate(transformedFile.getPublicationDate());
-                    fileUpdate = true;
-                }
-                if (!DateUtils.equalsDatePartOnly(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
-                    m.setUpdatedDate(transformedFile.getUpdatedDate());
-                    fileUpdate = true;
-                }
-                if (!Objects.equals(m.getPublicFileLocations(), transformedFile.getPublicFileLocations())) {
-                    m.setPublicFileLocations(transformedFile.getPublicFileLocations());
-                    fileUpdate = true;
-                }
-                if (!Objects.equals(m.getFileSizeBytes(), transformedFile.getFileSizeBytes())) {
-                    m.setFileSizeBytes(transformedFile.getFileSizeBytes());
-                    fileUpdate = true;
-                }
-                if (fileUpdate && fixFilesOptionSet) {
-                    fixedFiles = true;
-                    prideFileMongoService.save(m);
-                }
-            }
 
-            if (fixedFiles) {
-                log.info("^^^^^ fixed mongo files for : " + accession + "^^^^^");
-            }
+                boolean fixedFiles = false;
+                for (MongoPrideFile m : mongoFiles) {
+                    boolean fileUpdate = false;
+                    MongoPrideFile transformedFile = transfromedOracleFilesMap.get(m.getAccession());
+                    if (!Objects.equals(m.getSubmissionDate(), transformedFile.getSubmissionDate())) {
+                        m.setSubmissionDate(transformedFile.getSubmissionDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getPublicationDate(), transformedFile.getPublicationDate())) {
+                        m.setPublicationDate(transformedFile.getPublicationDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
+                        m.setUpdatedDate(transformedFile.getUpdatedDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getPublicFileLocations(), transformedFile.getPublicFileLocations())) {
+                        m.setPublicFileLocations(transformedFile.getPublicFileLocations());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getFileSizeBytes(), transformedFile.getFileSizeBytes())) {
+                        m.setFileSizeBytes(transformedFile.getFileSizeBytes());
+                        fileUpdate = true;
+                    }
+                    if (fileUpdate && fixFilesOptionSet) {
+                        fixedFiles = true;
+                        prideFileMongoService.save(m);
+                    }
+                }
 
-            HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
-            if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
-                log.error(" ***** Even after fixing, Mongo files mismatched for project : " + accession + " *****");
+                if (fixedFiles) {
+                    log.info("==== fixed mongo files for : " + accession + " ====");
+                }
 
-                //debug log to identify the differences
-                List<MongoPrideFile> collect = mongoFiles.stream()
-                        .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
-                        .collect(Collectors.toList());
-                log.info("mismatched mongo files : " + collect);
+                HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+                if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
+                    if (fixedFiles) {
+                        log.error(errorLogPrefix + "Even after fixing, Mongo files mismatched");
+                    }
 
-                List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
-                log.info("reference transformedOracleFiles : " + collect1);
-            }
+                    //debug log to identify the differences
+                    List<MongoPrideFile> collect = mongoFiles.stream()
+                            .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
+                            .collect(Collectors.toList());
+                    if (collect.size() > 0) {
+                        log.error(errorLogPrefix + "mismatched mongo files : " + collect);
+                        List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
+                        log.error(errorLogPrefix + "reference transformedOracleFiles : " + collect1);
+                    }
+
+                    //case where one or more files are missing in mongo..
+                    //checksum in transfromedOracleFiles is taken from from mongo files. so, if the mongo file is missing then it's null for transfromedOracleFile
+                    final List<MongoPrideFile> missingMongoFiles = transfromedOracleFiles.stream().filter(o -> o.getChecksum() == null).collect(Collectors.toList());
+                    if (missingMongoFiles.size() == transfromedOracleFiles.size()) {
+                        log.error(errorLogPrefix + "All mongo files are missing");
+                    } else {
+                        List<String> missingFiles = missingMongoFiles.stream().map(m -> m.getFileSourceFolder() + "/" + m.getFileName()).collect(Collectors.toList());
+                        if (missingFiles.size() > 0) {
+                            log.error(errorLogPrefix + "Missing mongo files: " + missingFiles);
+                        } else {
+                            //this is a case where oracle has duplicate file entries
+                            log.error(errorLogPrefix + "Oracle has duplicate file entries");
+                        }
+                    }
+                }
 
           /*  PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
 
@@ -351,16 +374,20 @@ public class SanityCheckJob extends AbstractArchiveJob {
             Set<String> fileNames = mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
             transformedSolrProject.setProjectFileNames(fileNames);
             if (!transformedSolrProject.equals(solrProject)) {
-                log.error(" ----- Solr project Mismatched : " + accession + " ---- ");
+                log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
                 log.info("transformedSolrProject : " + transformedSolrProject);
                 log.info("solrProject : " + solrProject);
 //                transformedSolrProject.setId((String)solrProject.getId());
 //                solrProjectService.update(transformedSolrProject);
             }*/
+            }
+        } catch (Exception e) {
+            log.error(errorLogPrefix + e.getMessage());
+            log.error(e.getMessage(), e);
         }
     }
 
-    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject, Set<MongoPrideFile> mongoFiles) {
+    private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject, Map<String, String> checkSumMap) {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for (MSFileTypeConstants currentFileType : MSFileTypeConstants.values())
             if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFile.getFileType().getName()))
@@ -370,9 +397,6 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 folderName, oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpUrl, asperaUrl) : Collections.emptySet();
 
         String accession = HashUtils.getSha256Checksum(oracleProject.getAccession() + folderName + oracleFile.getFileName());
-
-        Map<String, String> checkSumMap = new HashMap<>();
-        mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
 
         return MongoPrideFile.builder()
                 .accession(accession)

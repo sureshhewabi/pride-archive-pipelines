@@ -21,12 +21,6 @@ fi
 
 LOG_FILE_FULL_PATH=$(realpath "${curdir}${LOG_FILE_LOCAL}")
 
-## ---- filebeat start ---
-#export log_file=${LOG_FILE_FULL_PATH}
-#nohup ${FILE_BEAT_PATH}/filebeat -c ${FILE_BEAT_PATH}/filebeat.yml > /dev/null 2>&1 &
-#filebeat_pid=$!
-## ---- filebeat end ---
-
 ${JAVA_DIR}java -Xmx${MEMORY_LIMIT} ${PIPELINE_JOB_PARAMETERS} > ${LOG_FILE_LOCAL} 2>&1
 
 CODE=$?
@@ -52,6 +46,14 @@ MSG="${MSG} \n (${PIPELINE_JOB_PARAMETERS}) \n LOG: _${LOG_FILE_FULL_PATH}_ \n -
 
 curl -X POST --data-urlencode "payload={ \"text\": \"$MSG\"}" $slack_url || true
 
-#kill $filebeat_pid
+if [ $CODE -eq 0 ]; then
+  report_file="Sanity_check_report_$(date '+%Y_%m_%d').txt"
+  grep ERROR ${LOG_FILE_FULL_PATH} | grep "====" | awk -F'====' '{print $2}' > ${report_file}
+  error_lines=$(wc -l ${report_file} | cut -d' ' -f1)
+  if [ $error_lines -gt 0 ]; then
+    curl -F file=@${report_file} -F "initial_comment=Errors found by sanity check pipeline: ${report_file}" -F channels=${sanity_check_report_slack_channel} -H "Authorization: Bearer ${SLACK_APP_TOKEN}" https://slack.com/api/files.upload
+  fi
+  rm ${report_file}
+fi
 
 exit $CODE # so that LSF reports correct status in EMAIL

@@ -57,9 +57,6 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Autowired
     SolrProjectService solrProjectService;
 
-//    @Autowired
-//    SolrTemplate template;
-
     @Value("${accession:#{null}}")
     private String accession;
 
@@ -73,13 +70,13 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
     }
 
-    private void doFilesSync(PrideSolrProject prideSolrProject){
-        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(prideSolrProject.getAccession());
-        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
-        prideSolrProject.setProjectFileNames(fileNames);
-        PrideSolrProject savedProject = solrProjectService.update(prideSolrProject);
-        log.info("The files for project -- " + savedProject.getAccession() + " have been inserted in SolrCloud");
-    }
+//    private void doFilesSync(PrideSolrProject prideSolrProject){
+//        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(prideSolrProject.getAccession());
+//        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+//        prideSolrProject.setProjectFileNames(fileNames);
+//        PrideSolrProject savedProject = solrProjectService.update(prideSolrProject);
+//        log.info("The files for project -- " + savedProject.getAccession() + " have been inserted in SolrCloud");
+//    }
 
     /**
      * This methods connects to the database read all the Oracle information for public
@@ -98,11 +95,6 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                         }
                     }else{
                         prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
-                        /*Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findAllStream().findFirst();
-                        if(mongoPrideProjectOptional.isPresent()) {
-                            MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
-                            doProjectSync(mongoPrideProject);
-                        }*/
                     }
                     return RepeatStatus.FINISHED;
                 })
@@ -143,20 +135,20 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
      * Sync the Files to Solr Project
      * @return Step
      */
-    @Bean
-    Step syncFilesToSolrProjectStep() {
-        return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
-                .tasklet((stepContribution, chunkContext) -> {
-                    if(accession != null){
-                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
-                        doFilesSync(prideSolrProject);
-                    }else{
-                        solrProjectService.findAll().forEach(this::doFilesSync);
-                    }
-                    return RepeatStatus.FINISHED;
-                }).build();
-    }
+//    @Bean
+//    Step syncFilesToSolrProjectStep() {
+//        return stepBuilderFactory
+//                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_FILES_TO_PROJECT_SOLR.name())
+//                .tasklet((stepContribution, chunkContext) -> {
+//                    if(accession != null){
+//                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
+//                        doFilesSync(prideSolrProject);
+//                    }else{
+//                        solrProjectService.findAll().forEach(this::doFilesSync);
+//                    }
+//                    return RepeatStatus.FINISHED;
+//                }).build();
+//    }
 
 
     /**

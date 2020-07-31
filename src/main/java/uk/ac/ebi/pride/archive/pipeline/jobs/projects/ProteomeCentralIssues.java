@@ -13,17 +13,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.px.PostMessage;
 import uk.ac.ebi.pride.archive.px.Util;
 import uk.ac.ebi.pride.archive.px.ValidateMessage;
 import uk.ac.ebi.pride.archive.px.writer.MessageWriter;
 import uk.ac.ebi.pride.archive.px.xml.XMLParams;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.models.project.Project;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,19 +34,16 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveOracleConfig.class, DataSourceConfiguration.class})
+@Import({RepoConfig.class, DataSourceConfiguration.class})
 public class ProteomeCentralIssues extends AbstractArchiveJob {
 
     @Autowired
-    ProjectRepository oracleProjectRepository;
+    ProjectRepoClient projectRepoClient;
 
     @Value("${pride.proteomecentral-issues.path}")
     private String pcIssuesBasePath;
@@ -136,20 +132,25 @@ public class ProteomeCentralIssues extends AbstractArchiveJob {
                     log.info("Generating PX XML in " + pxXmlsDir.toString());
 
                     if (projectAccessions == null || projectAccessions.length == 0) {
-                        oracleProjectRepository.findAll().forEach(this::generatePxXml);
+                        List<String> allAccessions = projectRepoClient.getAllPublicAccessions();
+                        allAccessions.forEach(this::generatePxXml);
                     } else {
-                        Arrays.stream(projectAccessions).forEach(a -> {
-                            Project oracleProject = oracleProjectRepository.findByAccession(a);
-                            generatePxXml(oracleProject);
-                        });
+                        Arrays.stream(projectAccessions).forEach(this::generatePxXml);
                     }
                     taskTimeMap.put("generatePxXmlMessageStep", System.currentTimeMillis() - startTime);
                     return RepeatStatus.FINISHED;
                 }).build();
     }
 
-    private void generatePxXml(Project project) {
-        String accession = project.getAccession();
+    private void generatePxXml(String accession) {
+        Project project;
+        try {
+            project = projectRepoClient.findByAccession(accession);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
+
         log.info("Processing: " + accession);
         try {
             if (!accession.startsWith("PXD") || !project.isPublicProject()) {
@@ -203,7 +204,7 @@ public class ProteomeCentralIssues extends AbstractArchiveJob {
                     responseLowerCase.contains("result=foundvalidationerrors") ||
                     responseLowerCase.contains("internal server error")
             ) {
-                if(!responseLowerCase.contains("must be pxtnnnnnn not pxdnnnnnn if test=yes")) { //this is OK case
+                if (!responseLowerCase.contains("must be pxtnnnnnn not pxdnnnnnn if test=yes")) { //this is OK case
                     Files.write(Paths.get(pcIssuesDir.toString(), accession), response.getBytes());
                 }
             }

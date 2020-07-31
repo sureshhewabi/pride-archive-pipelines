@@ -1,3 +1,5 @@
+spring.application.name: $app_name
+
 # LOGGING Properties
 logging:
 #  path: './logs_${HOSTNAME}/'
@@ -38,14 +40,6 @@ spring:
     url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
     username: sa
     password: sa
-# Oracle Database
-    oracle:
-      jdbcUrl: $oracle_jdbc_url
-      username: $oracle_username
-      password: $oracle_password
-      driver-class-name: oracle.jdbc.OracleDriver
-    maxPoolSize: $oracle_maxPoolSize
-    idleTimeOut: $oracle_idleTimeOut
 
 # Redis messaging
 redis:
@@ -66,6 +60,11 @@ redis:
   assay.analyse.queue: $redis_incoming_assay_analyse_queue
 archive.post.publication.completion.queue: $redis_post_publication_completion_queue
 
+pride-repo.api:
+  baseUrl: $repo_api_base_url
+  keyName: $repo_api_key_name
+  keyValue: $repo_api_key_value
+
 # data usage details amd pipeline variables
 pride:
   archive:
@@ -83,16 +82,9 @@ ftp.protocol.url: $pride_ftp_protocol_url
 aspera.protocol.url: $pride_aspera_protocol_url
 
 ##### Solr CLoud #####
-solr:
-  master:
-    hh.url: $solr_master_hh_url
-    hx.url: $solr_master_hx_url
-spring.data.solr.zk-host:
-  hh: $solr_zk_hh
-  hx: $solr_zk_hx
-spring.pridedb.solr:
-  hh.url: $solr_pridedb_hh_url
-  hx.url: $solr_pridedb_hx_url
+spring.pridedb.solr.hh.url: $solr_pridedb_hh_url
+solr.master.hh.url: $solr_master_hh_url
+solr.master.hx.url: $solr_master_hx_url
 
 # Configuration for MongoDB
 mongodb:
@@ -144,6 +136,7 @@ proteome.exchange.url: $px_url
 px.partner:
   name: $px_partner_name
   pass: $px_password
+  test: $px_test
 
 submission:
   file:

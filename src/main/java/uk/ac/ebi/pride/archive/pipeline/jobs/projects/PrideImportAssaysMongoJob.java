@@ -15,18 +15,18 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
-import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveOracleConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ArchiveRedisConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
+import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.archive.repo.repos.assay.Assay;
-import uk.ac.ebi.pride.archive.repo.repos.assay.AssayRepository;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFile;
-import uk.ac.ebi.pride.archive.repo.repos.file.ProjectFileRepository;
-import uk.ac.ebi.pride.archive.repo.repos.project.Project;
-import uk.ac.ebi.pride.archive.repo.repos.project.ProjectRepository;
+import uk.ac.ebi.pride.archive.repo.client.AssayRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.FileRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.models.assay.Assay;
+import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
+import uk.ac.ebi.pride.archive.repo.models.project.Project;
 import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
 import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
@@ -58,7 +58,7 @@ import java.util.Optional;
 @EnableBatchProcessing
 @Slf4j
 @PropertySource("classpath:application.properties")
-@Import({ArchiveOracleConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveRedisConfig.class})
 public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
 
@@ -66,16 +66,16 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
     PrideProjectMongoService prideProjectMongoService;
 
     @Autowired
-    AssayRepository assayRepository;
+    AssayRepoClient assayRepoClient;
 
     @Autowired
-    ProjectRepository projectRepository;
+    ProjectRepoClient projectRepoClient;
 
     @Autowired
     PrideFileMongoRepository prideFileMongoRepository;
 
     @Autowired
-    ProjectFileRepository fileOracleRepository;
+    FileRepoClient fileRepoClient;
 
     @Autowired
     RedisConnectionFactory connectionFactory;
@@ -90,9 +90,10 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
 
     @Bean
     @StepScope
-    public Tasklet importAssayInitJob(@Value("#{jobParameters['project']}") String projectAccession){
+    public Tasklet importAssayInitJob(@Value("#{jobParameters['project']}") String projectAccession) {
         return (stepContribution, chunkContext) ->
-        { this.projectAccession = projectAccession;
+        {
+            this.projectAccession = projectAccession;
             System.out.println(String.format("==================>>>>>>> Run the PrideImportAssaysMongoJob job for Project %s", projectAccession));
             return RepeatStatus.FINISHED;
         };
@@ -120,58 +121,62 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_SYNC_ASSAY_TO_MONGO.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    if(projectAccession != null){
-                        Project project = projectRepository.findByAccession(projectAccession);
-                        if(project.getSubmissionType() != SubmissionType.PRIDE.name()){
-                            if(project.isPublicProject()){
-                                syncProject(project);
-                            }else{
-                                log.warn("This is a private submission, therefore Sync will not happen!");
-                            }
-                        }
-                    }else{
-                        projectRepository.findAll().forEach(project -> {
-                            if(project.getSubmissionType() != SubmissionType.PRIDE.name() && project.isPublicProject()){
-                              syncProject(project);
-                            }
-                        });
+                    if (projectAccession != null) {
+                        syncProject(projectAccession);
+                    } else {
+                        projectRepoClient.getAllPublicAccessions().forEach(this::syncProject);
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
     }
 
-    private void syncProject( Project  project){
-        List<Assay> assays = assayRepository.findAllByProjectId(project.getId());
-        List<ProjectFile> files = fileOracleRepository.findAllByProjectId(project.getId());
-        doProjectAssaySync(assays, files, project);
-        notifyToMessagingQueue(project, assays);
+    private void syncProject(String projectAccession) {
+        try {
+            Project project = projectRepoClient.findByAccession(projectAccession);
+            if (!project.isPublicProject()) {
+                log.warn("This is a private submission, therefore Sync will not happen : " + projectAccession);
+                return;
+            }
+            if (project.getSubmissionType().equals(SubmissionType.PRIDE.name())) {
+                log.warn("Sync will not happen as submission type is " + project.getSubmissionType() + " : " + projectAccession);
+                return;
+            }
+            List<Assay> assays = assayRepoClient.findAllByProjectId(project.getId());
+            List<ProjectFile> files = fileRepoClient.findAllByProjectId(project.getId());
+            doProjectAssaySync(assays, files, project);
+            notifyToMessagingQueue(project, assays);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
     }
 
 
-    private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project){
+    private void doProjectAssaySync(List<Assay> assays, List<ProjectFile> files, Project project) {
         Optional<MongoPrideProject> projectMongo = prideProjectMongoService.findByAccession(project.getAccession());
         List<MongoPrideFile> mongoFiles = prideFileMongoRepository.findByProjectAccessions(Collections.singletonList(project.getAccession()));
-        if(projectMongo.isPresent() && mongoFiles != null && mongoFiles.size() > 0){
+        if (projectMongo.isPresent() && mongoFiles != null && mongoFiles.size() > 0) {
             List<MongoPrideAssay> mongoAssays = PrideProjectTransformer.transformOracleAssayToMongo(assays, files, mongoFiles, project);
             prideProjectMongoService.saveAssays(mongoAssays);
             log.info("The assays for project -- " + project.getAccession() + " have been inserted in Mongo");
-        }else
+        } else
             log.error("The project is not present in the Mongo database, please add first the project -- " + project.getAccession());
     }
 
     /**
      * Notify project accession and assay accession to the redis queue to run the next job which is AssayAnalysisJob
+     *
      * @param project Project
-     * @param assays Assay
+     * @param assays  Assay
      */
-    private void notifyToMessagingQueue(Project project, List<Assay> assays){
+    private void notifyToMessagingQueue(Project project, List<Assay> assays) {
 
         assays.forEach(
-            assay -> {
-              messageNotifier.sendNotification(redisQueueName,
-                  new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
-                  AssayDataGenerationPayload.class);
-                  log.info("Notified to redis queue {} : {} - {} ", redisQueueName ,project.getAccession(), assay.getAccession());
-            });
+                assay -> {
+                    messageNotifier.sendNotification(redisQueueName,
+                            new AssayDataGenerationPayload(project.getAccession(), assay.getAccession()),
+                            AssayDataGenerationPayload.class);
+                    log.info("Notified to redis queue {} : {} - {} ", redisQueueName, project.getAccession(), assay.getAccession());
+                });
     }
 }
