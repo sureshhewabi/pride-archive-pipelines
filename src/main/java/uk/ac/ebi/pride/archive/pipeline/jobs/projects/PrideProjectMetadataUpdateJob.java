@@ -198,7 +198,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                             log.info(("Project is private, not reindexing or generating EBeye XML or update mongoDB or Solr"));
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("An error occurred while syncing :" + e.getMessage());
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
