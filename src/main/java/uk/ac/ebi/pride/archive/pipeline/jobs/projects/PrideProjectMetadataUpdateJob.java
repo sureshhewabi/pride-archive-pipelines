@@ -191,14 +191,13 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                                 } else {
                                     log.error(modifiedProject.getAccession() + " does not updated");
                                 }
-
                                 // 6. Regenerate EBeye XML and output it to the PRIDE ARchive EBeye directory
                                 generateEbeyeXmlTasklet.generateEBeyeXml(modifiedProject.getAccession());
                         } else {
                             log.info(("Project is private, not reindexing or generating EBeye XML or update mongoDB or Solr"));
                         }
                     } catch (Exception e) {
-                        log.error("An error occurred while syncing :" + e.getMessage());
+                        throw new Exception("An error occurred while syncing :" + e.getMessage());
                     }
                     return RepeatStatus.FINISHED;
                 }).build();
