@@ -2,7 +2,6 @@ package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
 import lombok.extern.slf4j.Slf4j;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
-import uk.ac.ebi.pride.archive.dataprovider.person.ContactProvider;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.exceptions.SubmissionUpdateException;
 import uk.ac.ebi.pride.archive.repo.models.param.CvParamSummary;
@@ -10,7 +9,6 @@ import uk.ac.ebi.pride.archive.repo.models.project.ProjectSummary;
 import uk.ac.ebi.pride.archive.repo.models.project.ProjectTagSummary;
 import uk.ac.ebi.pride.archive.repo.models.project.ReferenceSummary;
 import uk.ac.ebi.pride.archive.repo.models.user.ContactSummary;
-//import uk.ac.ebi.pride.archive.repo.models.user.UserSummary;
 import uk.ac.ebi.pride.archive.repo.models.user.UserSummary;
 import uk.ac.ebi.pride.data.model.Contact;
 import uk.ac.ebi.pride.data.model.CvParam;

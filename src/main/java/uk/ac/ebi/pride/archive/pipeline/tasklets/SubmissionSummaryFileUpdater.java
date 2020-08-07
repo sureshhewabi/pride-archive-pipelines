@@ -55,14 +55,12 @@ public class SubmissionSummaryFileUpdater {
         if (submission.getProjectMetaData().getSubmissionType().equals(SubmissionType.PRIDE) ||
                 project.getSubmissionDate().before(PRIDE_3_RELEASE_DATE.getTime()) ||
                 !validationReport.hasError()) {
-            //                if (isBackupRequired(new File(submissionSummaryFile.getParentFile().getAbsolutePath()))){
             backupSubmissionSummaryFile(submissionSummaryFile, submissionBackupCopy);
-//                }
             SubmissionFileWriter.write(submission, submissionSummaryFile);
         } else {
             StringBuilder combinedErrorMessage = combineErrorMessages(validationReport);
             throw new Exception("Submission validation failed before update submission summary file for project: " +
-                    project.getAccession() + "ERROR: " + combinedErrorMessage.toString());
+                    project.getAccession() + " \nERROR: " + combinedErrorMessage.toString());
         }
     }
 
