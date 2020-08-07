@@ -1,7 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
 import lombok.extern.slf4j.Slf4j;
-import org.xml.sax.SAXException;
 import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileSource;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.pipeline.exceptions.SubmissionUpdateException;
@@ -13,12 +12,9 @@ import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.models.project.ProjectSummary;
 import uk.ac.ebi.pride.archive.utils.config.FilePathBuilder;
 import uk.ac.ebi.pride.archive.utils.streaming.FileUtils;
-import uk.ac.ebi.pride.data.exception.SubmissionFileException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Calendar;
 
 /**
@@ -47,8 +43,7 @@ public class PxXmlUpdater {
         this.fileRootLocation = fileRootLocation;
     }
 
-    public void updatePXXml(ProjectSummary project, File submissionSummaryFile) throws
-            SubmissionFileException, IOException, URISyntaxException, SAXException {
+    public void updatePXXml(ProjectSummary project, File submissionSummaryFile) throws Exception {
         SubmissionType submissionType = SubmissionType.fromString(project.getSubmissionType());
         if (project.isPublicProject() && (submissionType.equals(SubmissionType.COMPLETE) || submissionType.equals(SubmissionType.PARTIAL))) {
             File pxXmlFile = findPXXmlFile(project);
@@ -72,7 +67,6 @@ public class PxXmlUpdater {
                     throw new SubmissionUpdateException("Not possible to post XML message " + response);
                 }
             } else {
-                log.info("Updated PX XML failed to pass validation.");
                 throw new SubmissionUpdateException("Updated PX XML failed to pass validation: " + validationMessage);
             }
         } else {

@@ -103,7 +103,8 @@ public class SubmissionToProjectTransformer {
 
         // set Reanalysis
         Set<String> reanalysis = submission.getProjectMetaData().getReanalysisAccessions();
-        modifiedProject.setReanalysis(String.join(",", reanalysis));
+        String reanalysisString = String.join(",", reanalysis);
+        modifiedProject.setReanalysis((reanalysisString.equals("")? null : reanalysisString ));
 
         // Set References
         setReferenceList(submission, modifiedProject);
