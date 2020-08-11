@@ -60,8 +60,8 @@ public class PxXmlUpdater {
                 log.info("Updated PX XML validation passed, posting to ProteomeCentral.");
                 String response = PostMessage.postFile(updatedPxXml, xmlParams, pxSchemaVersion);
                 log.info(response);
-                System.out.println(response);
-                if (response == null || response.toLowerCase().contains("result=error")
+                if (response == null
+                        || response.toLowerCase().contains("result=error")
                         || response.startsWith("result=FoundValidationErrors")
                         || response.toLowerCase().contains("internal server error")) {
                     throw new SubmissionUpdateException("Not possible to post XML message " + response);

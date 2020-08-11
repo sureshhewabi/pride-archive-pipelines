@@ -192,7 +192,7 @@ public class ProteomeCentralIssues extends AbstractArchiveJob {
         }
     }
 
-    private void postPxXML(File pxXml, String accession) throws IOException {
+    private void postPxXML(File pxXml, String accession) throws Exception {
         log.info("Submitting PX XML to ProteomeCentral : " + accession);
 
         String response = PostMessage.postFile(pxXml, xmlParams, pxSchemaVersion);
