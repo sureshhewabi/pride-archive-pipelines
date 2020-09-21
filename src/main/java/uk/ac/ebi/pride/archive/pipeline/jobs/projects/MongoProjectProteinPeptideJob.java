@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
 import uk.ac.ebi.pride.mongodb.archive.model.molecules.MongoPrideMolecules;
-import uk.ac.ebi.pride.mongodb.archive.service.molecules.PrideMoleculesMongoService;
+import uk.ac.ebi.pride.mongodb.archive.service.molecules.PrideProjectMoleculesMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
 
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, PrideMoleculesMongoService.class})
+@Import({ArchiveMongoConfig.class, PrideProjectMoleculesMongoService.class})
 public class MongoProjectProteinPeptideJob extends AbstractArchiveJob {
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
@@ -42,7 +42,7 @@ public class MongoProjectProteinPeptideJob extends AbstractArchiveJob {
     String backupPath;
 
     @Autowired
-    private PrideMoleculesMongoService prideMoleculesMongoService;
+    private PrideProjectMoleculesMongoService prideProjectMoleculesMongoService;
 
     @Bean
     @StepScope
@@ -117,6 +117,6 @@ public class MongoProjectProteinPeptideJob extends AbstractArchiveJob {
         MongoPrideMolecules mongoPrideMolecules = MongoPrideMolecules.builder().projectAccession(projectAccession)
                 .peptideAccessions(peptideSequences.stream().collect(Collectors.joining(","))).proteinAccessions(proteinAccessions.stream().collect(Collectors.joining(","))).build();
 
-        prideMoleculesMongoService.insert(mongoPrideMolecules);
+        prideProjectMoleculesMongoService.insert(mongoPrideMolecules);
     }
 }
