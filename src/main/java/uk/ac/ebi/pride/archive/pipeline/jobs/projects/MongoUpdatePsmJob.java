@@ -75,16 +75,19 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
 
                     int i=0;
                     while (true) {
-                        Page<PrideMongoPsmSummaryEvidence> prideMongoPsmSummaryEvidences = prideMoleculesMongoService.listPsmSummaryEvidences(PageRequest.of(i, 100));
+                        Page<PrideMongoPsmSummaryEvidence> prideMongoPsmSummaryEvidences = prideMoleculesMongoService.listPsmSummaryEvidences(PageRequest.of(i++, 100));
                         List<PrideMongoPsmSummaryEvidence> psms = prideMongoPsmSummaryEvidences.getContent();
                         if(psms.isEmpty()) {
                             break;
                         }
+                        log.info("Page number : "+ i);
                         psms.parallelStream().forEach(p -> {
                             String usi = p.getUsi();
                             String spectraUsi = usi.substring(0, StringUtils.ordinalIndexOf(usi, ":", 5));
-                            p.setSpectraUsi(spectraUsi);
-                            prideMoleculesMongoService.savePsmSummaryEvidence(p);
+                            if(p.getSpectraUsi() == null || p.getSpectraUsi().isEmpty()) {
+                                p.setSpectraUsi(spectraUsi);
+                                prideMoleculesMongoService.savePsmSummaryEvidence(p);
+                            }
                         });
                     }
 
