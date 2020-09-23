@@ -125,7 +125,23 @@ public class SanityCheckJob extends AbstractArchiveJob {
 
                     if (projectAccessions == null || projectAccessions.length == 0) {
                         Set<String> mongoPrjAccessions = getMongoProjectAccessions();
+                        List<String> allPublicAccessions = projectRepoClient.getAllPublicAccessions();
+                        Set<String> oracleAccessions = new HashSet<>(allPublicAccessions);
+
+                        Set<String> onlyInMongo = new HashSet<>(mongoPrjAccessions);
+                        onlyInMongo.removeAll(oracleAccessions);
+                        Set<String> onlyInOracle = new HashSet<>(oracleAccessions);
+                        onlyInOracle.removeAll(mongoPrjAccessions);
+
+                        if(!onlyInMongo.isEmpty()) {
+                            log.error("====[Only in Mongo]: " + Arrays.toString(onlyInMongo.toArray()));
+                        }
+                        if(!onlyInOracle.isEmpty()) {
+                            log.error("====[Only in Oracle]: " + Arrays.toString(onlyInOracle.toArray()));
+                        }
+
                         mongoPrjAccessions.forEach(this::compareProjectsAndFix);
+
                     } else {
                         Arrays.stream(projectAccessions).forEach(this::compareProjectsAndFix);
                     }
