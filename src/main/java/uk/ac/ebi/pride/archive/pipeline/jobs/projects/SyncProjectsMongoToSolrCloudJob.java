@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
@@ -19,9 +19,10 @@ import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
  */
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, SolrCloudMasterConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveMongoConfig.class, SolrApiClientConfig.class, DataSourceConfiguration.class})
 public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
 
 
@@ -55,18 +56,24 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     PrideFileMongoService prideFileMongoService;
 
     @Autowired
-    SolrProjectService solrProjectService;
+    SolrProjectClient solrProjectClient;
 
     @Value("${accession:#{null}}")
     private String accession;
 
 
-    private void doProjectSync(MongoPrideProject mongoPrideProject){
+    private void doProjectSync(MongoPrideProject mongoPrideProject) {
         PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
         List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoPrideProject.getAccession());
         Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
         solrProject.setProjectFileNames(fileNames);
-        PrideSolrProject status = solrProjectService.save(solrProject);
+        PrideSolrProject status = null;
+        try {
+            status = solrProjectClient.save(solrProject);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
         log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
     }
 
@@ -110,20 +117,23 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    System.out.println("#####################Accession:"+accession);
-                    if(accession!=null){
-                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
-                        if(prideSolrProject != null) {
-                            String id = (String) prideSolrProject.getId();
-                            solrProjectService.deleteProjectById(id);
-                            log.info("Document with id-accession: " + id + " - " + prideSolrProject.getAccession() + " has been deleted from the SolrCloud Master");
+                    System.out.println("#####################Accession:" + accession);
+                    if (accession != null) {
+                        Optional<PrideSolrProject> prideSolrProject = solrProjectClient.findByAccession(accession);
+                        if (prideSolrProject.isPresent()) {
+                            String id = (String) prideSolrProject.get().getId();
+                            solrProjectClient.deleteProjectById(id);
+                            log.info("Document with id-accession: " + id + " - " + prideSolrProject.get().getAccession() + " has been deleted from the SolrCloud Master");
                         }
-                    }else{
-                        final Iterable<PrideSolrProject> solrProjects = solrProjectService.findAll();
-                        solrProjects.forEach(x-> {
-                            String id = (String) x.getId();
-                            solrProjectService.deleteProjectById(id);
-                            log.info("Document with id-accession: " + id + " - " + x.getAccession() + " has been deleted from the SolrCloud Master");
+                    } else {
+                        Set<String> solrProjects = solrProjectClient.findAllIds().get();
+                        solrProjects.forEach(x -> {
+                            try {
+                                solrProjectClient.deleteProjectById(x);
+                            } catch (IOException e) {
+                                log.error(e.getMessage(), e);
+                                throw new IllegalStateException(e);
+                            }
                         });
                         log.info("All Documents has been deleted from the SolrCloud Master");
                     }

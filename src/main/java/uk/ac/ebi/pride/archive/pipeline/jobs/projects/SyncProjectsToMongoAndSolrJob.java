@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.common.Tuple;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.repo.client.FileRepoClient;
@@ -26,9 +26,10 @@ import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 //@EnableBatchProcessing
-@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrCloudMasterConfig.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrApiClientConfig.class})
 public class SyncProjectsToMongoAndSolrJob extends AbstractArchiveJob {
 
     @Autowired
@@ -57,7 +58,7 @@ public class SyncProjectsToMongoAndSolrJob extends AbstractArchiveJob {
     PrideFileMongoService prideFileMongoService;
 
     @Autowired
-    SolrProjectService solrProjectService;
+    SolrProjectClient solrProjectClient;
 
     @Autowired
     FileRepoClient fileRepoClient;
@@ -150,12 +151,18 @@ public class SyncProjectsToMongoAndSolrJob extends AbstractArchiveJob {
                 .build();
     }
 
-    private void doSolrSync(MongoPrideProject mongoPrideProject){
+    private void doSolrSync(MongoPrideProject mongoPrideProject) {
         PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
         List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoPrideProject.getAccession());
         Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
         solrProject.setProjectFileNames(fileNames);
-        PrideSolrProject status = solrProjectService.upsert(solrProject);
+        PrideSolrProject status = null;
+        try {
+            status = solrProjectClient.upsert(solrProject);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
         log.info("[Solr] The project -- " + status.getAccession() + " has been inserted in SolrCloud");
     }
 

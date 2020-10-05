@@ -65,6 +65,11 @@ pride-repo.api:
   keyName: $repo_api_key_name
   keyValue: $repo_api_key_value
 
+solr.api:
+  baseUrl: $solr_api_base_url
+  keyName: $solr_api_key_name
+  keyValue: $solr_api_key_value
+
 # data usage details amd pipeline variables
 pride:
   archive:
@@ -80,11 +85,6 @@ pride:
 
 ftp.protocol.url: $pride_ftp_protocol_url
 aspera.protocol.url: $pride_aspera_protocol_url
-
-##### Solr CLoud #####
-spring.pridedb.solr.hh.url: $solr_pridedb_hh_url
-solr.master.hh.url: $solr_master_hh_url
-solr.master.hx.url: $solr_master_hx_url
 
 # Configuration for MongoDB
 mongodb:

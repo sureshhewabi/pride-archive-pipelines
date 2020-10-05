@@ -10,12 +10,15 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.dataprovider.file.ProjectFileSource;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.ProteomeCentralConfig;
 import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.SubmissionToProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
@@ -27,7 +30,8 @@ import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.client.CvParamRepoClient;
 import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
 import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
-import uk.ac.ebi.pride.archive.repo.models.project.*;
+import uk.ac.ebi.pride.archive.repo.models.project.Project;
+import uk.ac.ebi.pride.archive.repo.models.project.ProjectSummary;
 import uk.ac.ebi.pride.archive.repo.util.ObjectMapper;
 import uk.ac.ebi.pride.archive.utils.config.FilePathBuilder;
 import uk.ac.ebi.pride.archive.utils.streaming.FileUtils;
@@ -42,8 +46,8 @@ import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -58,7 +62,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @EnableBatchProcessing
 @ComponentScan({"uk.ac.ebi.pride.archive.pipeline.tasklets"})
-@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveMongoConfig.class, SolrCloudMasterConfig.class, ProteomeCentralConfig.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, ArchiveMongoConfig.class, SolrApiClientConfig.class, ProteomeCentralConfig.class})
 public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
 
     @Value("${pride.data.prod.directory}")
@@ -68,7 +72,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
     PrideProjectMongoService prideProjectMongoService;
 
     @Autowired
-    SolrProjectService solrProjectService;
+    SolrProjectClient solrProjectClient;
 
     @Autowired
     ProjectRepoClient projectRepoClient;
@@ -179,9 +183,9 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
                                         List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoUpdatedProject.get().getAccession());
                                         Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
                                         solrPrideProject.setProjectFileNames(fileNames);
-                                        PrideSolrProject solrExistingProject = solrProjectService.findByAccession(modifiedProject.getAccession());
+                                        PrideSolrProject solrExistingProject = solrProjectClient.findByAccession(modifiedProject.getAccession()).get();
                                         solrPrideProject.setId(solrExistingProject.getId().toString());
-                                        PrideSolrProject solrModifiedProject = solrProjectService.update(solrPrideProject);
+                                        PrideSolrProject solrModifiedProject = solrProjectClient.update(solrPrideProject);
                                         if(solrModifiedProject != null) {
                                             log.info("The project -- " + solrModifiedProject.getAccession() + " has been inserted in SolrCloud");
                                         }else{

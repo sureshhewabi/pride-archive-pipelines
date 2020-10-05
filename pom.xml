@@ -36,7 +36,7 @@
         <archive.px.xml.generator.version>1.0.30-SNAPSHOT</archive.px.xml.generator.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
         <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.4-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
-        <uk.ac.ebi.pride.archive.solr.indexes.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.solr.indexes.version>
+        <uk.ac.ebi.pride.archive.solr.client.version>0.0.1-SNAPSHOT</uk.ac.ebi.pride.archive.solr.client.version>
         <uk.ac.ebi.pride.archive.data-provider.version>1.0.1-SNAPSHOT</uk.ac.ebi.pride.archive.data-provider.version>
         <uk.ac.ebi.pride.archive.utilities.version>2.0.19-SNAPSHOT</uk.ac.ebi.pride.archive.utilities.version>
         <uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>2.0.6-SNAPSHOT
@@ -200,8 +200,8 @@
         <!-- Solr Cloud Configuration -->
         <dependency>
             <groupId>uk.ac.ebi.pride.archive</groupId>
-            <artifactId>pride-solr-indexes</artifactId>
-            <version>${uk.ac.ebi.pride.archive.solr.indexes.version}</version>
+            <artifactId>pride-solr-api-client</artifactId>
+            <version>${uk.ac.ebi.pride.archive.solr.client.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>uk.ac.ebi.pride.archive</groupId>

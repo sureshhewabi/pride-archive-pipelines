@@ -13,32 +13,35 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence;
-import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrCloudMasterConfig.class})
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrApiClientConfig.class})
 public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
     @Autowired
-    private SolrProjectService solrProjectService;
+    private SolrProjectClient solrProjectClient;
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
 
@@ -105,10 +108,11 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
     }
 
     private void restoreFromFile(String projectAccession) throws Exception {
-        PrideSolrProject solrProject = solrProjectService.findByAccession(projectAccession);
-        if (solrProject == null) {
+        Optional<PrideSolrProject> solrProjectOptional = solrProjectClient.findByAccession(projectAccession);
+        if (!solrProjectOptional.isPresent()) {
             return;
         }
+        PrideSolrProject solrProject = solrProjectOptional.get();
         String dir = backupPath + projectAccession;
         Set<String> proteinAccessions = new HashSet<>();
         Set<String> peptideSequences = new HashSet<>();
@@ -124,7 +128,7 @@ public class SolrIndexProteinPeptideJob extends AbstractArchiveJob {
 
         solrProject.addProteinIdentifications(proteinAccessions);
         solrProject.addPeptideSequences(peptideSequences);
-        solrProjectService.update(solrProject);
+        solrProjectClient.update(solrProject);
         log.info("updated solr project: " + projectAccession);
     }
 }
