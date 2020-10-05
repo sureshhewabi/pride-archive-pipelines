@@ -17,7 +17,7 @@ import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.RepoConfig;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.HashUtils;
@@ -30,16 +30,25 @@ import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrCloudMasterConfig.class})
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrApiClientConfig.class})
 public class SanityCheckJob extends AbstractArchiveJob {
 
     @Autowired
@@ -55,7 +64,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
     PrideFileMongoService prideFileMongoService;
 
     @Autowired
-    private SolrProjectService solrProjectService;
+    private SolrProjectClient solrProjectClient;
 
     @Value("${ftp.protocol.url}")
     private String ftpUrl;
@@ -158,13 +167,15 @@ public class SanityCheckJob extends AbstractArchiveJob {
         return mongoProjectAccessions;
     }
 
-    private void updateSolrProject(String prjAccession, Set<String> fileNames) {
-        PrideSolrProject solrProject = solrProjectService.findByAccession(prjAccession);
-        if (solrProject == null) {
+    private void updateSolrProject(String prjAccession, Set<String> fileNames) throws IOException {
+        Optional<PrideSolrProject> prideSolrProjectOptional = solrProjectClient.findByAccession(prjAccession);
+        if (!prideSolrProjectOptional.isPresent()) {
             return;
         }
-        solrProject.setProjectFileNames(fileNames);
-        solrProjectService.update(solrProject);
+        PrideSolrProject prideSolrProject = prideSolrProjectOptional.get();
+
+        prideSolrProject.setProjectFileNames(fileNames);
+        solrProjectClient.update(prideSolrProject);
         log.info("updated solr project: " + prjAccession);
     }
 

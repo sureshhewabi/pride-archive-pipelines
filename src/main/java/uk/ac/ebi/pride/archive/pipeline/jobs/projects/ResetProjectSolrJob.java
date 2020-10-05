@@ -10,20 +10,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
+
+import java.util.Optional;
 
 @Configuration
 @Slf4j
-@Import({ArchiveMongoConfig.class, SolrCloudMasterConfig.class, DataSourceConfiguration.class})
+@Import({ArchiveMongoConfig.class, SolrApiClientConfig.class, DataSourceConfiguration.class})
 public class ResetProjectSolrJob extends AbstractArchiveJob {
 
     @Autowired
-    SolrProjectService solrProjectService;
+    SolrProjectClient solrProjectClient;
 
     @Value("${accession:#{null}}")
     private String accession;
@@ -38,10 +40,10 @@ public class ResetProjectSolrJob extends AbstractArchiveJob {
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_RESET_SUBMISSION_SOLR.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     System.out.println("############# job param accession:"+accession);
-                    if(accession != null){
-                        PrideSolrProject prideSolrProject = solrProjectService.findByAccession(accession);
-                        if(prideSolrProject!=null) {
-                            solrProjectService.deleteProjectById((String) prideSolrProject.getId());
+                    if(accession != null) {
+                        Optional<PrideSolrProject> prideSolrProject = solrProjectClient.findByAccession(accession);
+                        if (prideSolrProject.isPresent()) {
+                            solrProjectClient.deleteProjectById((String) prideSolrProject.get().getId());
                         }
                     }else{
                         throw new NullPointerException("Accession cannot be null");

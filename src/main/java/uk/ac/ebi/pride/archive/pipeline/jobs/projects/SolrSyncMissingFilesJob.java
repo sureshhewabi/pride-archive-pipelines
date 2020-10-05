@@ -13,33 +13,35 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.service.files.PrideFileMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrCloudMasterConfig.class})
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrApiClientConfig.class})
 public class SolrSyncMissingFilesJob extends AbstractArchiveJob {
 
     @Autowired
     PrideFileMongoService prideFileMongoService;
 
     @Autowired
-    private SolrProjectService solrProjectService;
+    private SolrProjectClient solrProjectClient;
 
     private Map<String, Long> taskTimeMap = new HashMap<>();
 
@@ -88,7 +90,7 @@ public class SolrSyncMissingFilesJob extends AbstractArchiveJob {
                     long initInsertPeptides = System.currentTimeMillis();
 
                     if (projectAccession == null) {
-                        Set<String> projects = solrProjectService.findProjectAccessionsWithEmptyFileNames();
+                        Set<String> projects = solrProjectClient.findProjectAccessionsWithEmptyFileNames().get();
                         for (String accession : projects) {
                             List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(accession);
                             Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
@@ -106,13 +108,14 @@ public class SolrSyncMissingFilesJob extends AbstractArchiveJob {
                 }).build();
     }
 
-    private void updateSolrProject(String prjAccession, Set<String> fileNames) {
-        PrideSolrProject solrProject = solrProjectService.findByAccession(prjAccession);
-        if (solrProject == null) {
+    private void updateSolrProject(String prjAccession, Set<String> fileNames) throws IOException {
+        Optional<PrideSolrProject> solrProjectOptional = solrProjectClient.findByAccession(prjAccession);
+        if (!solrProjectOptional.isPresent()) {
             return;
         }
+        PrideSolrProject solrProject = solrProjectOptional.get();
         solrProject.setProjectFileNames(fileNames);
-        solrProjectService.update(solrProject);
+        solrProjectClient.update(solrProject);
         log.info("updated solr project: " + prjAccession);
     }
 }

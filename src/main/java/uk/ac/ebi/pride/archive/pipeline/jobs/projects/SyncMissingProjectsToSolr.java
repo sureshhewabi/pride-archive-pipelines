@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
+import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
@@ -20,24 +20,30 @@ import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.configs.MoleculesMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
+import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrCloudMasterConfig.class})
+@Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class, SolrApiClientConfig.class})
 public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
 
     @Autowired
     private PrideProjectMongoService prideProjectMongoService;
 
     @Autowired
-    private SolrProjectService solrProjectService;
+    private SolrProjectClient solrProjectClient;
 
     @Autowired
     PrideFileMongoService prideFileMongoService;
@@ -109,21 +115,27 @@ public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
 //                solrProject.addProteinIdentifications(proteinAccessions);
 //                solrProject.addPeptideSequences(peptideSequences);
 
-                PrideSolrProject status = solrProjectService.save(solrProject);
+                PrideSolrProject status = null;
+                try {
+                    status = solrProjectClient.save(solrProject);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new IllegalStateException(e);
+                }
                 log.info("The project -- " + status.getAccession() + " has been inserted in SolrCloud");
             }
         });
     }
 
-    private void removeExtraProjects(Set<String> accessions) {
-        accessions.forEach(i -> {
-            PrideSolrProject prideSolrProject = solrProjectService.findByAccession(i);
-            if (prideSolrProject != null) {
-                String id = (String) prideSolrProject.getId();
-                solrProjectService.deleteProjectById(id);
-                log.info("Document with id-accession: " + id + " - " + prideSolrProject.getAccession() + " has been deleted from the SolrCloud Master");
+    private void removeExtraProjects(Set<String> accessions) throws IOException {
+        for (String accession : accessions) {
+            Optional<PrideSolrProject> prideSolrProject = solrProjectClient.findByAccession(accession);
+            if (prideSolrProject.isPresent()) {
+                String id = (String) prideSolrProject.get().getId();
+                solrProjectClient.deleteProjectById(id);
+                log.info("Document with id-accession: " + id + " - " + prideSolrProject.get().getAccession() + " has been deleted from the SolrCloud Master");
             }
-        });
+        }
     }
 
     private Set<String> getMongoProjectAccessions() {
@@ -132,12 +144,9 @@ public class SyncMissingProjectsToSolr extends AbstractArchiveJob {
         return mongoProjectAccessions;
     }
 
-    private Set<String> getSolrProjectAccessions() {
-        Set<String> solrProjectAccessions = new HashSet<>();
-        final Iterable<PrideSolrProject> solrProjects = solrProjectService.findAll();
-        solrProjects.forEach(x -> {
-            solrProjectAccessions.add(x.getAccession());
-        });
+    private Set<String> getSolrProjectAccessions() throws IOException {
+        Set<String> solrProjectAccessions = solrProjectClient.findAllAccessions().get();
+
         log.info("Number of Solr Projects: " + solrProjectAccessions.size());
         return solrProjectAccessions;
     }

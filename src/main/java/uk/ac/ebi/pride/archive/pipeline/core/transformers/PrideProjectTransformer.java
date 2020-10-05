@@ -30,7 +30,7 @@ import uk.ac.ebi.pride.mongodb.archive.model.assay.MongoPrideAssay;
 import uk.ac.ebi.pride.mongodb.archive.model.files.MongoPrideFile;
 import uk.ac.ebi.pride.mongodb.archive.model.msrun.MongoPrideMSRun;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideSolrProject;
+import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
 
 import java.io.File;
@@ -38,7 +38,17 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -385,7 +395,7 @@ public class PrideProjectTransformer {
                                         .map(value -> new CvParam(value.getCvLabel(), value.getAccession(), value.getName(), value.getValue()))
                                         .collect(Collectors.toList())))
                 );
-        project.setSampleAttributes(sampleAttributes);
+        project.setCustomSampleAttributes(sampleAttributes);
         project.setReferences(new HashSet<>(mongoPrideProject.getReferences()));
 
         return project;

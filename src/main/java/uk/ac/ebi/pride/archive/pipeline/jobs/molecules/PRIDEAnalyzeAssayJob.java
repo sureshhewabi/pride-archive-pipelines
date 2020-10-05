@@ -40,7 +40,6 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvi
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -60,7 +59,6 @@ import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
@@ -77,7 +75,15 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -88,7 +94,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @EnableBatchProcessing
 @Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class,
-        DataSourceConfiguration.class, AWS3Configuration.class, SolrCloudMasterConfig.class})
+        DataSourceConfiguration.class, AWS3Configuration.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
@@ -107,9 +113,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Autowired
     PrideMoleculesMongoService moleculesService;
-
-    @Autowired
-    SolrProjectService solrProjectService;
 
     Map<String, Long> taskTimeMap = new HashMap<>();
 

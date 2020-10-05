@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
-import uk.ac.ebi.pride.solr.indexes.pride.model.PrideProjectField;
-import uk.ac.ebi.pride.solr.indexes.pride.utils.SolrAPIHelper;
+import uk.ac.ebi.pride.solr.commons.PrideProjectField;
+import uk.ac.ebi.pride.solr.commons.SolrAPIHelper;
 
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
