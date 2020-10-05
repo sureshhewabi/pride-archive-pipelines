@@ -1,8 +1,7 @@
-package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
+package uk.ac.ebi.pride.archive.pipeline.jobs.molecules;
 
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -13,15 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.mongodb.archive.service.molecules.PrideProjectMoleculesMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
-import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @Slf4j
@@ -73,27 +70,10 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
                 .tasklet((stepContribution, chunkContext) -> {
                     long start = System.currentTimeMillis();
 
-                    int i=0;
-                    while (true) {
-                        Page<PrideMongoPsmSummaryEvidence> prideMongoPsmSummaryEvidences = prideMoleculesMongoService.listPsmSummaryEvidences(PageRequest.of(i++, 100));
-                        List<PrideMongoPsmSummaryEvidence> psms = prideMongoPsmSummaryEvidences.getContent();
-                        if(psms.isEmpty()) {
-                            break;
-                        }
-                        log.info("Page number : "+ i);
-                        psms.parallelStream().forEach(p -> {
-                            String usi = p.getUsi();
-                            String spectraUsi = usi.substring(0, StringUtils.ordinalIndexOf(usi, ":", 5));
-                            if(p.getSpectraUsi() == null || p.getSpectraUsi().isEmpty()) {
-                                p.setSpectraUsi(spectraUsi);
-                                prideMoleculesMongoService.savePsmSummaryEvidence(p);
-                            }
-                        });
-                    }
+                    prideMoleculesMongoService.addSpectraUsi();
 
                     taskTimeMap.put("mongoUpdatePsmStep", System.currentTimeMillis() - start);
                     return RepeatStatus.FINISHED;
                 }).build();
     }
-
 }

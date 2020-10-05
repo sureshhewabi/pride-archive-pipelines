@@ -90,9 +90,7 @@ public class MongoChecksumJob extends AbstractArchiveJob {
                                         dir = "generated";
                                     }
                                     String key = prjAccession + "-" + dir + "-" + fName;
-                                    if (checksumMap.get(key) == null) {
-                                        checksumMap.put(key, checksum);
-                                    }
+                                    checksumMap.putIfAbsent(key, checksum);
 //                                        else {
 //                                            System.err.println("****** exists key: "+ key);
 //                                        }
