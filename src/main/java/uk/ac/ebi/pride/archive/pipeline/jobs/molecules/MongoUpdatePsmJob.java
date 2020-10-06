@@ -14,11 +14,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.mongodb.archive.service.molecules.PrideProjectMoleculesMongoService;
+import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.configs.ArchiveMongoConfig;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 @Configuration
 @Slf4j
@@ -30,6 +33,8 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
 
     @Autowired
     private PrideMoleculesMongoService prideMoleculesMongoService;
+    @Autowired
+    PrideProjectMongoService prideProjectMongoService;
 
     @Bean
     @StepScope
@@ -69,8 +74,15 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
                 .get("mongoUpdatePsmStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     long start = System.currentTimeMillis();
-
-                    prideMoleculesMongoService.addSpectraUsi();
+                    Set<String> allProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
+                    allProjectAccessions.forEach(p -> {
+                        try {
+                            log.info("Project : " + p);
+                            prideMoleculesMongoService.addSpectraUsi(p);
+                        } catch (Exception e) {
+                            log.error(e.getMessage(), e);
+                        }
+                    });
 
                     taskTimeMap.put("mongoUpdatePsmStep", System.currentTimeMillis() - start);
                     return RepeatStatus.FINISHED;
