@@ -92,7 +92,7 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Bean
     Step syncProjectMongoDBToSolrCloudStep() {
         return stepBuilderFactory
-                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC.name())
+                .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC.name())
                 .tasklet((stepContribution, chunkContext) -> {
                     if(accession != null){
                         Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
@@ -126,15 +126,12 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             log.info("Document with id-accession: " + id + " - " + prideSolrProject.get().getAccession() + " has been deleted from the SolrCloud Master");
                         }
                     } else {
-                        Set<String> solrProjects = solrProjectClient.findAllIds().get();
-                        solrProjects.forEach(x -> {
                             try {
-                                solrProjectClient.deleteProjectById(x);
+                                solrProjectClient.deleteAll();
                             } catch (IOException e) {
                                 log.error(e.getMessage(), e);
                                 throw new IllegalStateException(e);
                             }
-                        });
                         log.info("All Documents has been deleted from the SolrCloud Master");
                     }
                     return RepeatStatus.FINISHED;
