@@ -264,7 +264,7 @@ public class SubmissionPipelineConstants {
          * PRIDE Data Sync from Oracle to MongoDB
          **/
 
-        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("syncProjectMongoDBToSolrCloudStep",
+        PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC("syncProjectOracleToMongoDB",
                 "This Step will sync the Oracle Database data into MongoDB data"),
 
         PRIDE_ARCHIVE_MISSING_PROJ_ORACLE_TO_MONGO_SYNC("syncMissingProjectOracleToMongoDB",
@@ -325,7 +325,9 @@ public class SubmissionPipelineConstants {
 
         PRIDER_EBEYE_ALL_DECISION("priderEbeyeAllDecision", "This step decides to generate or store"),
 
-        PRIDER_GET_AND_STORE_ORIGINAL_PUBLICATION("priderGetAndStoreOriginalPublication", "This step gets and store public path");
+        PRIDER_GET_AND_STORE_ORIGINAL_PUBLICATION("priderGetAndStoreOriginalPublication", "This step gets and store public path"),
+
+        PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC("syncProjectMongoDBToSolrCloudStep","This Step will sync all the Projects in the Mongo to Solr");
 
         String name;
         String message;
