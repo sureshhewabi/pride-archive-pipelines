@@ -40,7 +40,6 @@ import uk.ac.ebi.pride.archive.dataprovider.data.ptm.IdentifiedModificationProvi
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParamProvider;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
-import uk.ac.ebi.pride.archive.pipeline.configuration.SolrCloudMasterConfig;
 import uk.ac.ebi.pride.archive.pipeline.jobs.AbstractArchiveJob;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.JmzReaderSpectrumService;
 import uk.ac.ebi.pride.archive.pipeline.services.pia.PIAModelerService;
@@ -60,7 +59,6 @@ import uk.ac.ebi.pride.mongodb.molecules.model.peptide.PrideMongoPeptideEvidence
 import uk.ac.ebi.pride.mongodb.molecules.model.protein.PrideMongoProteinEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.model.psm.PrideMongoPsmSummaryEvidence;
 import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoService;
-import uk.ac.ebi.pride.solr.indexes.pride.services.SolrProjectService;
 import uk.ac.ebi.pride.tools.jmzreader.JMzReaderException;
 import uk.ac.ebi.pride.tools.jmzreader.model.Spectrum;
 import uk.ac.ebi.pride.utilities.term.CvTermReference;
@@ -88,7 +86,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @EnableBatchProcessing
 @Import({ArchiveMongoConfig.class, MoleculesMongoConfig.class,
-        DataSourceConfiguration.class, AWS3Configuration.class, SolrCloudMasterConfig.class})
+        DataSourceConfiguration.class, AWS3Configuration.class})
 public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     private static final Long MERGE_FILE_ID = 1L;
@@ -107,9 +105,6 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
 
     @Autowired
     PrideMoleculesMongoService moleculesService;
-
-    @Autowired
-    SolrProjectService solrProjectService;
 
     Map<String, Long> taskTimeMap = new HashMap<>();
 
@@ -304,6 +299,8 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                             log.error(errorMessage);
                             throw new IOException(errorMessage);
                         }
+                    }else{
+                        log.error("No Project or Assay found!");
                     }
 
                     taskTimeMap.put(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGODB_ASSAY_INFERENCE.getName(),
@@ -792,6 +789,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         String fileName = null;
                                         Optional<Triple<String, SpectraData, SubmissionPipelineConstants.FileType>> refeFile = null;
                                         String usi = null;
+                                        String spectraUsi = null;
 
                                         if (spectrumFiles.size() > 0) {
                                             refeFile = finalMongoRelatedFiles.stream()
@@ -800,9 +798,16 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                                                     .getInputSpectra().get(0).getSpectraDataRef()))
                                                     .findFirst();
                                             spectrumFile = refeFile.get().getFirst();
-                                            fileSpectrum = finalService.getSpectrum(spectrumFile,
-                                                    SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(),
-                                                            (ReportPSM) psm));
+                                            SubmissionPipelineConstants.SpecIdFormat fileIdFormat = SubmissionPipelineConstants.getSpectraDataIdFormat(refeFile.get().getSecond().getSpectrumIDFormat().getCvParam().getAccession());
+                                            String spectrumId = SubmissionPipelineConstants.getSpectrumId(refeFile.get().getSecond(),(ReportPSM) psm);
+                                            if(fileIdFormat != SubmissionPipelineConstants.SpecIdFormat.SPECTRUM_NATIVE_ID && fileIdFormat != SubmissionPipelineConstants.SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID){
+                                                fileSpectrum = finalService.getSpectrumById(spectrumFile,spectrumId);
+                                            }else{
+                                                int index = (fileIdFormat == SubmissionPipelineConstants.SpecIdFormat.MASCOT_QUERY_NUM ||
+                                                        fileIdFormat == SubmissionPipelineConstants.SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID)
+                                                        ? Integer.parseInt(spectrumId) - 1: Integer.parseInt(spectrumId);
+                                                fileSpectrum = finalService.getSpectrumByIndex(spectrumFile, index);
+                                            }
                                             usi = SubmissionPipelineConstants.buildUsi(projectAccession, refeFile.get(),
                                                     (ReportPSM) psm);
                                             Path p = Paths.get(refeFile.get().getFirst());
@@ -813,13 +818,14 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                             refeFile = Optional.of(new Triple<>
                                                     (buildPath + assayResultFile.get().getFileName(),
                                                             spectraData, SubmissionPipelineConstants.FileType.PRIDE));
-                                            fileSpectrum = finalService.getSpectrum(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()), ((ReportPSM) psm).getSourceID());
+                                            fileSpectrum = finalService.getSpectrumById(SubmissionPipelineConstants.returnUnCompressPath(buildPath + assayResultFile.get().getFileName()), ((ReportPSM) psm).getSourceID());
                                             usi = SubmissionPipelineConstants.buildUsi(projectAccession,
                                                     SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName()), (ReportPSM) psm);
                                             spectrumFile = SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName());
                                             fileName = SubmissionPipelineConstants.returnUnCompressPath(assayResultFile.get().getFileName());
 
                                         }
+                                        spectraUsi = SubmissionPipelineConstants.getSpectraUsiFromUsi(usi);
 
                                         log.info(fileSpectrum.getId() + " " + (psm.getMassToCharge() - fileSpectrum.getPrecursorMZ()));
                                         Double[] masses = new Double[fileSpectrum.getPeakList().size()];
@@ -961,6 +967,7 @@ public class PRIDEAnalyzeAssayJob extends AbstractArchiveJob {
                                         PrideMongoPsmSummaryEvidence psmMongo = PrideMongoPsmSummaryEvidence
                                                 .builder()
                                                 .usi(usi)
+                                                .spectraUsi(spectraUsi)
                                                 .peptideSequence(psm.getSequence())
                                                 .assayAccession(assayAccession)
                                                 .isDecoy(psm.getIsDecoy())
