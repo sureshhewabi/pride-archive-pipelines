@@ -436,7 +436,7 @@ public class SubmissionPipelineConstants {
         String spectraUsi;
         String[] usiArray = usi.split(":");
         String[] subset = Arrays.copyOfRange(usiArray, 0, 4);
-        spectraUsi = String.join("", subset);
+        spectraUsi = String.join(":", subset);
         return spectraUsi;
     }
 
