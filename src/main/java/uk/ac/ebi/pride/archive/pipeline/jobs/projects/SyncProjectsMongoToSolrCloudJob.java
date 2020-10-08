@@ -1,6 +1,7 @@
 package uk.ac.ebi.pride.archive.pipeline.jobs.projects;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -23,6 +24,7 @@ import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
 import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -61,12 +63,13 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Value("${accession:#{null}}")
     private String accession;
 
+    private static int countOfProjects = 0;
+
+    private static List<PrideSolrProject> prideSolrProjects = new ArrayList<>();
+
 
     private void doProjectSync(MongoPrideProject mongoPrideProject) {
-        PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
-        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoPrideProject.getAccession());
-        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
-        solrProject.setProjectFileNames(fileNames);
+        PrideSolrProject solrProject = getPrideSolrProjectFromMongoProject(mongoPrideProject);
         PrideSolrProject status = null;
         try {
             status = solrProjectClient.save(solrProject);
@@ -94,18 +97,50 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
         return stepBuilderFactory
                 .get(SubmissionPipelineConstants.PrideArchiveStepNames.PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC.name())
                 .tasklet((stepContribution, chunkContext) -> {
-                    if(accession != null){
+                    if (accession != null) {
                         Optional<MongoPrideProject> mongoPrideProjectOptional = prideProjectMongoService.findByAccession(accession);
-                        if(mongoPrideProjectOptional.isPresent()) {
+                        if (mongoPrideProjectOptional.isPresent()) {
                             MongoPrideProject mongoPrideProject = mongoPrideProjectOptional.get();
                             doProjectSync(mongoPrideProject);
                         }
-                    }else{
-                        prideProjectMongoService.findAllStream().forEach(this::doProjectSync);
+                    } else {
+                        prideProjectMongoService.findAllStream().forEach(this::doProjectSyncBatch);
+                        if (prideSolrProjects.size() >= 1) {
+                            saveBulkSolrProjects();
+                        }
                     }
                     return RepeatStatus.FINISHED;
                 })
                 .build();
+    }
+
+    private void doProjectSyncBatch(MongoPrideProject mongoPrideProject) {
+        PrideSolrProject solrProject = getPrideSolrProjectFromMongoProject(mongoPrideProject);
+        prideSolrProjects.add(solrProject);
+        countOfProjects++;
+        if (prideSolrProjects.size() >= 1000) {
+            saveBulkSolrProjects();
+        }
+    }
+
+    private void saveBulkSolrProjects() {
+        try {
+            solrProjectClient.saveAll(prideSolrProjects);
+            log.info(countOfProjects + " projects has been inserted in SolrCloud");
+            prideSolrProjects.clear();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @NotNull
+    private PrideSolrProject getPrideSolrProjectFromMongoProject(MongoPrideProject mongoPrideProject) {
+        PrideSolrProject solrProject = PrideProjectTransformer.transformProjectMongoToSolr(mongoPrideProject);
+        List<MongoPrideFile> files = prideFileMongoService.findFilesByProjectAccession(mongoPrideProject.getAccession());
+        Set<String> fileNames = files.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet());
+        solrProject.setProjectFileNames(fileNames);
+        return solrProject;
     }
 
     /**
