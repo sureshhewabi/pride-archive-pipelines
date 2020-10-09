@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import uk.ac.ebi.pride.archive.pipeline.configuration.DataSourceConfiguration;
 import uk.ac.ebi.pride.archive.pipeline.configuration.SolrApiClientConfig;
 import uk.ac.ebi.pride.archive.pipeline.core.transformers.PrideProjectTransformer;
@@ -24,7 +25,6 @@ import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
 import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -63,10 +63,6 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
     @Value("${accession:#{null}}")
     private String accession;
 
-    private static int countOfProjects = 0;
-
-    private static List<PrideSolrProject> prideSolrProjects = new ArrayList<>();
-
 
     private void doProjectSync(MongoPrideProject mongoPrideProject) {
         PrideSolrProject solrProject = getPrideSolrProjectFromMongoProject(mongoPrideProject);
@@ -104,9 +100,20 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                             doProjectSync(mongoPrideProject);
                         }
                     } else {
-                        prideProjectMongoService.findAllStream().forEach(this::doProjectSyncBatch);
-                        if (prideSolrProjects.size() >= 1) {
-                            saveBulkSolrProjects();
+                        int page = 0;
+                        int size = 1000;
+                        while (true) {
+                            List<MongoPrideProject> mongoPrideProjects =
+                                    prideProjectMongoService.findAll(PageRequest.of(page++, size)).getContent();
+                            if (mongoPrideProjects != null && mongoPrideProjects.size() >= 1) {
+                                List<PrideSolrProject> prideSolrProjects = mongoPrideProjects.stream()
+                                        .map(mongoPrideProject -> getPrideSolrProjectFromMongoProject(mongoPrideProject))
+                                        .collect(Collectors.toList());
+                                saveBulkSolrProjects(prideSolrProjects);
+                                log.info((page-1) * 1000 + mongoPrideProjects.size() + " projects has been inserted");
+                            } else {
+                                break;
+                            }
                         }
                     }
                     return RepeatStatus.FINISHED;
@@ -114,20 +121,9 @@ public class SyncProjectsMongoToSolrCloudJob extends AbstractArchiveJob {
                 .build();
     }
 
-    private void doProjectSyncBatch(MongoPrideProject mongoPrideProject) {
-        PrideSolrProject solrProject = getPrideSolrProjectFromMongoProject(mongoPrideProject);
-        prideSolrProjects.add(solrProject);
-        countOfProjects++;
-        if (prideSolrProjects.size() >= 1000) {
-            saveBulkSolrProjects();
-        }
-    }
-
-    private void saveBulkSolrProjects() {
+    private void saveBulkSolrProjects(List<PrideSolrProject> prideSolrProjects) {
         try {
             solrProjectClient.saveAll(prideSolrProjects);
-            log.info(countOfProjects + " projects has been inserted in SolrCloud");
-            prideSolrProjects.clear();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new IllegalStateException(e);
