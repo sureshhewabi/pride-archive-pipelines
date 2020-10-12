@@ -13,4 +13,4 @@ FROM maven:3.3.9-jdk-8-alpine
 WORKDIR /pride-pipelines
 COPY --from=build-env /pride-pipelines/target/pride-pipelines.jar ./
 COPY config/logback-spring.xml ./config/logback-spring.xml
-ENTRYPOINT java ${JAVA_OPTS} -jar pride-pipelines.jar --spring.batch.job.names=${JOB_NAME}
+ENTRYPOINT java ${JAVA_OPTS} -jar pride-pipelines.jar ${JOB_ARGS}

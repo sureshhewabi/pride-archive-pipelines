@@ -25,17 +25,17 @@ spec:
       containers:
         - name: pride-pipelines
           image: $IMAGE
-          env:
-            - name: JAVA_OPTS
-              value: "-Dhttp.proxyHost=$http_proxy_host -Dhttp.proxyPort=$http_proxy_port -Dhttp.nonProxyHosts=$non_proxy_hosts"
-            - name: HTTP_PROXY
-              value: "http://$http_proxy_host:$http_proxy_port"
-            - name: HTTPS_PROXY
-              value: "http://$http_proxy_host:$http_proxy_port"
-            - name: http_proxy
-              value: "http://$http_proxy_host:$http_proxy_port"
-            - name: https_proxy
-              value: "http://$http_proxy_host:$http_proxy_port"
+#          env:
+#            - name: JAVA_OPTS
+#              value: "-Dhttp.proxyHost=$http_proxy_host -Dhttp.proxyPort=$http_proxy_port -Dhttp.nonProxyHosts=$non_proxy_hosts"
+#            - name: HTTP_PROXY
+#              value: "http://$http_proxy_host:$http_proxy_port"
+#            - name: HTTPS_PROXY
+#              value: "http://$http_proxy_host:$http_proxy_port"
+#            - name: http_proxy
+#              value: "http://$http_proxy_host:$http_proxy_port"
+#            - name: https_proxy
+#              value: "http://$http_proxy_host:$http_proxy_port"
           volumeMounts:
             - name: application-config
               mountPath: "/pride-pipelines/config/"
