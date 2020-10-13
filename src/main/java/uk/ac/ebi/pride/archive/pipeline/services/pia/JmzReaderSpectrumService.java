@@ -47,6 +47,10 @@ public class JmzReaderSpectrumService {
         for (Triple<String, SpectraData, SubmissionPipelineConstants.FileType> entry : spectrumFileList) {
             String key = (String) entry.getFirst();
             SubmissionPipelineConstants.FileType value = entry.getThird();
+//            if(value == null && entry.getSecond().getSpectrumIDFormat().getCvParam().getAccession().equals("MS:1000774")){
+//                entry.setThird(SubmissionPipelineConstants.FileType.MGF);
+//                value = SubmissionPipelineConstants.FileType.MGF;
+//            }
             if (value == SubmissionPipelineConstants.FileType.MGF) {
                 this.readers.put(key, new MgfFile(new File(key), true));
             }
@@ -76,10 +80,19 @@ public class JmzReaderSpectrumService {
         return new JmzReaderSpectrumService(spectrumFileList);
     }
 
-    public Spectrum getSpectrum(String filePath, String id) throws JMzReaderException {
+    public Spectrum getSpectrumById(String filePath, String id) throws JMzReaderException {
         JMzReader reader = readers.get(filePath);
         try{
             return reader.getSpectrumById(id);
+        }catch (java.lang.NumberFormatException e){
+            throw new JMzReaderException("Error parsing the following Accession -- " + id);
+        }
+    }
+
+    public Spectrum getSpectrumByIndex(String filePath, int id) throws JMzReaderException {
+        JMzReader reader = readers.get(filePath);
+        try{
+            return reader.getSpectrumByIndex(id);
         }catch (java.lang.NumberFormatException e){
             throw new JMzReaderException("Error parsing the following Accession -- " + id);
         }

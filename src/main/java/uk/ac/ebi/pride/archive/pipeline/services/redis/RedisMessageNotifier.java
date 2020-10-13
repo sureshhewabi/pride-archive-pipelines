@@ -12,6 +12,7 @@ import org.springframework.util.Assert;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.integration.message.model.FileType;
 import uk.ac.ebi.pride.integration.message.model.IndexType;
+import uk.ac.ebi.pride.integration.message.model.impl.AssayDataGenerationPayload;
 import uk.ac.ebi.pride.integration.message.model.impl.FileGenerationPayload;
 import uk.ac.ebi.pride.integration.message.model.impl.IncomingSubmissionPayload;
 import uk.ac.ebi.pride.integration.message.model.impl.IndexCompletionPayload;
@@ -68,6 +69,9 @@ public class RedisMessageNotifier implements MessageNotifier<String> {
                 break;
             case 7:
                 messageGenerator.sendNotification((String)"archive.incoming.submission.queue", new IncomingSubmissionPayload(args[1], SubmissionType.PARTIAL, Calendar.getInstance().getTime()), IncomingSubmissionPayload.class);
+                break;
+            case 8:
+                messageGenerator.sendNotification((String)"archive.incoming.assay.annotation.queue", new AssayDataGenerationPayload(args[1],args[2]), AssayDataGenerationPayload.class);
         }
 
     }

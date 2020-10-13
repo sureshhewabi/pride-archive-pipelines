@@ -130,7 +130,7 @@ public class PrideImportAssaysMongoJob extends AbstractArchiveJob {
                 }).build();
     }
 
-    private void syncProject(String projectAccession) {
+    public void syncProject(String projectAccession) {
         try {
             Project project = projectRepoClient.findByAccession(projectAccession);
             if (!project.isPublicProject()) {
