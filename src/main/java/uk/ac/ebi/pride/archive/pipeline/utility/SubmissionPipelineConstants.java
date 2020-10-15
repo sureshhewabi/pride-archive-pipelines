@@ -122,8 +122,11 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_ORACLE_MONGODB_SYNC("syncOracleToMongoProjectsJob",
                 "This command will sync the Oracle Database data into MongoDB data"),
 
-        PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC("syncMongoProjectToSolrCloudJob",
-                "This command sync all the projects from MongoDB to Solr Cloud"),
+        PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC_HX("syncMongoProjectToSolrCloudJob",
+                "This command sync all the projects from MongoDB to Solr Cloud HX"),
+
+        PRIDE_ARCHIVE_MONGODB_SOLRCLOUD_SYNC_HH("syncMongoProjectToSolrCloudJobHH",
+                "This command sync all the projects from MongoDB to Solr Cloud HH"),
 
         PRIDE_ARCHIVE_RESET_SUBMISSION_MONGODB("resetMongoProjectsJob",
                 "This command will reset the submission data from MongoDB"),
@@ -273,8 +276,11 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_MISSING_PROJ_ORACLE_TO_PC_SYNC("syncMissingProjectsOracleToPXStep",
                 "This Step will sync missing projects from Oracle into ProteomeXchange"),
 
-        PRIDE_ARCHIVE_ORACLE_CLEAN_SOLR("cleanSolrCloudStep",
-                "Clean all the documents in SolrCloud Master"),
+        PRIDE_ARCHIVE_CLEAN_SOLR_HX("cleanSolrCloudStep",
+                "Clean all the documents in SolrCloud Master HX"),
+
+        PRIDE_ARCHIVE_CLEAN_SOLR_HH("cleanSolrCloudStep",
+                "Clean all the documents in SolrCloud Master HH"),
 
         PRIDE_ARCHIVE_ORACLE_TO_MONGO_SYNC_FILES("syncFileInformationToMongoDBStep",
                 "This Step will sync all the Files in the Oracle data into MongoDB data"),
@@ -327,7 +333,10 @@ public class SubmissionPipelineConstants {
 
         PRIDER_GET_AND_STORE_ORIGINAL_PUBLICATION("priderGetAndStoreOriginalPublication", "This step gets and store public path"),
 
-        PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC("syncProjectMongoDBToSolrCloudStep","This Step will sync all the Projects in the Mongo to Solr");
+        PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC_HX("syncProjectMongoDBToSolrCloudStepHX","This Step will sync all the Projects in the Mongo to Solr HX"),
+
+        PRIDE_ARCHIVE_MONGO_TO_SOLR_SYNC_HH("syncProjectMongoDBToSolrCloudStepHH","This Step will sync all the Projects in the Mongo to Solr HH");
+
 
         String name;
         String message;

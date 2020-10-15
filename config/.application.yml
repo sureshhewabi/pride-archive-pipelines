@@ -65,10 +65,15 @@ pride-repo.api:
   keyName: $repo_api_key_name
   keyValue: $repo_api_key_value
 
-solr.api:
-  baseUrl: $solr_api_base_url
-  keyName: $solr_api_key_name
-  keyValue: $solr_api_key_value
+solr.api.hx:
+  baseUrl: $solr_api_hx_base_url
+  keyName: $solr_api_hx_key_name
+  keyValue: $solr_api_hx_key_value
+
+solr.api.hh:
+  baseUrl: $solr_api_hh_base_url
+  keyName: $solr_api_hh_key_name
+  keyValue: $solr_api_hh_key_value
 
 # data usage details amd pipeline variables
 pride:
