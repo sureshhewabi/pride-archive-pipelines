@@ -9,6 +9,7 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -21,7 +22,6 @@ import uk.ac.ebi.pride.mongodb.molecules.service.molecules.PrideMoleculesMongoSe
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 @Configuration
 @Slf4j
@@ -35,6 +35,10 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
     private PrideMoleculesMongoService prideMoleculesMongoService;
     @Autowired
     PrideProjectMongoService prideProjectMongoService;
+
+    @Value("${accession:#{null}}")
+    @StepScope
+    private String accession;
 
     @Bean
     @StepScope
@@ -74,15 +78,20 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
                 .get("mongoUpdatePsmStep")
                 .tasklet((stepContribution, chunkContext) -> {
                     long start = System.currentTimeMillis();
-                    Set<String> allProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
-                    allProjectAccessions.forEach(p -> {
-                        try {
-                            log.info("Project : " + p);
-                            prideMoleculesMongoService.addSpectraUsi(p);
-                        } catch (Exception e) {
-                            log.error(e.getMessage(), e);
-                        }
-                    });
+                    if (accession != null) {
+                        log.info("Project : " + accession);
+                        prideMoleculesMongoService.addSpectraUsi(accession);
+                    } else {
+                        Set<String> allProjectAccessions = prideProjectMongoService.getAllProjectAccessions();
+                        allProjectAccessions.forEach(p -> {
+                            try {
+                                log.info("Project : " + p);
+                                prideMoleculesMongoService.addSpectraUsi(p);
+                            } catch (Exception e) {
+                                log.error(e.getMessage(), e);
+                            }
+                        });
+                    }
 
                     taskTimeMap.put("mongoUpdatePsmStep", System.currentTimeMillis() - start);
                     return RepeatStatus.FINISHED;

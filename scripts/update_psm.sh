@@ -30,10 +30,16 @@ printUsage() {
     echo "Usage: ./update_psm.sh"
 }
 
-JOB_ARGS=""
-
-
-JOB_ARGS="${JOB_ARGS}"
+##### PARSE the provided parameters
+while [ "$1" != "" ]; do
+    case $1 in
+      "-a" | "--accession")
+        shift
+        PROJECT_ACCESSION=$1
+        ;;
+    esac
+    shift
+done
 
 ##### Set variables
 JOB_NAME="${JOB_NAME}"
@@ -51,4 +57,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=mongoUpdatePsmJobJobBean ${JOB_ARGS}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.datasource.maxPoolSize=10 --spring.batch.job.names=mongoUpdatePsmJobJobBean -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION}
