@@ -28,13 +28,13 @@ import uk.ac.ebi.pride.archive.pipeline.configuration.JobRunnerTestConfiguration
  * Created by ypriverol (ypriverol@gmail.com) on 14/06/2018.
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {SyncProjectsMongoToSolrCloudJob.class, JobRunnerTestConfiguration.class})
+@ContextConfiguration(classes = {SyncProjectsMongoToHxSolrCloudJob.class, JobRunnerTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties")
 @Slf4j
-public class SyncProjectsMongoToSolrCloudJobTest {
+public class SyncProjectsMongoToHxSolrCloudJobTest {
 
         @Autowired
-        SyncProjectsMongoToSolrCloudJob mongoToSolrCloudJob;
+        SyncProjectsMongoToHxSolrCloudJob mongoToSolrCloudJob;
 
         @Autowired
         private JobLauncherTestUtils jobLauncherTestUtils;
