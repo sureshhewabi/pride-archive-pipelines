@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import uk.ac.ebi.pride.archive.pipeline.utility.BackupUtil;
+import uk.ac.ebi.pride.archive.pipeline.utility.PrideFilePathUtility;
 import uk.ac.ebi.pride.data.io.SubmissionFileParser;
 import uk.ac.ebi.pride.mongodb.archive.model.projects.MongoPrideProject;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
@@ -20,12 +21,14 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.INTERNAL;
-import static uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants.GenerateEbeyeXmlConstants.SUBMISSION_PX;
 
 @StepScope
 @Component
@@ -90,7 +93,7 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     public void generateEBeyeXml(String projectAcc) {
         MongoPrideProject mongoPrideProject = prideProjectMongoService.findByAccession(projectAcc).get();
         Assert.notNull(mongoPrideProject, "Project to update cannot be null! Accession: " + projectAccession);
-        File submissionFile = new File(getSubmissionFilePath(mongoPrideProject));
+        File submissionFile = new File(PrideFilePathUtility.getSubmissionFilePath(mongoPrideProject, prideRepoRootPath));
         Map<String, String> proteins = restoreFromFile(projectAcc);
         GenerateEBeyeXMLNew generateEBeyeXMLNew = null;
         try {
@@ -143,19 +146,6 @@ public class GenerateEbeyeXmlTasklet extends AbstractTasklet {
     public void afterPropertiesSet() throws Exception {
         Assert.notNull(prideProjectMongoService, "prideProjectMongoService should not be null");
         Assert.notNull(outputDirectory, "Output directory cannot be null.");
-    }
-
-    public String getSubmissionFilePath(MongoPrideProject prideProject) {
-        log.info("Generating public file path fragment based on the publication date and project accession");
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(prideProject.getPublicationDate());
-        int month = calendar.get(Calendar.MONTH) + 1; // the month are zero based, hence the correction +1
-        int year = calendar.get(Calendar.YEAR);
-        String datePath = year + File.separator + (month < 10 ? "0" : "") + month;
-        String publicPath = datePath + File.separator + prideProject.getAccession();
-        log.info("Generated public path fragment: " + publicPath);
-        prideRepoRootPath = prideRepoRootPath.endsWith(File.separator) ? prideRepoRootPath : prideRepoRootPath + File.separator;
-        return prideRepoRootPath + publicPath + File.separator + INTERNAL + File.separator + SUBMISSION_PX;
     }
 }
 

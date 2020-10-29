@@ -148,3 +148,10 @@ submission:
     name: submission.px
 
 pride.ebeye.dir: $pride_ebeye_dir
+
+biosamples.client:
+    uri: $bio_samples_url
+    aap:
+      username: $pride_aap_username
+      password: $pride_aap_password
+aap.url: $aap_url
