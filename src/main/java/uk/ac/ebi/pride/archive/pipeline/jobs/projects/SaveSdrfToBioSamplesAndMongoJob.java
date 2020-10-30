@@ -169,7 +169,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
                     String[] headers = sdrfObject.getMetaData().headers();
                     String sampleName = projectAccession + "_" + sdrfObject.getString(SOURCE_NAME);
                     Sample sample = Sample.build(sampleName,
-                            null, PRIDE_DOMAIN, Instant.now(), null,Instant.now(),
+                            null, PRIDE_DOMAIN, Instant.now(), null,
                             getAttributes(headers, sdrfObject), getRelationShip(headers, sdrfObject), getExternalReferences(headers, sdrfObject), SubmittedViaType.JSON_API);
 
 
