@@ -162,15 +162,14 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     private Tasklet saveToBioSamplesTasklet() {
         return (stepContribution, chunkContext) -> {
             Map<String, String> sampleChecksumAccession = getSampleChecksumAccession();
-            int countOfSdrfFiles = 1;
             for (Map.Entry<String, List<Record>> sdrfContent : sdrfContents.entrySet()) {
                 List<Record> sdrfObjects = sdrfContent.getValue();
                 sdrfObjects.remove(0);
                 for (Record sdrfObject : sdrfObjects) {
                     String[] headers = sdrfObject.getMetaData().headers();
-                    String sampleName = projectAccession + "_" + countOfSdrfFiles + "_" + sdrfObject.getString(SOURCE_NAME);
+                    String sampleName = projectAccession + "_" + sdrfObject.getString(SOURCE_NAME);
                     Sample sample = Sample.build(sampleName,
-                            null, PRIDE_DOMAIN, Instant.now(), null,
+                            null, PRIDE_DOMAIN, Instant.now(), null,Instant.now(),
                             getAttributes(headers, sdrfObject), getRelationShip(headers, sdrfObject), getExternalReferences(headers, sdrfObject), SubmittedViaType.JSON_API);
 
 
