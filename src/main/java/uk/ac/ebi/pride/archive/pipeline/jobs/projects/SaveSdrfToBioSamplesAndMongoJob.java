@@ -58,8 +58,8 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     public static final String PRIDE_DOMAIN = "self.pride";
     public static final String SOURCE_NAME = "source name";
 
-    @Value("${project.accession:#{null}}")
-    private String projectAccession = "selva";
+    @Value("${accession:#{null}}")
+    private String projectAccession;
 
     @Value("${pride.archive.data.path}")
     private String prideRepoRootPath;
