@@ -121,7 +121,8 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
             for (DataFile dataFile : submission.getDataFiles()) {
                 if (dataFile.getFileType().equals(ProjectFileType.EXPERIMENTAL_DESIGN)) {
-                    String sdrfFilePath = PrideFilePathUtility.getSubmittedFilesPath(mongoPrideProject.get(), prideRepoRootPath);
+                    String sdrfFilePath = PrideFilePathUtility.getSubmittedFilesPath(mongoPrideProject.get(), prideRepoRootPath) +
+                             dataFile.getFileName();
                     String fileChecksum = HashUtils.getSha1Checksum(new File(sdrfFilePath));
 
 
