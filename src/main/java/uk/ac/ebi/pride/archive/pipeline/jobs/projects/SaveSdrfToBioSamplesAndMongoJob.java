@@ -245,7 +245,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
             }
         }
         result.append("\n").append("\"sampleAccession\"").append(":").append("\"" + sampleAccession + "\"").append(", ");
-        result.append("\n").append("\"sampleChecksum\"").append(":").append("\"" + sampleChecksum + "\"").append(", ");
+        result.append("\n").append("\"sampleChecksum\"").append(":").append("\"" + sampleChecksum + "\"");
         return result.append("\n}").toString();
     }
 
