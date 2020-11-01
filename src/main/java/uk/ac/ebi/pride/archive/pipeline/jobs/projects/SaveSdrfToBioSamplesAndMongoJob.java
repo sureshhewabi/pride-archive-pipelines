@@ -239,9 +239,9 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
         for (int i = 0; i < headers.length; i++) {
             String columnName = headers[i];
             if (!columnNames.add(columnName)) {
-                result.append("\n").append("\"" + columnName + "_" + count++ + "\"").append(":").append("\"" + sdrfObject.getString(i) + "\"").append(", ");
+                result.append("\n").append("\"" + columnName + "_" + count++ + "\"").append(":").append("\"" + sdrfObject.getString(i).replaceAll("\"","") + "\"").append(", ");
             } else {
-                result.append("\n").append("\"" + columnName + "\"").append(":").append("\"" + sdrfObject.getString(columnName) + "\"").append(", ");
+                result.append("\n").append("\"" + columnName + "\"").append(":").append("\"" + sdrfObject.getString(columnName).replaceAll("\"","") + "\"").append(", ");
             }
         }
         result.append("\n").append("\"sampleAccession\"").append(":").append("\"" + sampleAccession + "\"").append(", ");
