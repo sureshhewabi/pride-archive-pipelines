@@ -11,7 +11,7 @@ PROJECT_ACCESSION=""
 
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="spring_batch_save_sdrf_to_biosamples_and _mongo"
+JOB_NAME="spring_batch_save_sdrf_to_biosamples_and_mongo"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
