@@ -549,8 +549,5 @@ public class SubmissionPipelineConstants {
         public static final String PUBMED = "pubmed";
         public static final String TAXONOMY = "TAXONOMY";
         public static final String ORCID = "ORCID";
-
-        public static final String INTERNAL = "internal";
-        public static final String SUBMISSION_PX = "submission.px";
     }
 }
