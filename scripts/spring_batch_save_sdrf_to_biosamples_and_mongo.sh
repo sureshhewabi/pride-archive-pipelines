@@ -31,7 +31,7 @@ printUsage() {
     echo "$ ./scripts/spring_batch_save_sdrf_to_biosamples_and_mongo.sh"
     echo ""
     echo "Usage: ./spring_batch_save_sdrf_to_biosamples_and_mongo.sh -a|--accession [-e|--email]"
-    echo "     Example: ./spring_batch_solr_sync_add_one_project.sh -a PXD011181"
+    echo "     Example: ./spring_batch_save_sdrf_to_biosamples_and_mongo.sh -a PXD011181"
     echo "     (required) accession         : the project accession"
     echo "     (optional) email             :  Email to send LSF notification"
 }

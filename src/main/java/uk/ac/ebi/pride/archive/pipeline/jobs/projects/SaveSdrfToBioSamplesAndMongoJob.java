@@ -57,6 +57,9 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     public static final String SAVE_TO_MONGO = "saveToMongo";
     public static final String PRIDE_DOMAIN = "self.pride";
     public static final String SOURCE_NAME = "source name";
+    public static final String PRIDE_ARCHIVE_PROJECT_URL = "https://www.ebi.ac.uk/pride/archive/projects/";
+    public static final String SAMPLE_CHECKSUM = "sampleChecksum";
+    public static final String SAMPLE_ACCESSION = "sampleAccession";
 
     @Value("${accession:#{null}}")
     private String projectAccession;
@@ -73,11 +76,9 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     @Autowired
     private PrideProjectMongoService prideProjectMongoService;
 
-    private Map<String, List<Record>> sdrfContents = new HashMap<>();
+    private Map<String, List<Record>> sdrfContentsToProcess = new HashMap<>();
 
-    private Map<String, String> sdrfFileChecksum = new HashMap<>();
-
-    List<JSONObject> samples = new ArrayList();
+    Map<String, List<JSONObject>> checksumToSamplesMongo = new HashMap<>();
 
     private MongoPrideSdrf mongoPrideSdrf;
 
@@ -127,13 +128,12 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
 
                     if (checkFilesAlreadySaved(fileChecksum)) {
-                        return RepeatStatus.FINISHED;
+                         continue;
                     }
-                    sdrfFileChecksum.put(fileChecksum, sdrfFilePath);
 
                     try (BufferedReader stream = new BufferedReader(new FileReader(sdrfFilePath))) {
                         TsvParser tsvParser = new TsvParser(new TsvParserSettings());
-                        sdrfContents.put(fileChecksum, tsvParser.parseAllRecords(stream));
+                        sdrfContentsToProcess.put(fileChecksum, tsvParser.parseAllRecords(stream));
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -152,8 +152,9 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
      */
     private boolean checkFilesAlreadySaved(String fileChecksum) {
         if (mongoPrideSdrf != null) {
-            Map<String, String> fileChecksums = mongoPrideSdrf.getSdrfFileCheckSum();
+            Map<String, List<JSONObject>> fileChecksums = mongoPrideSdrf.getSdrf();
             if (fileChecksums.containsKey(fileChecksum)) {
+                checksumToSamplesMongo.put(fileChecksum, fileChecksums.get(fileChecksum));
                 return true;
             }
         }
@@ -163,9 +164,11 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     private Tasklet saveToBioSamplesTasklet() {
         return (stepContribution, chunkContext) -> {
             Map<String, String> sampleChecksumAccession = getSampleChecksumAccession();
-            for (Map.Entry<String, List<Record>> sdrfContent : sdrfContents.entrySet()) {
+
+            for (Map.Entry<String, List<Record>> sdrfContent : sdrfContentsToProcess.entrySet()) {
                 List<Record> sdrfObjects = sdrfContent.getValue();
                 sdrfObjects.remove(0);
+                List<JSONObject> samples = new ArrayList<>();
                 for (Record sdrfObject : sdrfObjects) {
                     String[] headers = sdrfObject.getMetaData().headers();
                     String sampleName = projectAccession + "_" + sdrfObject.getString(SOURCE_NAME);
@@ -190,10 +193,8 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
                     samples.add(new JSONObject(sdrfObjectString));
                 }
-
+                checksumToSamplesMongo.put(sdrfContent.getKey(), samples);
             }
-
-
             return RepeatStatus.FINISHED;
         };
     }
@@ -201,9 +202,9 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     private Map<String, String> getSampleChecksumAccession() {
         Map<String, String> sampleChecksumAccession = new HashMap<>();
         if (mongoPrideSdrf != null) {
-            mongoPrideSdrf.getSdrf().stream().forEach(
+            mongoPrideSdrf.getSdrf().values().stream().flatMap(content -> content.stream()).forEach(
                     sdrfContent -> {
-                        sampleChecksumAccession.put(sdrfContent.get("sampleChecksum").toString(), sdrfContent.get("sampleAccession").toString());
+                        sampleChecksumAccession.put(sdrfContent.get(SAMPLE_CHECKSUM).toString(), sdrfContent.get(SAMPLE_ACCESSION).toString());
                     }
             );
         }
@@ -212,7 +213,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
     private Set<ExternalReference> getExternalReferences(String[] headers, Record sdrfObject) {
         Set<ExternalReference> externalReferences = new HashSet<>();
-        externalReferences.add(ExternalReference.build("projectUrl"));
+        externalReferences.add(ExternalReference.build(PRIDE_ARCHIVE_PROJECT_URL +projectAccession));
         return null;
     }
 
@@ -244,14 +245,14 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
                 result.append("\n").append("\"" + columnName + "\"").append(":").append("\"" + sdrfObject.getString(columnName).replaceAll("\"","") + "\"").append(", ");
             }
         }
-        result.append("\n").append("\"sampleAccession\"").append(":").append("\"" + sampleAccession + "\"").append(", ");
-        result.append("\n").append("\"sampleChecksum\"").append(":").append("\"" + sampleChecksum + "\"");
+        result.append("\n").append("\""+SAMPLE_ACCESSION+"\"").append(":").append("\"" + sampleAccession + "\"").append(", ");
+        result.append("\n").append("\""+SAMPLE_CHECKSUM+"\"").append(":").append("\"" + sampleChecksum + "\"");
         return result.append("\n}").toString();
     }
 
     private Tasklet saveToMongoTasklet() {
         return (stepContribution, chunkContext) -> {
-            if (samples.size() == 0) {
+            if(sdrfContentsToProcess.size() == 0 ){
                 return RepeatStatus.FINISHED;
             }
             ObjectId id = null;
@@ -261,8 +262,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
             MongoPrideSdrf mongoPrideSdrf = MongoPrideSdrf.builder()
                     .id(id)
                     .projectAccession(projectAccession)
-                    .sdrf(samples)
-                    .sdrfFileCheckSum(sdrfFileChecksum)
+                    .sdrf(checksumToSamplesMongo)
                     .build();
             prideSdrfMongoService.saveSdrf(mongoPrideSdrf);
             return RepeatStatus.FINISHED;
