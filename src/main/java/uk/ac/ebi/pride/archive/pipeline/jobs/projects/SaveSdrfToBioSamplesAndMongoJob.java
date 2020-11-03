@@ -223,6 +223,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
     private Set<Attribute> getAttributes(String[] headers, Record sdrfObject) {
         Set<Attribute> attributes = new HashSet<>();
+        attributes.add(Attribute.build("project", "PRIDE"));
         for (String columnName : headers) {
             if (columnName.contains("characteristics")) {
                 attributes.add(Attribute.build(columnName.substring(16, columnName.length() - 1), sdrfObject.getString(columnName)));
