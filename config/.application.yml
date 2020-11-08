@@ -154,4 +154,4 @@ biosamples.client:
     aap:
       username: $aap_pride_user
       password: $aap_pride_passwd
-aap.url: $aap_auth_url
+      uri: $aap_auth_url

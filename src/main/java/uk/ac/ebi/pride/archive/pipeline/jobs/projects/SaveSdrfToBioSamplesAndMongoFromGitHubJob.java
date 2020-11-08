@@ -147,7 +147,7 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
             List<JSONObject> samples = new ArrayList<>();
             for (Record sdrfObject : sdrfObjects) {
                 String[] headers = sdrfObject.getMetaData().headers();
-                String sampleName = projectAccession + "-" + sdrfObject.getString(SOURCE_NAME);
+                String sampleName = projectAccession + "-" + sdrfObject.getString(headers[0]);
                 Sample sample = Sample.build(sampleName,
                         null, PRIDE_DOMAIN, Instant.now(), null,
                         getAttributes(headers, sdrfObject), getRelationShip(headers, sdrfObject), getExternalReferences(projectAccession), SubmittedViaType.JSON_API);
@@ -202,7 +202,7 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
         Set<Attribute> attributes = new HashSet<>();
         attributes.add(Attribute.build("project", "PRIDE"));
         for (String columnName : headers) {
-            if (columnName.contains("characteristics")) {
+            if (columnName.toLowerCase().startsWith("characteristics")) {
                 attributes.add(Attribute.build(columnName.substring(16, columnName.length() - 1), sdrfObject.getString(columnName)));
             }
         }
