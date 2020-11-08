@@ -46,10 +46,8 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
 
     public static final String SAVE_SDRF_TO_BIO_SAMPLES_AND_MONGO_GIT = "saveSdrfToBioSamplesAndMongoGitHub";
     public static final String READ_TSV_GIT = "readTsvGitHub";
-    public static final String SAVE_TO_BIO_SAMPLES_GIT = "saveToBioSamplesGitHub";
-    public static final String SAVE_TO_MONGO_GIT = "saveToMongoGitHub";
+    public static final String SAVE_TO_BIO_SAMPLES_AND_MONGO_GIT = "saveToBioSamplesAndMongoGitHub";
     public static final String PRIDE_DOMAIN = "self.pride";
-    public static final String SOURCE_NAME = "source name";
     public static final String PRIDE_ARCHIVE_PROJECT_URL = "https://www.ebi.ac.uk/pride/archive/projects/";
     public static final String SAMPLE_CHECKSUM = "sampleChecksum";
     public static final String SAMPLE_ACCESSION = "sampleAccession";
@@ -58,8 +56,6 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
     private String folderPath;
 
     private Map<String, Map<String, List<Record>>> accessionToSdrfContents = new HashMap<>();
-
-    private Map<String, Map<String, List<JSONObject>>> accessionToSdrfToSave = new HashMap<>();
 
     @Autowired
     private BioSamplesClient bioSamplesClient;
@@ -72,8 +68,7 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
         return jobBuilderFactory
                 .get(SAVE_SDRF_TO_BIO_SAMPLES_AND_MONGO_GIT)
                 .start(readTsv())
-                .next(saveToBioSamples())
-                .next(saveToMongo())
+                .next(saveToBioSamplesAndMongo())
                 .build();
 
     }
@@ -84,25 +79,21 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
                 .tasklet(readTsvTasklet()).build();
     }
 
-    private Step saveToBioSamples() {
+    private Step saveToBioSamplesAndMongo() {
         return stepBuilderFactory
-                .get(SAVE_TO_BIO_SAMPLES_GIT)
+                .get(SAVE_TO_BIO_SAMPLES_AND_MONGO_GIT)
                 .tasklet(saveToBioSamplesTasklet()).build();
 
-    }
-
-    private Step saveToMongo() {
-        return stepBuilderFactory
-                .get(SAVE_TO_MONGO_GIT)
-                .tasklet(saveToMongoTasklet()).build();
     }
 
     private Tasklet readTsvTasklet() {
         return (stepContribution, chunkContext) -> {
             try {
+                TsvParserSettings tsvParserSettings = new TsvParserSettings();
+                tsvParserSettings.setNullValue("not available");
                 Files.walk(Paths.get(folderPath), Integer.MAX_VALUE).skip(1).forEach(file -> {
                     if (file.getFileName().toString().endsWith(".tsv")) {
-                        TsvParser tsvParser = new TsvParser(new TsvParserSettings());
+                        TsvParser tsvParser = new TsvParser(tsvParserSettings);
                         String accession = file.getParent().getFileName().toString();
                         Map<String, List<Record>> fileToSdrfContents = accessionToSdrfContents.get(accession);
                         try {
@@ -131,13 +122,13 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
         return (stepContribution, chunkContext) -> {
             for (Map.Entry<String, Map<String, List<Record>>> accessionSdrfContent : accessionToSdrfContents.entrySet()) {
                 String projectAccession = accessionSdrfContent.getKey();
-                accessionToSdrfToSave.put(projectAccession, saveToBioSample(projectAccession, accessionSdrfContent.getValue()));
+                saveToBioSampleAndMongo(projectAccession, accessionSdrfContent.getValue());
             }
             return RepeatStatus.FINISHED;
         };
     }
 
-    private Map<String, List<JSONObject>> saveToBioSample(String projectAccession, Map<String, List<Record>> sdrfContentsToProcess) {
+    private void saveToBioSampleAndMongo(String projectAccession, Map<String, List<Record>> sdrfContentsToProcess) {
         System.out.println(projectAccession);
         Map<String, String> sampleChecksumAccession = getSampleChecksumAccession(projectAccession);
         Map<String, List<JSONObject>> checksumToSamplesMongo = new HashMap<>();
@@ -171,7 +162,7 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
             }
             checksumToSamplesMongo.put(sdrfContent.getKey(), samples);
         }
-        return checksumToSamplesMongo;
+        saveSamplesToMongo(projectAccession, checksumToSamplesMongo);
     }
 
 
@@ -227,27 +218,17 @@ public class SaveSdrfToBioSamplesAndMongoFromGitHubJob extends AbstractArchiveJo
         return jsonObject;
     }
 
-    private Tasklet saveToMongoTasklet() {
-        return (stepContribution, chunkContext) -> {
-            if (accessionToSdrfToSave.size() == 0) {
-                return RepeatStatus.FINISHED;
-            }
-            accessionToSdrfToSave.entrySet().stream().forEach(entry -> {
-                String projectAccession = entry.getKey();
-                MongoPrideSdrf mongoPrideSdrf = prideSdrfMongoService.findByProjectAccession(projectAccession);
-                ObjectId id = null;
-                if (mongoPrideSdrf != null) {
-                    id = mongoPrideSdrf.getId();
-                }
-                prideSdrfMongoService.saveSdrf(MongoPrideSdrf.builder()
-                        .id(id)
-                        .projectAccession(projectAccession)
-                        .sdrf(entry.getValue())
-                        .build());
-            });
-
-            return RepeatStatus.FINISHED;
-        };
+    private void saveSamplesToMongo(String accession, Map<String, List<JSONObject>> sdrf) {
+        String projectAccession = accession;
+        MongoPrideSdrf mongoPrideSdrf = prideSdrfMongoService.findByProjectAccession(projectAccession);
+        ObjectId id = null;
+        if (mongoPrideSdrf != null) {
+            id = mongoPrideSdrf.getId();
+        }
+        prideSdrfMongoService.saveSdrf(MongoPrideSdrf.builder()
+                .id(id)
+                .projectAccession(projectAccession)
+                .sdrf(sdrf)
+                .build());
     }
-
 }
