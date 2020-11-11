@@ -6,6 +6,7 @@ import com.univocity.parsers.tsv.TsvParserSettings;
 import com.univocity.parsers.tsv.TsvWriter;
 import com.univocity.parsers.tsv.TsvWriterSettings;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.api.Git;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -31,7 +32,10 @@ import uk.ac.ebi.pride.mongodb.archive.model.sdrf.MongoPrideSdrf;
 import uk.ac.ebi.pride.mongodb.archive.service.projects.PrideProjectMongoService;
 import uk.ac.ebi.pride.mongodb.archive.service.sdrf.PrideSdrfMongoService;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -57,12 +61,18 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     public static final String PRIDE_ARCHIVE_PROJECT_URL = "https://www.ebi.ac.uk/pride/archive/projects/";
     public static final String SAMPLE_CHECKSUM = "sampleChecksum";
     public static final String SAMPLE_ACCESSION = "sampleAccession";
+    private static final String PULL_FROM_GITHUB = "pullFromGithub";
+    private static final String SYNC_TO_FTP = "syncToFtp";
+    private static final String SYNC_SCRIPT = "./syncProjectLDC.sh";
 
     @Value("${pride.archive.data.path}")
     private String prideRepoRootPath;
 
-    @Value("${githubFolder:#{null}}")
-    private String folderPath;
+    @Value("${projectsSdrfFolder:#{null}}")
+    private String projectsSdrfFolder;
+
+    @Value(("${github.folder.path}"))
+    private String githubFolderPath;
 
     @Autowired
     private BioSamplesClient bioSamplesClient;
@@ -81,9 +91,66 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
     public Job sdrfSaveToBioSamplesAndMongoJob() {
         return jobBuilderFactory
                 .get(SAVE_SDRF_TO_BIO_SAMPLES_AND_MONGO_JOB)
+                .start(pullFromGithub())
                 .start(readTsvStep())
                 .next(sdrfSaveToBioSamplesAndMongoStep())
+                .next(syncToFtp())
                 .build();
+    }
+
+    private Step syncToFtp() {
+        return stepBuilderFactory.get(SYNC_TO_FTP)
+                .tasklet(syncToFtpTasklet()).build();
+    }
+
+    private Tasklet syncToFtpTasklet() {
+        return (stepContribution, chunkContext) -> {
+            log.info("Executing sync shell script: " + SYNC_SCRIPT);
+            Process p = new ProcessBuilder(SYNC_SCRIPT).start();
+            p.waitFor();
+        /* correct 'snap-release pride' output behaviour:
+            [INFO] Running snap-release for pride
+            [SUCCESS] Snap-release finished for project pride
+           anything else, or no output, is an error
+        */
+            InputStream inputStream = p.getInputStream();
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            boolean syncSuccess = false;
+            while ((line = bufferedReader.readLine()) != null) {
+                log.info(line);
+                if (line.contains("SUCCESS")) {
+                    syncSuccess = true;
+                }
+            }
+            bufferedReader.close();
+            inputStream.close();
+            if (!syncSuccess) {
+                inputStream = p.getErrorStream();
+                String msg = "Failed to sync project with LDC";
+                log.error(msg);
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                while ((line = bufferedReader.readLine()) != null) {
+                    log.error(line);
+                }
+                throw new IllegalStateException(msg);
+            }
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+
+    private Step pullFromGithub() {
+        return stepBuilderFactory.get(PULL_FROM_GITHUB)
+                .tasklet(pullFromGithubTasklet()).build();
+    }
+
+    private Tasklet pullFromGithubTasklet() {
+        return ((stepContribution, chunkContext) -> {
+            Git.open(new File(githubFolderPath))
+                    .pull().call();
+            return RepeatStatus.FINISHED;
+        });
     }
 
     private Step readTsvStep() {
@@ -104,7 +171,7 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
             Map<String, Tuple<String, List<Record>>> sdrfContentsToProcess = new HashMap<>();
             TsvParserSettings tsvParserSettings = new TsvParserSettings();
             tsvParserSettings.setNullValue("not available");
-            Files.walk(Paths.get(folderPath), Integer.MAX_VALUE).skip(1).forEach(file -> {
+            Files.walk(Paths.get(projectsSdrfFolder), Integer.MAX_VALUE).skip(1).forEach(file -> {
                 String fileName = file.getFileName().toString();
                 if (fileName.endsWith(".tsv")) {
                     String accession = file.getParent().getFileName().toString();
@@ -268,9 +335,8 @@ public class SaveSdrfToBioSamplesAndMongoJob extends AbstractArchiveJob {
 
     private void saveSamplesToMongo(String accession, String fileChecksum,
                                     Map<String, String> sample) {
-        String projectAccession = accession;
         samplesToSave.add(MongoPrideSdrf.builder()
-                .projectAccession(projectAccession)
+                .projectAccession(accession)
                 .filechecksum(fileChecksum)
                 .sample(sample)
                 .build());

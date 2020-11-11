@@ -155,3 +155,5 @@ biosamples.client:
       username: $aap_pride_user
       password: $aap_pride_passwd
       uri: $aap_auth_url
+
+github.folder.path: $github_folder_path
