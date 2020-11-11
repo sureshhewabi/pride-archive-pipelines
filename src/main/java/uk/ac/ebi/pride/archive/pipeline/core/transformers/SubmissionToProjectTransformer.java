@@ -43,7 +43,6 @@ public class SubmissionToProjectTransformer {
         modifiedProject.setDataProcessingProtocol(submission.getProjectMetaData().getDataProcessingProtocol());
         modifiedProject.setSampleProcessingProtocol(submission.getProjectMetaData().getSampleProcessingProtocol());
         modifiedProject.setKeywords(submission.getProjectMetaData().getKeywords());
-        modifiedProject.getSubmitter().setEmail(submission.getProjectMetaData().getSubmitterContact().getEmail());
 
         // Set sample CV Params
         Set<ProjectSampleCvParam> projectSampleCvParams = new HashSet<>();
