@@ -3,15 +3,9 @@
 # Load environment (and make the bsub command available)
 . /etc/profile.d/lsf.sh
 
-#This job resets one document(accession based) from Solr
-
-##### OPTIONS
-# (required) the project accession
-PROJECT_ACCESSION=""
-
 ##### VARIABLES
 # the name to give to the LSF job (to be extended with additional info)
-JOB_NAME="spring_batch_save_sdrf_to_biosamples_and_mongo"
+JOB_NAME="spring_batch_save_sdrf_github_to_biosamples_and_mongo"
 # memory limit
 MEMORY_LIMIT=6000
 # memory overhead
@@ -28,10 +22,10 @@ LOG_FILE_NAME=""
 ##### FUNCTIONS
 printUsage() {
     echo "Description: In the revised archive pipeline, this will save the sdrf to bio samples and mongo"
-    echo "$ ./scripts/spring_batch_save_sdrf_to_biosamples_and_mongo.sh"
+    echo "$ ./scripts/spring_batch_save_sdrf_github_to_biosamples_and_mongo.sh.sh"
     echo ""
-    echo "Usage: ./spring_batch_save_sdrf_to_biosamples_and_mongo.sh -a|--accession [-e|--email]"
-    echo "     Example: ./spring_batch_save_sdrf_to_biosamples_and_mongo.sh -a PXD011181"
+    echo "Usage: ./spring_batch_save_sdrf_github_to_biosamples_and_mongo.sh.sh -f|--folderPath [-e|--email]"
+    echo "     Example: ./spring_batch_save_sdrf_github_to_biosamples_and_mongo.sh.sh -f /nfs/release/pride/project/annotated/PXD000001/"
     echo "     (required) accession         : the project accession"
     echo "     (optional) email             :  Email to send LSF notification"
 }
@@ -39,23 +33,22 @@ printUsage() {
 ##### PARSE the provided parameters
 while [ "$1" != "" ]; do
     case $1 in
-      "-a" | "--accession")
+      "-f" | "--folderPath")
         shift
-        PROJECT_ACCESSION=$1
+        sdrf_folder_path=$1
         ;;
     esac
     shift
 done
 
 ##### CHECK the provided arguments
-if [ -z ${PROJECT_ACCESSION} ]; then
-         echo "Need to enter a project accession"
+if [ -z ${sdrf_folder_path} ]; then
+         echo "Need to enter the folder path of sdrf"
          printUsage
          exit 1
 fi
 
 ##### Set variables
-JOB_NAME="${JOB_NAME}-${PROJECT_ACCESSION}"
 DATE=$(date +"%Y%m%d%H%M")
 LOG_FILE_NAME="${JOB_NAME}-${DATE}.log"
 MEMORY_LIMIT_JAVA=$((MEMORY_LIMIT-MEMORY_OVERHEAD))
@@ -70,4 +63,4 @@ bsub -M ${MEMORY_LIMIT} \
      -g /pride/analyze_assays \
      -u ${JOB_EMAIL} \
      -J ${JOB_NAME} \
-     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=saveSdrfToBioSamplesAndMongo -Dspring-boot.run.arguments= --accession=${PROJECT_ACCESSION}
+     ./runPipelineInJava.sh ${LOG_PATH} ${LOG_FILE_NAME} ${MEMORY_LIMIT_JAVA}m -jar revised-archive-submission-pipeline.jar --spring.batch.job.names=sdrfSaveToBioSamplesAndMongoJob -Dspring-boot.run.arguments= --projectsSdrfFolder=${sdrf_folder_path}
