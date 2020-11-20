@@ -13,12 +13,16 @@ cache:
     - .m2/repository/
     - target/
 
-build:
-  stage: build
-  script:
-    - mvn $MAVEN_CLI_OPTS compile
+#build:
+#  variables:
+#    DOCKER_AUTH_CONFIG: $docker_auth_json
+#  stage: build
+#  script:
+#    - mvn $MAVEN_CLI_OPTS compile
 
 .deploy_script:
+  variables:
+    DOCKER_AUTH_CONFIG: $docker_auth_json
   stage: deploy
   script:
     - apk add --update openssh-client bash openssl rsync gettext tzdata
