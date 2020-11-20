@@ -12,6 +12,8 @@ public class PrideFilePathUtility {
     public static final String INTERNAL = "internal";
     public static final String SUBMITTED = "submitted";
     public static final String SUBMISSION_PX = "submission.px";
+    public static final String GENERATED = "generated";
+    private static final String README_TXT = "README.txt";
 
 
     public static String getSubmissionFilePath(MongoPrideProject prideProject, String prideRepoRootPath) {
@@ -33,5 +35,9 @@ public class PrideFilePathUtility {
         log.info("Generated public path fragment: " + publicPath);
         prideRepoRootPath = prideRepoRootPath.endsWith(File.separator) ? prideRepoRootPath : prideRepoRootPath + File.separator;
         return prideRepoRootPath + publicPath;
+    }
+
+    public static String getReadMeFilePath(MongoPrideProject prideProject, String prideRepoRootPath) {
+        return getPublicPath(prideProject, prideRepoRootPath) + File.separator + GENERATED + File.separator + README_TXT;
     }
 }

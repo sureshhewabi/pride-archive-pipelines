@@ -157,3 +157,4 @@ biosamples.client:
       uri: $aap_auth_url
 
 github.folder.path: $github_folder_path
+ldc.staging.base.dir: $ldc_staging_base_dir
