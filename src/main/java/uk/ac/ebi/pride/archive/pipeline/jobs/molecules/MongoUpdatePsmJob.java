@@ -117,31 +117,46 @@ public class MongoUpdatePsmJob extends AbstractArchiveJob {
         }
         String pathname = assaysBackupPath + projectAccession;
         File assaysDir = new File(pathname);
+        if (!assaysDir.exists()) {
+            return;
+        }
         FilenameFilter filter = (dir, name) -> name.endsWith(PrideMongoPsmSummaryEvidence.class.getSimpleName() + ".json");
         String[] psmSummaryEvidenceFiles = assaysDir.list(filter);
+        Map<String, String> map = new HashMap<>();//map.clear is used
         for (String s2 : psmSummaryEvidenceFiles) {
             String prjAssayAcc = s2.substring(0, org.apache.commons.lang3.StringUtils.ordinalIndexOf(s2, "_", 2));
             String filePath = pathname + File.separator + s2;
-            Map<String, String> map = new HashMap<>();
+            boolean updateFile = false;
             List<PrideMongoPsmSummaryEvidence> objs = BackupUtil.getObjectsFromFile(Paths.get(filePath), PrideMongoPsmSummaryEvidence.class);
             for (PrideMongoPsmSummaryEvidence obj : objs) {
                 String usi = obj.getUsi();
                 String spectraUsi = usi.substring(0, org.apache.commons.lang3.StringUtils.ordinalIndexOf(usi, ":", 5));
                 if (obj.getSpectraUsi() == null || !obj.getSpectraUsi().equals(spectraUsi)) {
                     obj.setSpectraUsi(spectraUsi);
-                    map.put(usi, spectraUsi);
+                    updateFile = true;
+                }
+                map.put(usi, spectraUsi);
+                if (map.size() == 100) {
+                    updateSpectraUsi(prjAssayAcc, map);//for last entries of file where size<100, it's updated down
                 }
             }
-            if (!map.isEmpty()) {
+            if (updateFile) {
                 BufferedWriter psmSummaryEvidenceBufferedWriter = new BufferedWriter(new FileWriter(filePath, false));
                 for (PrideMongoPsmSummaryEvidence obj : objs) {
                     BackupUtil.write(obj, psmSummaryEvidenceBufferedWriter);
                 }
                 log.info("[" + prjAssayAcc + "] Updated Json file :" + filePath);
                 psmSummaryEvidenceBufferedWriter.close();
-                long l = prideMoleculesMongoService.addSpectraUsi(map);
-                log.info("[" + prjAssayAcc + "] Updated PSMs count :" + l);
             }
+            updateSpectraUsi(prjAssayAcc, map);
+        }
+    }
+
+    private void updateSpectraUsi(String prjAssayAcc, Map<String, String> map) {
+        if (!map.isEmpty()) {
+            long l = prideMoleculesMongoService.addSpectraUsi(map);
+            log.info("[" + prjAssayAcc + "] Updated PSMs count :" + l);
+            map.clear();
         }
     }
 }
