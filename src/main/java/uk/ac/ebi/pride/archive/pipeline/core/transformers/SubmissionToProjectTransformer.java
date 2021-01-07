@@ -6,6 +6,8 @@ import org.springframework.util.Assert;
 import uk.ac.ebi.pride.archive.repo.client.CvParamRepoClient;
 import uk.ac.ebi.pride.archive.repo.models.param.CvParam;
 import uk.ac.ebi.pride.archive.repo.models.project.*;
+import uk.ac.ebi.pride.archive.repo.models.user.User;
+import uk.ac.ebi.pride.data.model.Contact;
 import uk.ac.ebi.pride.data.model.Submission;
 import uk.ac.ebi.pride.pubmed.PubMedFetcher;
 import uk.ac.ebi.pride.pubmed.model.EupmcReferenceSummary;
@@ -43,6 +45,12 @@ public class SubmissionToProjectTransformer {
         modifiedProject.setDataProcessingProtocol(submission.getProjectMetaData().getDataProcessingProtocol());
         modifiedProject.setSampleProcessingProtocol(submission.getProjectMetaData().getSampleProcessingProtocol());
         modifiedProject.setKeywords(submission.getProjectMetaData().getKeywords());
+
+        // set submitter
+        User submitterContact = modifiedProject.getSubmitter();
+        submitterContact.setEmail(submission.getProjectMetaData().getSubmitterContact().getEmail());
+        submitterContact.setAffiliation(submission.getProjectMetaData().getSubmitterContact().getAffiliation());
+        modifiedProject.setSubmitter(submitterContact);
 
         // Set sample CV Params
         Set<ProjectSampleCvParam> projectSampleCvParams = new HashSet<>();
