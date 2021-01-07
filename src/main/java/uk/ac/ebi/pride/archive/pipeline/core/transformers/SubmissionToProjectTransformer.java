@@ -4,10 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
 import uk.ac.ebi.pride.archive.repo.client.CvParamRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.UserRepoClient;
 import uk.ac.ebi.pride.archive.repo.models.param.CvParam;
 import uk.ac.ebi.pride.archive.repo.models.project.*;
 import uk.ac.ebi.pride.archive.repo.models.user.User;
-import uk.ac.ebi.pride.data.model.Contact;
 import uk.ac.ebi.pride.data.model.Submission;
 import uk.ac.ebi.pride.pubmed.PubMedFetcher;
 import uk.ac.ebi.pride.pubmed.model.EupmcReferenceSummary;
@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -24,11 +25,13 @@ import java.util.Set;
 @Slf4j
 public class SubmissionToProjectTransformer {
 
+    UserRepoClient userRepoClient;
     CvParamRepoClient cvParamRepoClient;
     Project modifiedProject;
 
-    public SubmissionToProjectTransformer(CvParamRepoClient cvParamRepoClient) {
+    public SubmissionToProjectTransformer(CvParamRepoClient cvParamRepoClient,  UserRepoClient userRepoClient) {
         this.cvParamRepoClient = cvParamRepoClient;
+        this.userRepoClient = userRepoClient;
 
     }
 
@@ -38,7 +41,7 @@ public class SubmissionToProjectTransformer {
      * @param modifiedProject Project object with changes
      * @return Project object with changes
      */
-    public Project transform(Submission submission, Project modifiedProject){
+    public Project transform(Submission submission, Project modifiedProject) throws IOException {
         this.modifiedProject = modifiedProject;
         modifiedProject.setTitle(submission.getProjectMetaData().getProjectTitle());
         modifiedProject.setProjectDescription(submission.getProjectMetaData().getProjectDescription());
@@ -47,10 +50,15 @@ public class SubmissionToProjectTransformer {
         modifiedProject.setKeywords(submission.getProjectMetaData().getKeywords());
 
         // set submitter
-        User submitterContact = modifiedProject.getSubmitter();
-        submitterContact.setEmail(submission.getProjectMetaData().getSubmitterContact().getEmail());
-        submitterContact.setAffiliation(submission.getProjectMetaData().getSubmitterContact().getAffiliation());
-        modifiedProject.setSubmitter(submitterContact);
+        final String newEmail = submission.getProjectMetaData().getSubmitterContact().getEmail();
+        Optional<User> submitterContact = userRepoClient.findByEmail(newEmail);
+        if(submitterContact.isPresent()) {
+            User submitterContactUser = submitterContact.get();
+            submitterContactUser.setAffiliation(submission.getProjectMetaData().getSubmitterContact().getAffiliation());
+            modifiedProject.setSubmitter(submitterContactUser);
+        }else{
+            log.warn("No user found with email : " + newEmail);
+        }
 
         // Set sample CV Params
         Set<ProjectSampleCvParam> projectSampleCvParams = new HashSet<>();
