@@ -29,6 +29,7 @@ import uk.ac.ebi.pride.archive.pipeline.tasklets.SubmissionUpdater;
 import uk.ac.ebi.pride.archive.pipeline.utility.SubmissionPipelineConstants;
 import uk.ac.ebi.pride.archive.repo.client.CvParamRepoClient;
 import uk.ac.ebi.pride.archive.repo.client.ProjectRepoClient;
+import uk.ac.ebi.pride.archive.repo.client.UserRepoClient;
 import uk.ac.ebi.pride.archive.repo.models.file.ProjectFile;
 import uk.ac.ebi.pride.archive.repo.models.project.Project;
 import uk.ac.ebi.pride.archive.repo.models.project.ProjectSummary;
@@ -76,6 +77,9 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
 
     @Autowired
     ProjectRepoClient projectRepoClient;
+
+    @Autowired
+    UserRepoClient userRepoClient;
 
     @Autowired
     CvParamRepoClient cvParamRepoClient;
@@ -137,7 +141,7 @@ public class PrideProjectMetadataUpdateJob extends AbstractArchiveJob {
             if (!validationReport.hasError()) {
                 // copy values from submission.px file to current Project object
                 this.modifiedProject = projectRepoClient.findByAccession(projectAccession);
-                SubmissionToProjectTransformer submissionToProjectTransformer = new SubmissionToProjectTransformer(cvParamRepoClient);
+                SubmissionToProjectTransformer submissionToProjectTransformer = new SubmissionToProjectTransformer(cvParamRepoClient, userRepoClient);
                 this.modifiedProject = submissionToProjectTransformer.transform(submission, modifiedProject);
             } else {
                 throw new Exception("Submission validation failed. ERROR: " + String.join(",", validationReport.getMessages().stream().filter(validationMessage -> validationMessage.getType().equals(ValidationMessage.Type.ERROR)).map(ValidationMessage::getMessage).collect(Collectors.toList())));

@@ -9,10 +9,7 @@ import uk.ac.ebi.pride.utilities.util.Triple;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class contains a set of constants that are needed to process the data in the submission pipeline.
@@ -177,6 +174,8 @@ public class SubmissionPipelineConstants {
         PRIDE_ARCHIVE_REANALYSIS_INFO_UPDATE("syncReanalysisDatasetsToMongoDBJob", "Updates the re-analysis information to the MongoDB"),
 
         PRIDE_PROJECT_METADATA_UPDATE("projectMetadataUpdateJob", "Project metadata can be updated in several resources"),
+
+        PRIDE_ARCHIVE_ASSAY_ANALYSIS_ISSUES("analyzeAssayIssueJob", "Detects the issues in Assay Analysis"),
 
         PRIDER_EBEYE_XML_GENERATION("priderEbeyeXmlGenerationJob", "This job is used to generate ebeye prider xml");
 
@@ -404,7 +403,6 @@ public class SubmissionPipelineConstants {
     public static String getSpectrumId(uk.ac.ebi.jmzidml.model.mzidml.SpectraData spectraData, ReportPSM psm) {
         SpecIdFormat fileIdFormat = getSpectraDataIdFormat(spectraData.getSpectrumIDFormat().getCvParam().getAccession());
 
-
         if (fileIdFormat == SpecIdFormat.MASCOT_QUERY_NUM) {
             String rValueStr = psm.getSourceID().replaceAll("query=", "");
             String id = null;
@@ -426,6 +424,8 @@ public class SubmissionPipelineConstants {
             return psm.getSourceID().replaceAll("mzMLid=", "");
         } else if (fileIdFormat == SpecIdFormat.SCAN_NUMBER_NATIVE_ID) {
             return psm.getSourceID().replaceAll("scan=", "");
+        } else if (fileIdFormat == SpecIdFormat.SPECTRUM_NATIVE_ID) {
+            return psm.getSourceID().split(" ")[0].replaceAll("scan=", "");
         } else {
             return psm.getSpectrumTitle();
         }
@@ -437,14 +437,24 @@ public class SubmissionPipelineConstants {
         String spectrumID = getSpectrumId(refeFile.getSecond(), psm);
         if (fileIFormat == SpecIdFormat.MASCOT_QUERY_NUM || fileIFormat == SpecIdFormat.MULTI_PEAK_LIST_NATIVE_ID) {
             scanType = Constants.ScanType.INDEX;
-        } else if (fileIFormat == SpecIdFormat.MZML_ID || fileIFormat == SpecIdFormat.SPECTRUM_NATIVE_ID) {
+        } else if (fileIFormat == SpecIdFormat.MZML_ID) {
             scanType = Constants.ScanType.SCAN;
             String[] scanStrings = spectrumID.split("scan=");
             spectrumID = scanStrings[1];
+        } else if(fileIFormat == SpecIdFormat.SPECTRUM_NATIVE_ID) {
+            scanType = Constants.ScanType.SCAN;
         }
         Path p = Paths.get(refeFile.getFirst());
         String fileName = p.getFileName().toString();
         return Constants.SPECTRUM_S3_HEADER + projectAccession + ":" + fileName + ":" + scanType.getName() + ":" + spectrumID + ":" + encodePSM(psm.getSequence(), psm.getModifications(), psm.getCharge());
+    }
+
+    public static String getSpectraUsiFromUsi(String usi){
+        String spectraUsi;
+        String[] usiArray = usi.split(":");
+        String[] subset = Arrays.copyOfRange(usiArray, 0, 4);
+        spectraUsi = String.join(":", subset);
+        return spectraUsi;
     }
 
     /**
