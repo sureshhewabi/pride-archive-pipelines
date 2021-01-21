@@ -34,6 +34,7 @@ printUsage() {
 
 fixProjects="false"
 fixFiles="false"
+checkProteomeCentral="false"
 JOB_ARGS=""
 
 ##### PARSE the provided parameters
@@ -50,11 +51,14 @@ while [ "$1" != "" ]; do
       "--fixFiles")
         fixFiles="true"
         ;;
+      "--checkProteomeCentral")
+        checkProteomeCentral="true"
+        ;;
     esac
     shift
 done
 
-JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles}"
+JOB_ARGS="${JOB_ARGS} fixProjects=${fixProjects} fixFiles=${fixFiles} checkProteomeCentral=${checkProteomeCentral}"
 
 ##### Set variables
 JOB_NAME="${JOB_NAME}"
