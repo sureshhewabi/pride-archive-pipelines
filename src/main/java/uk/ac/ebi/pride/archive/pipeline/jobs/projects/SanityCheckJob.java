@@ -333,104 +333,104 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 }
 
                 /*
-                 * PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
-                 *
-                 * PrideSolrProject transformedSolrProject =
-                 * PrideProjectTransformer.transformProjectMongoToSolr(mongoProject);
-                 *
-                 * if (transformedSolrProject.getAdditionalAttributesStrings() != null &&
-                 * transformedSolrProject.getAdditionalAttributesStrings().isEmpty()) {
-                 * solrProject.setAdditionalAttributesFromCvParams(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getProjectTags() != null &&
-                 * transformedSolrProject.getProjectTags().isEmpty()) {
-                 * solrProject.setProjectTags(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getLabPIs() != null &&
-                 * transformedSolrProject.getLabPIs().isEmpty()) {
-                 * solrProject.setLabPIs(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getKeywords() != null &&
-                 * transformedSolrProject.getKeywords().isEmpty()) {
-                 * solrProject.setKeywords(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getOtherOmicsLink() != null &&
-                 * transformedSolrProject.getOtherOmicsLink().isEmpty()) {
-                 * solrProject.setOtherOmicsLinks(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getSubmitters() != null &&
-                 * transformedSolrProject.getSubmitters().isEmpty()) {
-                 * solrProject.setSubmittersFromContacts(null); }
-                 *
-                 * if (transformedSolrProject.getAffiliations() != null &&
-                 * transformedSolrProject.getAffiliations().isEmpty()) {
-                 * solrProject.setAffiliations(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getInstruments() != null &&
-                 * transformedSolrProject.getInstruments().isEmpty()) {
-                 * solrProject.setInstrumentsFromCvParam(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getSoftwares() != null &&
-                 * transformedSolrProject.getSoftwares().isEmpty()) {
-                 * solrProject.setSoftwaresFromCvParam(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getQuantificationMethods() != null &&
-                 * transformedSolrProject.getQuantificationMethods().isEmpty()) {
-                 * solrProject.setQuantificationMethodsFromCvParams(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getAllCountries() != null &&
-                 * transformedSolrProject.getAllCountries().isEmpty()) {
-                 * solrProject.setAllCountries(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getExperimentalFactors() != null &&
-                 * transformedSolrProject.getExperimentalFactors().isEmpty()) {
-                 * solrProject.setExperimentalFactors(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getSampleAttributes() != null &&
-                 * transformedSolrProject.getSampleAttributes().isEmpty()) {
-                 * solrProject.setSampleAttributes(Collections.emptyList()); }
-                 *
-                 * if (transformedSolrProject.getOrganisms() != null &&
-                 * transformedSolrProject.getOrganisms().isEmpty()) {
-                 * solrProject.setOrganisms(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getOrganisms_facet() != null &&
-                 * transformedSolrProject.getOrganisms_facet().isEmpty()) {
-                 * solrProject.setOrganisms_facet(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getOrganismPart() != null &&
-                 * transformedSolrProject.getOrganismPart().isEmpty()) {
-                 * solrProject.setOrganismPart(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getOrganismPart_facet() != null &&
-                 * transformedSolrProject.getOrganismPart_facet().isEmpty()) {
-                 * solrProject.setOrganismPart_facet(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getDiseases() != null &&
-                 * transformedSolrProject.getDiseases().isEmpty()) {
-                 * solrProject.setDiseases(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getDiseases_facet() != null &&
-                 * transformedSolrProject.getDiseases_facet().isEmpty()) {
-                 * solrProject.setDiseases_facet(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getReferences() != null &&
-                 * transformedSolrProject.getReferences().isEmpty()) {
-                 * solrProject.setReferences(Collections.emptySet()); }
-                 *
-                 * if (transformedSolrProject.getProjectFileNames() != null &&
-                 * transformedSolrProject.getProjectFileNames().isEmpty()) {
-                 * solrProject.setProjectFileNames(Collections.emptySet()); }
-                 *
-                 * Set<String> fileNames =
-                 * mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet
-                 * ()); transformedSolrProject.setProjectFileNames(fileNames); if
-                 * (!transformedSolrProject.equals(solrProject)) {
-                 * log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
-                 * log.info("transformedSolrProject : " + transformedSolrProject);
-                 * log.info("solrProject : " + solrProject); //
-                 * transformedSolrProject.setId((String)solrProject.getId()); //
-                 * solrProjectService.update(transformedSolrProject); }
+                PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
+
+                PrideSolrProject transformedSolrProject =
+                PrideProjectTransformer.transformProjectMongoToSolr(mongoProject);
+
+                if (transformedSolrProject.getAdditionalAttributesStrings() != null &&
+                transformedSolrProject.getAdditionalAttributesStrings().isEmpty()) {
+                solrProject.setAdditionalAttributesFromCvParams(Collections.emptyList()); }
+
+                if (transformedSolrProject.getProjectTags() != null &&
+                transformedSolrProject.getProjectTags().isEmpty()) {
+                solrProject.setProjectTags(Collections.emptyList()); }
+
+                if (transformedSolrProject.getLabPIs() != null &&
+                transformedSolrProject.getLabPIs().isEmpty()) {
+                solrProject.setLabPIs(Collections.emptySet()); }
+
+                if (transformedSolrProject.getKeywords() != null &&
+                transformedSolrProject.getKeywords().isEmpty()) {
+                solrProject.setKeywords(Collections.emptyList()); }
+
+                if (transformedSolrProject.getOtherOmicsLink() != null &&
+                transformedSolrProject.getOtherOmicsLink().isEmpty()) {
+                solrProject.setOtherOmicsLinks(Collections.emptySet()); }
+
+                if (transformedSolrProject.getSubmitters() != null &&
+                transformedSolrProject.getSubmitters().isEmpty()) {
+                solrProject.setSubmittersFromContacts(null); }
+
+                if (transformedSolrProject.getAffiliations() != null &&
+                transformedSolrProject.getAffiliations().isEmpty()) {
+                solrProject.setAffiliations(Collections.emptySet()); }
+
+                if (transformedSolrProject.getInstruments() != null &&
+                transformedSolrProject.getInstruments().isEmpty()) {
+                solrProject.setInstrumentsFromCvParam(Collections.emptyList()); }
+
+                if (transformedSolrProject.getSoftwares() != null &&
+                transformedSolrProject.getSoftwares().isEmpty()) {
+                solrProject.setSoftwaresFromCvParam(Collections.emptyList()); }
+
+                if (transformedSolrProject.getQuantificationMethods() != null &&
+                transformedSolrProject.getQuantificationMethods().isEmpty()) {
+                solrProject.setQuantificationMethodsFromCvParams(Collections.emptyList()); }
+
+                if (transformedSolrProject.getAllCountries() != null &&
+                transformedSolrProject.getAllCountries().isEmpty()) {
+                solrProject.setAllCountries(Collections.emptySet()); }
+
+                if (transformedSolrProject.getExperimentalFactors() != null &&
+                transformedSolrProject.getExperimentalFactors().isEmpty()) {
+                solrProject.setExperimentalFactors(Collections.emptyList()); }
+
+                if (transformedSolrProject.getSampleAttributes() != null &&
+                transformedSolrProject.getSampleAttributes().isEmpty()) {
+                solrProject.setSampleAttributes(Collections.emptyList()); }
+
+                if (transformedSolrProject.getOrganisms() != null &&
+                transformedSolrProject.getOrganisms().isEmpty()) {
+                solrProject.setOrganisms(Collections.emptySet()); }
+
+                if (transformedSolrProject.getOrganisms_facet() != null &&
+                transformedSolrProject.getOrganisms_facet().isEmpty()) {
+                solrProject.setOrganisms_facet(Collections.emptySet()); }
+
+                if (transformedSolrProject.getOrganismPart() != null &&
+                transformedSolrProject.getOrganismPart().isEmpty()) {
+                solrProject.setOrganismPart(Collections.emptySet()); }
+
+                if (transformedSolrProject.getOrganismPart_facet() != null &&
+                transformedSolrProject.getOrganismPart_facet().isEmpty()) {
+                solrProject.setOrganismPart_facet(Collections.emptySet()); }
+
+                if (transformedSolrProject.getDiseases() != null &&
+                transformedSolrProject.getDiseases().isEmpty()) {
+                solrProject.setDiseases(Collections.emptySet()); }
+
+                if (transformedSolrProject.getDiseases_facet() != null &&
+                transformedSolrProject.getDiseases_facet().isEmpty()) {
+                solrProject.setDiseases_facet(Collections.emptySet()); }
+
+                if (transformedSolrProject.getReferences() != null &&
+                transformedSolrProject.getReferences().isEmpty()) {
+                solrProject.setReferences(Collections.emptySet()); }
+
+                if (transformedSolrProject.getProjectFileNames() != null &&
+                transformedSolrProject.getProjectFileNames().isEmpty()) {
+                solrProject.setProjectFileNames(Collections.emptySet()); }
+
+                Set<String> fileNames =
+                mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet
+                ()); transformedSolrProject.setProjectFileNames(fileNames); if
+                (!transformedSolrProject.equals(solrProject)) {
+                log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
+                log.info("transformedSolrProject : " + transformedSolrProject);
+                log.info("solrProject : " + solrProject); //
+                transformedSolrProject.setId((String)solrProject.getId()); //
+                solrProjectService.update(transformedSolrProject); }
                  */
             }
         } catch (Exception e) {
