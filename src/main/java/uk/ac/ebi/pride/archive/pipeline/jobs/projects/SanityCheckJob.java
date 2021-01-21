@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
 import uk.ac.ebi.pride.archive.dataprovider.param.CvParam;
 import uk.ac.ebi.pride.archive.dataprovider.utils.MSFileTypeConstants;
 import uk.ac.ebi.pride.archive.dataprovider.utils.ProjectFolderSourceConstants;
@@ -39,21 +38,13 @@ import uk.ac.ebi.pride.solr.api.client.SolrProjectClient;
 import uk.ac.ebi.pride.solr.commons.PrideSolrProject;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
 @EnableBatchProcessing
-@Import({ RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrApiClientConfig.class })
+@Import({RepoConfig.class, ArchiveMongoConfig.class, DataSourceConfiguration.class, SolrApiClientConfig.class})
 public class SanityCheckJob extends AbstractArchiveJob {
 
     @Autowired
@@ -82,6 +73,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
     private String[] projectAccessions;
     private boolean fixFilesOptionSet = false;
     private boolean fixProjectsOptionSet = false;
+    private boolean isCheckProteomeCentralOptionSet = false;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final String pcDatasetUrl = "http://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=";
@@ -89,8 +81,9 @@ public class SanityCheckJob extends AbstractArchiveJob {
     @Bean
     @StepScope
     public Tasklet initSanityCheckJob(@Value("#{jobParameters['projects']}") String projects,
-            @Value("#{jobParameters['fixProjects']}") Boolean fixProjects,
-            @Value("#{jobParameters['fixFiles']}") Boolean fixFiles) {
+                                      @Value("#{jobParameters['fixProjects']}") Boolean fixProjects,
+                                      @Value("#{jobParameters['fixFiles']}") Boolean fixFiles,
+                                      @Value("#{jobParameters['checkProteomeCentral']}") Boolean checkProteomeCentral) {
         return (stepContribution, chunkContext) -> {
             if (projects != null) {
                 this.projectAccessions = projects.split(",");
@@ -101,6 +94,9 @@ public class SanityCheckJob extends AbstractArchiveJob {
             }
             if (fixFiles != null && fixFiles) {
                 this.fixFilesOptionSet = true;
+            }
+            if (checkProteomeCentral != null && checkProteomeCentral) {
+                this.isCheckProteomeCentralOptionSet = true;
             }
 
             log.info(String.format("==================>>>>>>> initSanityCheckJobJob - Run the job for Project %s",
@@ -113,7 +109,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
     public Job sanityCheckJobBean() {
         return jobBuilderFactory
                 .get("sanityCheckJobBean").start(stepBuilderFactory.get("initSanityCheckJobJob")
-                        .tasklet(initSanityCheckJob(null, null, null)).build())
+                        .tasklet(initSanityCheckJob(null, null, null, null)).build())
                 .next(sanityCheckStep()).next(sanityCheckPrintTraceStep()).build();
     }
 
@@ -182,291 +178,261 @@ public class SanityCheckJob extends AbstractArchiveJob {
         log.info("PROCESSING : " + accession);
         String errorLogPrefix = "====[" + accession + "] ";
         try {
-            // Project oracleProject = projectRepoClient.findByAccession(accession);
+            Project oracleProject = projectRepoClient.findByAccession(accession);
 
-            // Optional<MongoPrideProject> mongoProjectOptional =
-            // prideProjectMongoService.findByAccession(accession);
-            // if (oracleProject != null && oracleProject.isPublicProject() &&
-            // mongoProjectOptional.isPresent()) {
-            // MongoPrideProject transformedOracleProject = PrideProjectTransformer
-            // .transformOracleToMongo(oracleProject);
-            // MongoPrideProject mongoProject = mongoProjectOptional.get();
+            Optional<MongoPrideProject> mongoProjectOptional = prideProjectMongoService.findByAccession(accession);
+            if (oracleProject != null && oracleProject.isPublicProject() && mongoProjectOptional.isPresent()) {
+                MongoPrideProject transformedOracleProject = PrideProjectTransformer.transformOracleToMongo(oracleProject);
+                MongoPrideProject mongoProject = mongoProjectOptional.get();
 
-            // boolean mongoUpdated = false;
+                boolean mongoUpdated = false;
 
-            // /*
-            // * Set<String> countries = new HashSet<>(mongoProject.getCountries());
-            // * countries.addAll(transformedOracleProject.getCountries());
-            // * transformedOracleProject.setCountries(new ArrayList<>(countries)); if
-            // * (!transformedOracleProject.getTitle().equals(mongoProject.getTitle())) {
-            // * mongoProject.setTitle(transformedOracleProject.getTitle()); mongoUpdated =
-            // * true; }
-            // */
+            /*Set<String> countries = new HashSet<>(mongoProject.getCountries());
+            countries.addAll(transformedOracleProject.getCountries());
+            transformedOracleProject.setCountries(new ArrayList<>(countries));
+            if (!transformedOracleProject.getTitle().equals(mongoProject.getTitle())) {
+                mongoProject.setTitle(transformedOracleProject.getTitle());
+                mongoUpdated = true;
+            }*/
 
-            // if (!Objects.equals(transformedOracleProject.getSubmissionDate(),
-            // mongoProject.getSubmissionDate())) {
-            // mongoProject.setSubmissionDate(transformedOracleProject.getSubmissionDate());
-            // mongoUpdated = true;
-            // }
-            // if (!Objects.equals(transformedOracleProject.getPublicationDate(),
-            // mongoProject.getPublicationDate())) {
-            // mongoProject.setPublicationDate(transformedOracleProject.getPublicationDate());
-            // mongoUpdated = true;
-            // }
-            // if (!Objects.equals(transformedOracleProject.getUpdatedDate(),
-            // mongoProject.getUpdatedDate())) {
-            // mongoProject.setUpdatedDate(transformedOracleProject.getUpdatedDate());
-            // mongoUpdated = true;
-            // }
+                if (!Objects.equals(transformedOracleProject.getSubmissionDate(), mongoProject.getSubmissionDate())) {
+                    mongoProject.setSubmissionDate(transformedOracleProject.getSubmissionDate());
+                    mongoUpdated = true;
+                }
+                if (!Objects.equals(transformedOracleProject.getPublicationDate(), mongoProject.getPublicationDate())) {
+                    mongoProject.setPublicationDate(transformedOracleProject.getPublicationDate());
+                    mongoUpdated = true;
+                }
+                if (!Objects.equals(transformedOracleProject.getUpdatedDate(), mongoProject.getUpdatedDate())) {
+                    mongoProject.setUpdatedDate(transformedOracleProject.getUpdatedDate());
+                    mongoUpdated = true;
+                }
 
-            // if (mongoUpdated) {
-            // log.error(" ==== Mongo project Dates Mismatched : " + accession + " ==== ");
-            // if (fixProjectsOptionSet) {
-            // mongoProject = prideProjectMongoService.update(mongoProject).get();
-            // log.info("==== fixed mongo project : " + accession + " ====");
-            // }
-            // }
-
-            // /*
-            // * if (!transformedOracleProject.equals(mongoProject)) {
-            // * log.error(" ==== Mongo project Mismatched : " + accession + "==== ");
-            // * log.info("transformedOracleProject : " + transformedOracleProject);
-            // * log.info("mongoPrideProject : " + mongoProject); }
-            // */
-
-            // Set<MongoPrideFile> mongoFiles = new HashSet<>(
-            // prideFileMongoService.findFilesByProjectAccession(accession));
-            // Map<String, String> checkSumMap = new HashMap<>();
-            // mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
-
-            // List<ProjectFile> oracleFiles =
-            // fileRepoClient.findAllByProjectId(oracleProject.getId());
-            // Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream()
-            // .map(o -> transformOracleFileToMongo(o, oracleProject, checkSumMap))
-            // .collect(Collectors.toSet());
-
-            // Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
-            // mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
-
-            // Map<String, MongoPrideFile> transfromedOracleFilesMap = new HashMap<>();
-            // transfromedOracleFiles.forEach(m ->
-            // transfromedOracleFilesMap.put(m.getAccession(), m));
-
-            // if (!mongoFiles.equals(transfromedOracleFiles)) {
-            // log.info(" ==== Mongo files mismatched for project : " + accession + " ====
-            // ");
-            // }
-
-            // boolean fixedFiles = false;
-            // for (MongoPrideFile m : mongoFiles) {
-            // boolean fileUpdate = false;
-            // MongoPrideFile transformedFile =
-            // transfromedOracleFilesMap.get(m.getAccession());
-            // if (!Objects.equals(m.getSubmissionDate(),
-            // transformedFile.getSubmissionDate())) {
-            // m.setSubmissionDate(transformedFile.getSubmissionDate());
-            // fileUpdate = true;
-            // }
-            // if (!Objects.equals(m.getPublicationDate(),
-            // transformedFile.getPublicationDate())) {
-            // m.setPublicationDate(transformedFile.getPublicationDate());
-            // fileUpdate = true;
-            // }
-            // if (!Objects.equals(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
-            // m.setUpdatedDate(transformedFile.getUpdatedDate());
-            // fileUpdate = true;
-            // }
-            // if (!Objects.equals(m.getPublicFileLocations(),
-            // transformedFile.getPublicFileLocations())) {
-            // m.setPublicFileLocations(transformedFile.getPublicFileLocations());
-            // fileUpdate = true;
-            // }
-            // if (!Objects.equals(m.getFileSizeBytes(),
-            // transformedFile.getFileSizeBytes())) {
-            // m.setFileSizeBytes(transformedFile.getFileSizeBytes());
-            // fileUpdate = true;
-            // }
-            // if (fileUpdate && fixFilesOptionSet) {
-            // fixedFiles = true;
-            // prideFileMongoService.save(m);
-            // }
-            // }
-
-            // if (fixedFiles) {
-            // log.info("==== fixed mongo files for : " + accession + " ====");
-            // }
-
-            // HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(
-            // prideFileMongoService.findFilesByProjectAccession(accession));
-            // if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
-            // if (fixedFiles) {
-            // log.error(errorLogPrefix + "Even after fixing, Mongo files mismatched");
-            // }
-
-            // // debug log to identify the differences
-            // List<MongoPrideFile> collect = mongoFiles.stream()
-            // .filter(m -> !mongoFilesMap.get(m.getAccession())
-            // .equals(transfromedOracleFilesMap.get(m.getAccession())))
-            // .collect(Collectors.toList());
-            // if (collect.size() > 0) {
-            // log.error(errorLogPrefix + "mismatched mongo files : " + collect);
-            // List<MongoPrideFile> collect1 = collect.stream()
-            // .map(c ->
-            // transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
-            // log.error(errorLogPrefix + "reference transformedOracleFiles : " + collect1);
-            // }
-
-            // // case where one or more files are missing in mongo..
-            // // checksum in transfromedOracleFiles is taken from from mongo files. so, if
-            // the
-            // // mongo file is missing then it's null for transfromedOracleFile
-            // final List<MongoPrideFile> missingMongoFiles =
-            // transfromedOracleFiles.stream()
-            // .filter(o -> o.getChecksum() == null).collect(Collectors.toList());
-            // if (missingMongoFiles.size() == transfromedOracleFiles.size()) {
-            // log.error(errorLogPrefix + "All mongo files are missing");
-            // } else {
-            // List<String> missingFiles = missingMongoFiles.stream()
-            // .map(m -> m.getFileSourceFolder() + "/" +
-            // m.getFileName()).collect(Collectors.toList());
-            // if (missingFiles.size() > 0) {
-            // log.error(errorLogPrefix + "Missing mongo files: " + missingFiles);
-            // } else {
-            // // this is a case where oracle has duplicate file entries
-            // log.error(errorLogPrefix + "Oracle has duplicate file entries");
-            // }
-            // }
-            // }
-
-            // Check Solr
-            // Optional<PrideSolrProject> solrProjectOptional =
-            // solrProjectClient.findByAccession(accession);
-            // if (!solrProjectOptional.isPresent()) {
-            // log.error(errorLogPrefix + "Missing in Solr");
-            // } else {
-            // PrideSolrProject prideSolrProject = solrProjectOptional.get();
-            // Set<String> projectFileNames = prideSolrProject.getProjectFileNames();
-            // if(projectFileNames == null || projectFileNames.isEmpty()) {
-            // log.error(errorLogPrefix + "Files are missing in Solr");
-            // }
-            // }
-
-            // Check Proteomecentral
-            if (accession.startsWith("PXD")) {
-                try {
-                    ResponseEntity<String> pcResponse = restTemplate.getForEntity(pcDatasetUrl + accession,
-                            String.class);
-                    if (pcResponse.getStatusCode() != HttpStatus.OK) {
-                        log.error(errorLogPrefix + "Missing in ProteomeCentral");
-                    }
-                } catch (HttpClientErrorException ex) {
-                    if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
-                        log.error(errorLogPrefix + "Missing in ProteomeCentral");
+                if (mongoUpdated) {
+                    log.error(" ==== Mongo project Dates Mismatched : " + accession + " ==== ");
+                    if (fixProjectsOptionSet) {
+                        mongoProject = prideProjectMongoService.update(mongoProject).get();
+                        log.info("==== fixed mongo project : " + accession + " ====");
                     }
                 }
 
-            }
+            /*if (!transformedOracleProject.equals(mongoProject)) {
+                log.error(" ==== Mongo project Mismatched : " + accession + "==== ");
+                log.info("transformedOracleProject : " + transformedOracleProject);
+                log.info("mongoPrideProject : " + mongoProject);
+            }*/
 
-            /*
-             * PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
-             * 
-             * PrideSolrProject transformedSolrProject =
-             * PrideProjectTransformer.transformProjectMongoToSolr(mongoProject);
-             * 
-             * if (transformedSolrProject.getAdditionalAttributesStrings() != null &&
-             * transformedSolrProject.getAdditionalAttributesStrings().isEmpty()) {
-             * solrProject.setAdditionalAttributesFromCvParams(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getProjectTags() != null &&
-             * transformedSolrProject.getProjectTags().isEmpty()) {
-             * solrProject.setProjectTags(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getLabPIs() != null &&
-             * transformedSolrProject.getLabPIs().isEmpty()) {
-             * solrProject.setLabPIs(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getKeywords() != null &&
-             * transformedSolrProject.getKeywords().isEmpty()) {
-             * solrProject.setKeywords(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getOtherOmicsLink() != null &&
-             * transformedSolrProject.getOtherOmicsLink().isEmpty()) {
-             * solrProject.setOtherOmicsLinks(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getSubmitters() != null &&
-             * transformedSolrProject.getSubmitters().isEmpty()) {
-             * solrProject.setSubmittersFromContacts(null); }
-             * 
-             * if (transformedSolrProject.getAffiliations() != null &&
-             * transformedSolrProject.getAffiliations().isEmpty()) {
-             * solrProject.setAffiliations(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getInstruments() != null &&
-             * transformedSolrProject.getInstruments().isEmpty()) {
-             * solrProject.setInstrumentsFromCvParam(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getSoftwares() != null &&
-             * transformedSolrProject.getSoftwares().isEmpty()) {
-             * solrProject.setSoftwaresFromCvParam(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getQuantificationMethods() != null &&
-             * transformedSolrProject.getQuantificationMethods().isEmpty()) {
-             * solrProject.setQuantificationMethodsFromCvParams(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getAllCountries() != null &&
-             * transformedSolrProject.getAllCountries().isEmpty()) {
-             * solrProject.setAllCountries(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getExperimentalFactors() != null &&
-             * transformedSolrProject.getExperimentalFactors().isEmpty()) {
-             * solrProject.setExperimentalFactors(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getSampleAttributes() != null &&
-             * transformedSolrProject.getSampleAttributes().isEmpty()) {
-             * solrProject.setSampleAttributes(Collections.emptyList()); }
-             * 
-             * if (transformedSolrProject.getOrganisms() != null &&
-             * transformedSolrProject.getOrganisms().isEmpty()) {
-             * solrProject.setOrganisms(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getOrganisms_facet() != null &&
-             * transformedSolrProject.getOrganisms_facet().isEmpty()) {
-             * solrProject.setOrganisms_facet(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getOrganismPart() != null &&
-             * transformedSolrProject.getOrganismPart().isEmpty()) {
-             * solrProject.setOrganismPart(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getOrganismPart_facet() != null &&
-             * transformedSolrProject.getOrganismPart_facet().isEmpty()) {
-             * solrProject.setOrganismPart_facet(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getDiseases() != null &&
-             * transformedSolrProject.getDiseases().isEmpty()) {
-             * solrProject.setDiseases(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getDiseases_facet() != null &&
-             * transformedSolrProject.getDiseases_facet().isEmpty()) {
-             * solrProject.setDiseases_facet(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getReferences() != null &&
-             * transformedSolrProject.getReferences().isEmpty()) {
-             * solrProject.setReferences(Collections.emptySet()); }
-             * 
-             * if (transformedSolrProject.getProjectFileNames() != null &&
-             * transformedSolrProject.getProjectFileNames().isEmpty()) {
-             * solrProject.setProjectFileNames(Collections.emptySet()); }
-             * 
-             * Set<String> fileNames =
-             * mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet
-             * ()); transformedSolrProject.setProjectFileNames(fileNames); if
-             * (!transformedSolrProject.equals(solrProject)) {
-             * log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
-             * log.info("transformedSolrProject : " + transformedSolrProject);
-             * log.info("solrProject : " + solrProject); //
-             * transformedSolrProject.setId((String)solrProject.getId()); //
-             * solrProjectService.update(transformedSolrProject); }
-             */
+                Set<MongoPrideFile> mongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+                Map<String, String> checkSumMap = new HashMap<>();
+                mongoFiles.forEach(m -> checkSumMap.put(m.getAccession(), m.getChecksum()));
+
+                List<ProjectFile> oracleFiles = fileRepoClient.findAllByProjectId(oracleProject.getId());
+                Set<MongoPrideFile> transfromedOracleFiles = oracleFiles.stream().map(o -> transformOracleFileToMongo(o, oracleProject, checkSumMap)).collect(Collectors.toSet());
+
+                Map<String, MongoPrideFile> mongoFilesMap = new HashMap<>();
+                mongoFiles.forEach(m -> mongoFilesMap.put(m.getAccession(), m));
+
+                Map<String, MongoPrideFile> transfromedOracleFilesMap = new HashMap<>();
+                transfromedOracleFiles.forEach(m -> transfromedOracleFilesMap.put(m.getAccession(), m));
+
+                if (!mongoFiles.equals(transfromedOracleFiles)) {
+                    log.info(" ==== Mongo files mismatched for project : " + accession + " ==== ");
+                }
+
+                boolean fixedFiles = false;
+                for (MongoPrideFile m : mongoFiles) {
+                    boolean fileUpdate = false;
+                    MongoPrideFile transformedFile = transfromedOracleFilesMap.get(m.getAccession());
+                    if (!Objects.equals(m.getSubmissionDate(), transformedFile.getSubmissionDate())) {
+                        m.setSubmissionDate(transformedFile.getSubmissionDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getPublicationDate(), transformedFile.getPublicationDate())) {
+                        m.setPublicationDate(transformedFile.getPublicationDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getUpdatedDate(), transformedFile.getUpdatedDate())) {
+                        m.setUpdatedDate(transformedFile.getUpdatedDate());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getPublicFileLocations(), transformedFile.getPublicFileLocations())) {
+                        m.setPublicFileLocations(transformedFile.getPublicFileLocations());
+                        fileUpdate = true;
+                    }
+                    if (!Objects.equals(m.getFileSizeBytes(), transformedFile.getFileSizeBytes())) {
+                        m.setFileSizeBytes(transformedFile.getFileSizeBytes());
+                        fileUpdate = true;
+                    }
+                    if (fileUpdate && fixFilesOptionSet) {
+                        fixedFiles = true;
+                        prideFileMongoService.save(m);
+                    }
+                }
+
+                if (fixedFiles) {
+                    log.info("==== fixed mongo files for : " + accession + " ====");
+                }
+
+                HashSet<MongoPrideFile> fixedMongoFiles = new HashSet<>(prideFileMongoService.findFilesByProjectAccession(accession));
+                if (!fixedMongoFiles.equals(transfromedOracleFiles)) {
+                    if (fixedFiles) {
+                        log.error(errorLogPrefix + "Even after fixing, Mongo files mismatched");
+                    }
+
+                    //debug log to identify the differences
+                    List<MongoPrideFile> collect = mongoFiles.stream()
+                            .filter(m -> !mongoFilesMap.get(m.getAccession()).equals(transfromedOracleFilesMap.get(m.getAccession())))
+                            .collect(Collectors.toList());
+                    if (collect.size() > 0) {
+                        log.error(errorLogPrefix + "mismatched mongo files : " + collect);
+                        List<MongoPrideFile> collect1 = collect.stream().map(c -> transfromedOracleFilesMap.get(c.getAccession())).collect(Collectors.toList());
+                        log.error(errorLogPrefix + "reference transformedOracleFiles : " + collect1);
+                    }
+
+                    //case where one or more files are missing in mongo..
+                    //checksum in transfromedOracleFiles is taken from from mongo files. so, if the mongo file is missing then it's null for transfromedOracleFile
+                    final List<MongoPrideFile> missingMongoFiles = transfromedOracleFiles.stream().filter(o -> o.getChecksum() == null).collect(Collectors.toList());
+                    if (missingMongoFiles.size() == transfromedOracleFiles.size()) {
+                        log.error(errorLogPrefix + "All mongo files are missing");
+                    } else {
+                        List<String> missingFiles = missingMongoFiles.stream().map(m -> m.getFileSourceFolder() + "/" + m.getFileName()).collect(Collectors.toList());
+                        if (missingFiles.size() > 0) {
+                            log.error(errorLogPrefix + "Missing mongo files: " + missingFiles);
+                        } else {
+                            //this is a case where oracle has duplicate file entries
+                            log.error(errorLogPrefix + "Oracle has duplicate file entries");
+                        }
+                    }
+                }
+
+                // Check Solr
+                Optional<PrideSolrProject> solrProjectOptional = solrProjectClient.findByAccession(accession);
+                if (!solrProjectOptional.isPresent()) {
+                    log.error(errorLogPrefix + "Missing in Solr");
+                } else {
+                    PrideSolrProject prideSolrProject = solrProjectOptional.get();
+                    Set<String> projectFileNames = prideSolrProject.getProjectFileNames();
+                    if (projectFileNames == null || projectFileNames.isEmpty()) {
+                        log.error(errorLogPrefix + "Files are missing in Solr");
+                    }
+                }
+
+                // Check Proteomecentral
+                if (isCheckProteomeCentralOptionSet && accession.startsWith("PXD")) {
+                    try {
+                        ResponseEntity<String> pcResponse = restTemplate.getForEntity(pcDatasetUrl + accession,
+                                String.class);
+                        if (pcResponse.getStatusCode() != HttpStatus.OK) {
+                            log.error(errorLogPrefix + "Missing in ProteomeCentral");
+                        }
+                    } catch (HttpClientErrorException ex) {
+                        if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+                            log.error(errorLogPrefix + "Missing in ProteomeCentral");
+                        }
+                    }
+                }
+
+                /*
+                 * PrideSolrProject solrProject = solrProjectService.findByAccession(accession);
+                 *
+                 * PrideSolrProject transformedSolrProject =
+                 * PrideProjectTransformer.transformProjectMongoToSolr(mongoProject);
+                 *
+                 * if (transformedSolrProject.getAdditionalAttributesStrings() != null &&
+                 * transformedSolrProject.getAdditionalAttributesStrings().isEmpty()) {
+                 * solrProject.setAdditionalAttributesFromCvParams(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getProjectTags() != null &&
+                 * transformedSolrProject.getProjectTags().isEmpty()) {
+                 * solrProject.setProjectTags(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getLabPIs() != null &&
+                 * transformedSolrProject.getLabPIs().isEmpty()) {
+                 * solrProject.setLabPIs(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getKeywords() != null &&
+                 * transformedSolrProject.getKeywords().isEmpty()) {
+                 * solrProject.setKeywords(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getOtherOmicsLink() != null &&
+                 * transformedSolrProject.getOtherOmicsLink().isEmpty()) {
+                 * solrProject.setOtherOmicsLinks(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getSubmitters() != null &&
+                 * transformedSolrProject.getSubmitters().isEmpty()) {
+                 * solrProject.setSubmittersFromContacts(null); }
+                 *
+                 * if (transformedSolrProject.getAffiliations() != null &&
+                 * transformedSolrProject.getAffiliations().isEmpty()) {
+                 * solrProject.setAffiliations(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getInstruments() != null &&
+                 * transformedSolrProject.getInstruments().isEmpty()) {
+                 * solrProject.setInstrumentsFromCvParam(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getSoftwares() != null &&
+                 * transformedSolrProject.getSoftwares().isEmpty()) {
+                 * solrProject.setSoftwaresFromCvParam(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getQuantificationMethods() != null &&
+                 * transformedSolrProject.getQuantificationMethods().isEmpty()) {
+                 * solrProject.setQuantificationMethodsFromCvParams(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getAllCountries() != null &&
+                 * transformedSolrProject.getAllCountries().isEmpty()) {
+                 * solrProject.setAllCountries(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getExperimentalFactors() != null &&
+                 * transformedSolrProject.getExperimentalFactors().isEmpty()) {
+                 * solrProject.setExperimentalFactors(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getSampleAttributes() != null &&
+                 * transformedSolrProject.getSampleAttributes().isEmpty()) {
+                 * solrProject.setSampleAttributes(Collections.emptyList()); }
+                 *
+                 * if (transformedSolrProject.getOrganisms() != null &&
+                 * transformedSolrProject.getOrganisms().isEmpty()) {
+                 * solrProject.setOrganisms(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getOrganisms_facet() != null &&
+                 * transformedSolrProject.getOrganisms_facet().isEmpty()) {
+                 * solrProject.setOrganisms_facet(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getOrganismPart() != null &&
+                 * transformedSolrProject.getOrganismPart().isEmpty()) {
+                 * solrProject.setOrganismPart(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getOrganismPart_facet() != null &&
+                 * transformedSolrProject.getOrganismPart_facet().isEmpty()) {
+                 * solrProject.setOrganismPart_facet(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getDiseases() != null &&
+                 * transformedSolrProject.getDiseases().isEmpty()) {
+                 * solrProject.setDiseases(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getDiseases_facet() != null &&
+                 * transformedSolrProject.getDiseases_facet().isEmpty()) {
+                 * solrProject.setDiseases_facet(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getReferences() != null &&
+                 * transformedSolrProject.getReferences().isEmpty()) {
+                 * solrProject.setReferences(Collections.emptySet()); }
+                 *
+                 * if (transformedSolrProject.getProjectFileNames() != null &&
+                 * transformedSolrProject.getProjectFileNames().isEmpty()) {
+                 * solrProject.setProjectFileNames(Collections.emptySet()); }
+                 *
+                 * Set<String> fileNames =
+                 * mongoFiles.stream().map(MongoPrideFile::getFileName).collect(Collectors.toSet
+                 * ()); transformedSolrProject.setProjectFileNames(fileNames); if
+                 * (!transformedSolrProject.equals(solrProject)) {
+                 * log.error(" ==== Solr project Mismatched : " + accession + " ==== ");
+                 * log.info("transformedSolrProject : " + transformedSolrProject);
+                 * log.info("solrProject : " + solrProject); //
+                 * transformedSolrProject.setId((String)solrProject.getId()); //
+                 * solrProjectService.update(transformedSolrProject); }
+                 */
+            }
         } catch (Exception e) {
             log.error(errorLogPrefix + e.getMessage());
             log.error(e.getMessage(), e);
@@ -474,7 +440,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
     }
 
     private MongoPrideFile transformOracleFileToMongo(ProjectFile oracleFile, Project oracleProject,
-            Map<String, String> checkSumMap) {
+                                                      Map<String, String> checkSumMap) {
         MSFileTypeConstants fileType = MSFileTypeConstants.OTHER;
         for (MSFileTypeConstants currentFileType : MSFileTypeConstants.values())
             if (currentFileType.getFileType().getName().equalsIgnoreCase(oracleFile.getFileType().getName()))
@@ -484,7 +450,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 .getFolderName();
         Set<CvParam> publicURLs = oracleProject.isPublicProject()
                 ? PrideProjectTransformer.createPublicFileLocations(oracleFile.getFileName(), folderName,
-                        oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpUrl, asperaUrl)
+                oracleProject.getPublicationDate(), oracleProject.getAccession(), ftpUrl, asperaUrl)
                 : Collections.emptySet();
 
         String accession = HashUtils
@@ -500,7 +466,7 @@ public class SanityCheckJob extends AbstractArchiveJob {
                 .fileSourceType(oracleFile.getFileSource().name()).fileSourceFolder(folderName)
                 .publicFileLocations(publicURLs).submissionDate(oracleProject.getSubmissionDate())
                 .updatedDate(oracleProject.getUpdateDate()).checksum(checkSumMap.get(accession)) // Checksum is not
-                                                                                                 // calculated again.
+                // calculated again.
                 .build();
     }
 }
