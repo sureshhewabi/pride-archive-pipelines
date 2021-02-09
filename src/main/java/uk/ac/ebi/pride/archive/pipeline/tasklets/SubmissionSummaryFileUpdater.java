@@ -1,7 +1,6 @@
 package uk.ac.ebi.pride.archive.pipeline.tasklets;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import uk.ac.ebi.pride.archive.dataprovider.project.SubmissionType;
 import uk.ac.ebi.pride.archive.repo.models.project.ProjectSummary;
 import uk.ac.ebi.pride.data.exception.SubmissionFileException;
@@ -13,11 +12,8 @@ import uk.ac.ebi.pride.data.validation.ValidationMessage;
 import uk.ac.ebi.pride.data.validation.ValidationReport;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 
 /**

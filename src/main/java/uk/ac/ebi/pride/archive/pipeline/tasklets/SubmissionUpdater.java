@@ -276,6 +276,7 @@ public class SubmissionUpdater {
         contactToUpdate.setName(submitterName);
         String email = newContact.getEmail();
         contactToUpdate.setEmail(email);
+        contactToUpdate.setUserName(email);
         String affiliation = newContact.getAffiliation();
         contactToUpdate.setAffiliation(affiliation);
     }
