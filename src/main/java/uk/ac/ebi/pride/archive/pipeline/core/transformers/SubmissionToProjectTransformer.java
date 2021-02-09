@@ -61,7 +61,7 @@ public class SubmissionToProjectTransformer {
                 log.warn("No user found with email : " + newEmail);
             }
         }else{
-            log.error("Submitter cannot be changed for public datasets!");
+            log.warn("Submitter cannot be changed for public datasets!");
         }
 
         // Set sample CV Params
