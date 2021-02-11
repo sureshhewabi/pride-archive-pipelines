@@ -49,15 +49,19 @@ public class SubmissionToProjectTransformer {
         modifiedProject.setSampleProcessingProtocol(submission.getProjectMetaData().getSampleProcessingProtocol());
         modifiedProject.setKeywords(submission.getProjectMetaData().getKeywords());
 
-        // set submitter
-        final String newEmail = submission.getProjectMetaData().getSubmitterContact().getEmail();
-        Optional<User> submitterContact = userRepoClient.findByEmail(newEmail);
-        if(submitterContact.isPresent()) {
-            User submitterContactUser = submitterContact.get();
-            submitterContactUser.setAffiliation(submission.getProjectMetaData().getSubmitterContact().getAffiliation());
-            modifiedProject.setSubmitter(submitterContactUser);
+        // set submitter (change only if the dataset is private)
+        if(!modifiedProject.isPublicProject()){
+            final String newEmail = submission.getProjectMetaData().getSubmitterContact().getEmail();
+            Optional<User> submitterContact = userRepoClient.findByEmail(newEmail);
+            if(submitterContact.isPresent()) {
+                User submitterContactUser = submitterContact.get();
+                submitterContactUser.setAffiliation(submission.getProjectMetaData().getSubmitterContact().getAffiliation());
+                modifiedProject.setSubmitter(submitterContactUser);
+            }else{
+                log.warn("No user found with email : " + newEmail);
+            }
         }else{
-            log.warn("No user found with email : " + newEmail);
+            log.warn("Submitter cannot be changed for public datasets!");
         }
 
         // Set sample CV Params
@@ -272,7 +276,12 @@ public class SubmissionToProjectTransformer {
     private void CvParamCheckExists(uk.ac.ebi.pride.data.model.CvParam submissionCvParam, CvParam cvParam) {
         try {
             CvParam cvParamExits =  cvParamRepoClient.findByAccession(submissionCvParam.getAccession());
-            if(cvParamExits != null){
+            if(!submissionCvParam.getName().toLowerCase().trim().equals(cvParamExits.getName().toLowerCase().trim())){
+                log.warn("CV term ("+ submissionCvParam.getAccession()+") mismatch found! " + submissionCvParam.getName()
+                        + " is reported as "
+                        + cvParamExits.getName() + " in the database");
+            }
+            if(cvParamExits.getId() !=  null){
                 cvParam.setId(cvParamExits.getId());
             }
         } catch (IOException e) {
