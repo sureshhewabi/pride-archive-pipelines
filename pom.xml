@@ -33,7 +33,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <jmztab.version>3.0.8</jmztab.version>
-        <archive.px.xml.generator.version>1.0.30-SNAPSHOT</archive.px.xml.generator.version>
+        <archive.px.xml.generator.version>1.0.31-SNAPSHOT</archive.px.xml.generator.version>
         <uk.ac.ebi.pride.archive.repo.version>1.0.3-SNAPSHOT</uk.ac.ebi.pride.archive.repo.version>
         <uk.ac.ebi.pride.archive.mongodb.repo.version>1.0.4-SNAPSHOT</uk.ac.ebi.pride.archive.mongodb.repo.version>
         <uk.ac.ebi.pride.archive.solr.client.version>0.0.1-SNAPSHOT</uk.ac.ebi.pride.archive.solr.client.version>
