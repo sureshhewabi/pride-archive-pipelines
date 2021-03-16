@@ -42,7 +42,7 @@
         <uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>2.0.6-SNAPSHOT
         </uk.ac.ebi.pride.pubmed.pubmed-id-fetcher.version>
         <archive.utils.version>0.1.22</archive.utils.version>
-        <pride.repo.client.version>0.0.1-SNAPSHOT</pride.repo.client.version>
+        <pride.repo.client.version>1.1.0-SNAPSHOT</pride.repo.client.version>
         <archive.integration.version>0.0.3-SNAPSHOT</archive.integration.version>
         <uk.ac.ebi.pride.tools-jmzreader.version>2.0.6</uk.ac.ebi.pride.tools-jmzreader.version>
         <maven.test.skip>true</maven.test.skip>

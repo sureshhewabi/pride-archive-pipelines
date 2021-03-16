@@ -14,10 +14,7 @@ import uk.ac.ebi.pride.pubmed.model.EupmcReferenceSummary;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * This class helps to transform the Submission object to Project Object
@@ -28,11 +25,11 @@ public class SubmissionToProjectTransformer {
     UserRepoClient userRepoClient;
     CvParamRepoClient cvParamRepoClient;
     Project modifiedProject;
+    List<CvParam> cvParamList;
 
     public SubmissionToProjectTransformer(CvParamRepoClient cvParamRepoClient,  UserRepoClient userRepoClient) {
         this.cvParamRepoClient = cvParamRepoClient;
         this.userRepoClient = userRepoClient;
-
     }
 
     /**
@@ -43,6 +40,7 @@ public class SubmissionToProjectTransformer {
      */
     public Project transform(Submission submission, Project modifiedProject) throws IOException {
         this.modifiedProject = modifiedProject;
+        this.cvParamList = cvParamRepoClient.findAll();
         modifiedProject.setTitle(submission.getProjectMetaData().getProjectTitle());
         modifiedProject.setProjectDescription(submission.getProjectMetaData().getProjectDescription());
         modifiedProject.setDataProcessingProtocol(submission.getProjectMetaData().getDataProcessingProtocol());
@@ -140,7 +138,7 @@ public class SubmissionToProjectTransformer {
     private ProjectSampleCvParam cvParamToProjectSampleCvParam(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
 
         ProjectSampleCvParam projectSampleCvParam = new ProjectSampleCvParam();
-        CvParam cvParam = new CvParam();
+        CvParam cvParam;
 
         for (ProjectSampleCvParam param: modifiedProject.getSamples()) {
             if(param.getAccession().equals(submissionCvParam.getAccession())){
@@ -149,14 +147,31 @@ public class SubmissionToProjectTransformer {
             }
         }
 
-        CvParamCheckExists(submissionCvParam, cvParam);
-        cvParam.setAccession(submissionCvParam.getAccession());
-        cvParam.setName(submissionCvParam.getName());
-        cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        CvParam cvParamExisting =CvParamCheckExists(submissionCvParam);
+        cvParam = getCvParam(submissionCvParam, cvParamExisting);
         projectSampleCvParam.setCvParam(cvParam);
         projectSampleCvParam.setProject(modifiedProject);
         projectSampleCvParam.setValue(cvParam.getValue());
         return projectSampleCvParam;
+    }
+
+    /**
+     * Use the Cv Param if exists, otherwise copy data to a new CvParam
+     * @param submissionCvParam CvParam with modified values
+     * @param cvParamExisting Existing CvParam from the database
+     * @return CvParam
+     */
+    private CvParam getCvParam(uk.ac.ebi.pride.data.model.CvParam submissionCvParam, CvParam cvParamExisting) {
+        CvParam cvParam;
+        if(cvParamExisting != null) {
+            cvParam = cvParamExisting;
+        }else{
+            cvParam =  new CvParam();
+            cvParam.setAccession(submissionCvParam.getAccession());
+            cvParam.setName(submissionCvParam.getName());
+            cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        }
+        return cvParam;
     }
 
     /**
@@ -167,7 +182,6 @@ public class SubmissionToProjectTransformer {
     private ProjectExperimentType cvParamToProjectExperimentTypeCvParam(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
 
         ProjectExperimentType projectExperimentType = new ProjectExperimentType();
-        CvParam cvParam = new CvParam();
 
         for (ProjectExperimentType param: modifiedProject.getExperimentTypes()) {
             if(param.getAccession().equals(submissionCvParam.getAccession())){
@@ -176,10 +190,8 @@ public class SubmissionToProjectTransformer {
             }
         }
 
-        CvParamCheckExists(submissionCvParam, cvParam);
-        cvParam.setAccession(submissionCvParam.getAccession());
-        cvParam.setName(submissionCvParam.getName());
-        cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        CvParam cvParamExisting =CvParamCheckExists(submissionCvParam);
+        CvParam cvParam = getCvParam(submissionCvParam, cvParamExisting);
         projectExperimentType.setCvParam(cvParam);
         projectExperimentType.setProject(modifiedProject);
         projectExperimentType.setValue(cvParam.getValue());
@@ -194,7 +206,6 @@ public class SubmissionToProjectTransformer {
     private ProjectInstrumentCvParam cvParamToProjectInstrumentCvParam(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
 
         ProjectInstrumentCvParam projectInstrumentCvParam = new ProjectInstrumentCvParam();
-        CvParam cvParam = new CvParam();
 
         for (ProjectInstrumentCvParam param: modifiedProject.getInstruments()) {
             if(param.getAccession().equals(submissionCvParam.getAccession())){
@@ -203,10 +214,8 @@ public class SubmissionToProjectTransformer {
             }
         }
 
-        CvParamCheckExists(submissionCvParam, cvParam);
-        cvParam.setAccession(submissionCvParam.getAccession());
-        cvParam.setName(submissionCvParam.getName());
-        cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        CvParam cvParamExisting =CvParamCheckExists(submissionCvParam);
+        CvParam cvParam = getCvParam(submissionCvParam, cvParamExisting);
         projectInstrumentCvParam.setCvParam(cvParam);
         projectInstrumentCvParam.setProject(modifiedProject);
         projectInstrumentCvParam.setValue(cvParam.getValue());
@@ -221,7 +230,6 @@ public class SubmissionToProjectTransformer {
     private ProjectQuantificationMethodCvParam cvParamToProjectQuantificationMethodCvParam(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
 
         ProjectQuantificationMethodCvParam projectQuantificationMethodCvParam = new ProjectQuantificationMethodCvParam();
-        CvParam cvParam = new CvParam();
 
         for (ProjectQuantificationMethodCvParam param: modifiedProject.getQuantificationMethods()) {
             if(param.getAccession().equals(submissionCvParam.getAccession())){
@@ -230,10 +238,8 @@ public class SubmissionToProjectTransformer {
             }
         }
 
-        CvParamCheckExists(submissionCvParam, cvParam);
-        cvParam.setAccession(submissionCvParam.getAccession());
-        cvParam.setName(submissionCvParam.getName());
-        cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        CvParam cvParamExisting = CvParamCheckExists(submissionCvParam);
+        CvParam cvParam = getCvParam(submissionCvParam, cvParamExisting);
         projectQuantificationMethodCvParam.setCvParam(cvParam);
         projectQuantificationMethodCvParam.setProject(modifiedProject);
         projectQuantificationMethodCvParam.setValue(cvParam.getValue());
@@ -248,7 +254,6 @@ public class SubmissionToProjectTransformer {
     private ProjectPTM cvParamToProjectPTM(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
 
         ProjectPTM projectPTM = new ProjectPTM();
-        CvParam cvParam = new CvParam();
 
         for (ProjectPTM param: modifiedProject.getPtms()) {
             if(param.getAccession().equals(submissionCvParam.getAccession())){
@@ -257,10 +262,8 @@ public class SubmissionToProjectTransformer {
             }
         }
 
-        CvParamCheckExists(submissionCvParam, cvParam);
-        cvParam.setAccession(submissionCvParam.getAccession());
-        cvParam.setName(submissionCvParam.getName());
-        cvParam.setCvLabel(submissionCvParam.getCvLabel());
+        CvParam cvParamExisting =CvParamCheckExists(submissionCvParam);
+        CvParam cvParam = getCvParam(submissionCvParam, cvParamExisting);
         projectPTM.setCvParam(cvParam);
         projectPTM.setProject(modifiedProject);
         projectPTM.setValue(cvParam.getValue());
@@ -271,22 +274,16 @@ public class SubmissionToProjectTransformer {
      * Check if the Cv Param is already in the database. If it is already exists, use the id of the CV param
      * to update the record. If not, leave id empty to insert a new one
      * @param submissionCvParam
-     * @param cvParam
      */
-    private void CvParamCheckExists(uk.ac.ebi.pride.data.model.CvParam submissionCvParam, CvParam cvParam) {
-        try {
-            CvParam cvParamExits =  cvParamRepoClient.findByAccession(submissionCvParam.getAccession());
-            if(!submissionCvParam.getName().toLowerCase().trim().equals(cvParamExits.getName().toLowerCase().trim())){
-                log.warn("CV term ("+ submissionCvParam.getAccession()+") mismatch found! " + submissionCvParam.getName()
-                        + " is reported as "
-                        + cvParamExits.getName() + " in the database");
-            }
-            if(cvParamExits.getId() !=  null){
-                cvParam.setId(cvParamExits.getId());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private CvParam CvParamCheckExists(uk.ac.ebi.pride.data.model.CvParam submissionCvParam) {
+        return cvParamList
+                .stream()
+                .filter(param -> param.getCvLabel().toLowerCase().trim().equals(
+                        submissionCvParam.getCvLabel().toLowerCase().trim()) &&
+                param.getAccession().toLowerCase().trim().equals(
+                        submissionCvParam.getAccession().toLowerCase().trim()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
