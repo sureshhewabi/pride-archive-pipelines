@@ -110,8 +110,13 @@ public class PrideArchiveDataUsageReportJob extends AbstractArchiveJob {
           if (projects != null && 0 < projects.length) {
             for (File project : projects) {
               if(project.isDirectory()) {
-                long projectSize = FileUtils.sizeOfDirectory(project);
-                log.info("Project: " + project.getPath() + " Size: " + projectSize);
+                long projectSize = 0;
+                try {
+                  projectSize = FileUtils.sizeOfDirectory(project);
+                  log.info("Project: " + project.getPath() + " Size: " + projectSize);
+                }catch (Exception ex){
+                  log.warn("Project: " + project.getPath() + " Size: NOT CALCULATED" );
+                }
                 yearMonthDataUsage += projectSize;
               }else{
                 log.warn("Project not a directory:"+project);
