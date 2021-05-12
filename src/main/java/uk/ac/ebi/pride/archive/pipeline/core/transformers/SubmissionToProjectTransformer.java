@@ -3,11 +3,13 @@ package uk.ac.ebi.pride.archive.pipeline.core.transformers;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
+import uk.ac.ebi.pride.archive.dataprovider.utils.TitleConstants;
 import uk.ac.ebi.pride.archive.repo.client.CvParamRepoClient;
 import uk.ac.ebi.pride.archive.repo.client.UserRepoClient;
 import uk.ac.ebi.pride.archive.repo.models.param.CvParam;
 import uk.ac.ebi.pride.archive.repo.models.project.*;
 import uk.ac.ebi.pride.archive.repo.models.user.User;
+import uk.ac.ebi.pride.data.model.Contact;
 import uk.ac.ebi.pride.data.model.Submission;
 import uk.ac.ebi.pride.pubmed.PubMedFetcher;
 import uk.ac.ebi.pride.pubmed.model.EupmcReferenceSummary;
@@ -47,8 +49,10 @@ public class SubmissionToProjectTransformer {
         modifiedProject.setSampleProcessingProtocol(submission.getProjectMetaData().getSampleProcessingProtocol());
         modifiedProject.setKeywords(submission.getProjectMetaData().getKeywords());
 
-        // set submitter (change only if the dataset is private)
+        // set submitter and labhead (change only if the dataset is private)
         if(!modifiedProject.isPublicProject()){
+
+            // update submitter
             final String newEmail = submission.getProjectMetaData().getSubmitterContact().getEmail();
             Optional<User> submitterContact = userRepoClient.findByEmail(newEmail);
             if(submitterContact.isPresent()) {
@@ -57,6 +61,21 @@ public class SubmissionToProjectTransformer {
                 modifiedProject.setSubmitter(submitterContactUser);
             }else{
                 log.warn("No user found with email : " + newEmail);
+            }
+
+            // update Labhead
+            Contact labHeadContact = submission.getProjectMetaData().getLabHeadContact();
+
+            if (labHeadContact.getName() != null &&
+                    labHeadContact.getEmail() != null &&
+                    labHeadContact.getAffiliation() != null) {
+
+                LabHead labHead = convertLabHead(labHeadContact);
+                List<LabHead> labHeads = new ArrayList<>();
+                labHeads.add(labHead);
+                modifiedProject.setLabHeads(labHeads);
+            }else{
+                log.warn("Missing Labhead information(name, email, Affiliation)!");
             }
         }else{
             log.warn("Submitter cannot be changed for public datasets!");
@@ -128,6 +147,53 @@ public class SubmissionToProjectTransformer {
         setReferenceList(submission, modifiedProject);
 
         return modifiedProject;
+    }
+
+    /**
+     * Convert Contact To LabHead
+     * @param labHeadContact  labHeadContact
+     * @return labHead object
+     */
+    public LabHead convertLabHead(uk.ac.ebi.pride.data.model.Contact labHeadContact) {
+        LabHead labHead = new LabHead();
+
+        // default title for lab head is Dr
+        labHead.setTitle(TitleConstants.Dr);
+
+        //try to split the name on whitespace
+        String[] tokens = labHeadContact.getName().split("\\s+");
+        if (tokens.length > 1) {
+            //put everything in first name except last token
+            String lastName = tokens[tokens.length - 1];
+            tokens[tokens.length - 1] = "";
+            StringBuilder sb = new StringBuilder();
+            for (String token : tokens) {
+                sb.append(token).append(" ");
+            }
+            labHead.setFirstName(sb.toString().trim());
+            labHead.setLastName(lastName);
+        } else {
+            labHead.setFirstName(tokens[0]);
+            //set to blank string so that db doesn't barf
+            labHead.setLastName(" ");
+        }
+
+        //email
+        String email = labHeadContact.getEmail();
+        if (email == null || "".equals(email.trim())) {
+            log.warn("No email given for labHead: " + labHeadContact.toString());
+        }
+
+        labHead.setEmail(email);
+
+        //affiliations
+        String affiliation = labHeadContact.getAffiliation();
+        if (affiliation == null || "".equals(affiliation)) {
+            log.warn("No affiliation given for labHead: " + labHeadContact.toString());
+        }
+        labHead.setAffiliation(affiliation);
+
+        return labHead;
     }
 
     /**
